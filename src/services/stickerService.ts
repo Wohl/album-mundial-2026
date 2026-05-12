@@ -45,14 +45,10 @@ export const stickerService = {
     try {
       const { data, error } = await supabase
         .from('sticker_states')
-        .upsert([
-          {
-            session_id: sessionId,
-            sticker_key: stickerKey,
-            status,
-            repeat_count: repeatCount,
-          },
-        ])
+        .upsert(
+          [{ session_id: sessionId, sticker_key: stickerKey, status, repeat_count: repeatCount }],
+          { onConflict: 'session_id,sticker_key' }
+        )
         .select()
         .single()
 
