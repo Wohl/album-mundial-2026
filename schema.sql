@@ -82,3 +82,34 @@ CREATE TRIGGER trigger_sticker_states_updated_at
 -- ============================================================
 ALTER PUBLICATION supabase_realtime ADD TABLE sticker_states;
 ALTER PUBLICATION supabase_realtime ADD TABLE sessions;
+
+-- ============================================================
+-- MERCADO DE INTERCAMBIO
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS trade_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  requester_id UUID REFERENCES sessions(id) ON DELETE CASCADE,
+  owner_id     UUID REFERENCES sessions(id) ON DELETE CASCADE,
+  requested_sticker_key TEXT NOT NULL,
+  offered_sticker_key   TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending','accepted','rejected','cancelled')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_trade_requests_owner     ON trade_requests(owner_id);
+CREATE INDEX IF NOT EXISTS idx_trade_requests_requester ON trade_requests(requester_id);
+CREATE INDEX IF NOT EXISTS idx_trade_requests_status    ON trade_requests(status);
+
+ALTER TABLE trade_requests ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "trade_read_all"   ON trade_requests FOR SELECT USING (true);
+CREATE POLICY "trade_insert"     ON trade_requests FOR INSERT WITH CHECK (true);
+CREATE POLICY "trade_update_own" ON trade_requests FOR UPDATE USING (true);
+
+CREATE OR REPLACE TRIGGER trigger_trade_requests_updated_at
+  BEFORE UPDATE ON trade_requests
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+ALTER PUBLICATION supabase_realtime ADD TABLE trade_requests;

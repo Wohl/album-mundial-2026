@@ -35,3 +35,16 @@ export interface UserProgress {
   repeated: number
   percentComplete: number
 }
+
+export interface TradeRequest {
+  id: string
+  requester_id: string
+  requester_name: string
+  owner_id: string
+  owner_name: string
+  requested_sticker_key: string
+  offered_sticker_key: string
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
+  created_at: string
+  updated_at: string
+}

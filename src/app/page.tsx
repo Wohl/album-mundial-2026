@@ -4,10 +4,12 @@ import { useState, useCallback, useMemo, type MouseEvent } from 'react'
 import { motion } from 'framer-motion'
 import { useSession } from '@/hooks/useSession'
 import { useStickers } from '@/hooks/useStickers'
+import { useTrades } from '@/hooks/useTrades'
 import { WelcomeModal } from '@/components/WelcomeModal'
 import { ProgressBar } from '@/components/ProgressBar'
 import { StickerGallery } from '@/components/StickerGallery'
 import { StickerContextMenu } from '@/components/StickerContextMenu'
+import { MarketplaceView } from '@/components/MarketplaceView'
 import { getAllStickers, getTotalStickers } from '@/lib/stickers'
 import { INTRO_STICKERS, TEAMS } from '@/stickers'
 
@@ -26,10 +28,12 @@ export default function Home() {
     y: 0,
     stickerKey: '',
   })
-  const [activeTab, setActiveTab] = useState<'intro' | 'teams' | 'all'>('intro')
+  const [activeTab, setActiveTab] = useState<'intro' | 'teams' | 'all' | 'market'>('intro')
 
   const totalStickers = getTotalStickers()
   const { stickers, progress, loading, updateSticker } = useStickers(session?.id || null, totalStickers)
+  const { trades, othersRepeated, loading: tradesLoading, pendingIncoming, createTrade, respondToTrade, cancelTrade } =
+    useTrades(session?.id || null, stickers)
 
   const handleCreateSession = useCallback(
     async (name: string) => {
@@ -108,6 +112,13 @@ export default function Home() {
     return <WelcomeModal onSubmit={handleCreateSession} />
   }
 
+  const tabs = [
+    { id: 'intro',  label: 'Introducción' },
+    { id: 'teams',  label: 'Equipos' },
+    { id: 'all',    label: 'Todo' },
+    { id: 'market', label: 'Mercado', badge: pendingIncoming },
+  ] as const
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-dark via-surface to-dark">
       {/* Header */}
@@ -133,14 +144,16 @@ export default function Home() {
       {/* Main content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Progress section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-12"
-        >
-          <ProgressBar progress={progress} />
-        </motion.div>
+        {activeTab !== 'market' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="mb-12"
+          >
+            <ProgressBar progress={progress} />
+          </motion.div>
+        )}
 
         {/* Tab navigation */}
         <motion.div
@@ -149,32 +162,44 @@ export default function Home() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
-          {[
-            { id: 'intro', label: 'Introducción' },
-            { id: 'teams', label: 'Equipos' },
-            { id: 'all', label: 'Todo' },
-          ].map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`px-6 py-2 rounded-lg font-semibold uppercase text-sm transition-all ${
+              onClick={() => setActiveTab(tab.id)}
+              className={`relative px-6 py-2 rounded-lg font-semibold uppercase text-sm transition-all whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'bg-gradient-to-r from-gold to-gold2 text-dark shadow-lg shadow-gold/30'
                   : 'bg-surface2 text-gray-300 hover:bg-surface3 border border-surface3'
               }`}
             >
               {tab.label}
+              {'badge' in tab && tab.badge > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {tab.badge}
+                </span>
+              )}
             </button>
           ))}
         </motion.div>
 
-        {/* Sticker gallery */}
+        {/* Content */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          {loading ? (
+          {activeTab === 'market' ? (
+            <MarketplaceView
+              sessionId={session.id}
+              myStickers={stickers}
+              trades={trades}
+              othersRepeated={othersRepeated}
+              loading={tradesLoading}
+              onCreateTrade={createTrade}
+              onRespondToTrade={respondToTrade}
+              onCancelTrade={cancelTrade}
+            />
+          ) : loading ? (
             <div className="text-center py-20 text-gray-400">
               <div className="text-xl font-display">Cargando figuritas...</div>
             </div>
@@ -197,15 +222,17 @@ export default function Home() {
         </motion.div>
 
         {/* Instructions */}
-        <motion.div
-          className="mt-16 text-center text-gray-400 text-sm"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-        >
-          <p>Haz clic en las figuritas para marcar tu progreso</p>
-          <p className="text-xs mt-2 text-gray-500">✓ = No repetida | × = Repetida | ○ = Faltante</p>
-        </motion.div>
+        {activeTab !== 'market' && (
+          <motion.div
+            className="mt-16 text-center text-gray-400 text-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            <p>Haz clic en las figuritas para marcar tu progreso</p>
+            <p className="text-xs mt-2 text-gray-500">✓ = No repetida | × = Repetida | ○ = Faltante</p>
+          </motion.div>
+        )}
       </main>
 
       {/* Context menu */}

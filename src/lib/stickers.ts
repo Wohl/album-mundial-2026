@@ -40,3 +40,12 @@ export const getStickersByType = (type: string): Sticker[] => {
 export const getTeamStickers = (teamCode: string): Sticker[] => {
   return TEAM_STICKERS.filter((s) => s.id.startsWith(teamCode))
 }
+
+let stickerNameCache: Map<string, string> | null = null
+
+export const getStickerName = (key: string): string => {
+  if (!stickerNameCache) {
+    stickerNameCache = new Map(getAllStickers().map((s) => [s.id, s.name]))
+  }
+  return stickerNameCache.get(key) ?? key
+}
