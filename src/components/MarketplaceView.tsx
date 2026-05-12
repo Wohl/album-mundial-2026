@@ -66,11 +66,9 @@ export const MarketplaceView = ({
   )
 
   const handleSelectUser = useCallback(async (userId: string) => {
-    setSelectedUserId((prev) => {
-      if (prev === userId) return null
-      return userId
-    })
-    if (selectedUserId === userId) return
+    const isDeselect = selectedUserId === userId
+    setSelectedUserId(isDeselect ? null : userId)
+    if (isDeselect) { setTargetMissing([]); return }
     try {
       const missing = await tradeService.getUserMissingStickers(userId)
       setTargetMissing(missing)

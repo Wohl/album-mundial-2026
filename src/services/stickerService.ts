@@ -82,16 +82,18 @@ export const stickerService = {
   },
 
   calculateProgress(stickers: StickerState[], total: number): UserProgress {
-    const owned = stickers.filter((s) => s.status === 'owned').length
+    // owned = stickers you have (unique + those with extras)
+    const owned = stickers.filter((s) => s.status === 'owned' || s.status === 'repeated').length
+    // repeated = number of sticker types with extras
+    const repeated = stickers.filter((s) => s.status === 'repeated').length
     const missing = total - owned
-    const repeated = stickers.reduce((acc, s) => acc + s.repeat_count, 0)
 
     return {
       total,
       owned,
       missing,
       repeated,
-      percentComplete: (owned / total) * 100,
+      percentComplete: total > 0 ? (owned / total) * 100 : 0,
     }
   },
 }

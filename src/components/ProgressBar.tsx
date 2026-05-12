@@ -8,6 +8,7 @@ interface ProgressBarProps {
 
 export const ProgressBar = ({ progress }: ProgressBarProps) => {
   const { owned, total, repeated, percentComplete } = progress
+  // progress.missing is already correct (total - owned)
 
   return (
     <div className="w-full bg-surface2 rounded-lg p-6 border border-surface3">
@@ -31,14 +32,14 @@ export const ProgressBar = ({ progress }: ProgressBarProps) => {
       <div className="grid grid-cols-3 gap-4 text-center">
         <div>
           <div className="text-green-400 font-bold text-2xl">{owned}</div>
-          <div className="text-xs text-gray-400 uppercase mt-1">Figuritas</div>
+          <div className="text-xs text-gray-400 uppercase mt-1">Tengo</div>
         </div>
         <div>
           <div className="text-amber-400 font-bold text-2xl">{repeated}</div>
           <div className="text-xs text-gray-400 uppercase mt-1">Repetidas</div>
         </div>
         <div>
-          <div className="text-red-400 font-bold text-2xl">{total - owned}</div>
+          <div className="text-red-400 font-bold text-2xl">{progress.missing}</div>
           <div className="text-xs text-gray-400 uppercase mt-1">Faltan</div>
         </div>
       </div>

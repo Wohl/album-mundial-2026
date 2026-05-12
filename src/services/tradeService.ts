@@ -3,19 +3,15 @@ import { supabase, isOfflineMode } from '@/lib/supabase'
 
 export type OtherUserSticker = StickerState & { owner_name: string }
 
-function mapTradeRow(row: Record<string, unknown>): TradeRequest {
-  return {
-    id: row.id as string,
-    requester_id: row.requester_id as string,
-    requester_name: (row.requester as Record<string, string>)?.display_name ?? '',
-    owner_id: row.owner_id as string,
-    owner_name: (row.owner as Record<string, string>)?.display_name ?? '',
-    requested_sticker_key: row.requested_sticker_key as string,
-    offered_sticker_key: row.offered_sticker_key as string,
-    status: row.status as TradeRequest['status'],
-    created_at: row.created_at as string,
-    updated_at: row.updated_at as string,
-  }
+async function fetchSessionNames(ids: string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map()
+  const { data } = await supabase
+    .from('sessions')
+    .select('id, display_name')
+    .in('id', ids)
+  const map = new Map<string, string>()
+  ;(data ?? []).forEach((s: { id: string; display_name: string }) => map.set(s.id, s.display_name))
+  return map
 }
 
 export const tradeService = {
@@ -24,20 +20,24 @@ export const tradeService = {
 
     const { data, error } = await supabase
       .from('sticker_states')
-      .select('*, sessions!sticker_states_session_id_fkey(display_name)')
+      .select('id, session_id, sticker_key, status, repeat_count, updated_at')
       .eq('status', 'repeated')
       .neq('session_id', mySessionId)
 
-    if (error) throw error
+    if (error) { console.error('getOtherUsersRepeated:', error); return [] }
+    if (!data || data.length === 0) return []
 
-    return (data ?? []).map((row) => ({
-      id: row.id,
-      session_id: row.session_id,
-      sticker_key: row.sticker_key,
-      status: row.status,
-      repeat_count: row.repeat_count,
-      updated_at: row.updated_at,
-      owner_name: (row.sessions as Record<string, string>)?.display_name ?? '',
+    const sessionIds = Array.from(new Set(data.map((r) => r.session_id as string)))
+    const names = await fetchSessionNames(sessionIds)
+
+    return data.map((row) => ({
+      id: row.id as string,
+      session_id: row.session_id as string,
+      sticker_key: row.sticker_key as string,
+      status: row.status as StickerState['status'],
+      repeat_count: row.repeat_count as number,
+      updated_at: row.updated_at as string,
+      owner_name: names.get(row.session_id as string) ?? '',
     }))
   },
 
@@ -46,15 +46,31 @@ export const tradeService = {
 
     const { data, error } = await supabase
       .from('trade_requests')
-      .select(
-        '*, requester:sessions!trade_requests_requester_id_fkey(display_name), owner:sessions!trade_requests_owner_id_fkey(display_name)'
-      )
+      .select('id, requester_id, owner_id, requested_sticker_key, offered_sticker_key, status, created_at, updated_at')
       .or(`owner_id.eq.${sessionId},requester_id.eq.${sessionId}`)
       .neq('status', 'cancelled')
       .order('created_at', { ascending: false })
 
-    if (error) throw error
-    return (data ?? []).map(mapTradeRow)
+    if (error) { console.error('getMyTrades:', error); return [] }
+    if (!data || data.length === 0) return []
+
+    const sessionIds = Array.from(
+      new Set(data.flatMap((t) => [t.requester_id as string, t.owner_id as string]))
+    )
+    const names = await fetchSessionNames(sessionIds)
+
+    return data.map((row) => ({
+      id: row.id as string,
+      requester_id: row.requester_id as string,
+      requester_name: names.get(row.requester_id as string) ?? '',
+      owner_id: row.owner_id as string,
+      owner_name: names.get(row.owner_id as string) ?? '',
+      requested_sticker_key: row.requested_sticker_key as string,
+      offered_sticker_key: row.offered_sticker_key as string,
+      status: row.status as TradeRequest['status'],
+      created_at: row.created_at as string,
+      updated_at: row.updated_at as string,
+    }))
   },
 
   async getUserMissingStickers(targetSessionId: string): Promise<string[]> {
@@ -65,7 +81,7 @@ export const tradeService = {
       .eq('session_id', targetSessionId)
       .eq('status', 'missing')
     if (error) return []
-    return (data ?? []).map((r) => r.sticker_key)
+    return (data ?? []).map((r) => r.sticker_key as string)
   },
 
   async createTradeRequest(
@@ -78,14 +94,31 @@ export const tradeService = {
 
     const { data, error } = await supabase
       .from('trade_requests')
-      .insert({ requester_id: requesterId, owner_id: ownerId, requested_sticker_key: requestedKey, offered_sticker_key: offeredKey })
-      .select(
-        '*, requester:sessions!trade_requests_requester_id_fkey(display_name), owner:sessions!trade_requests_owner_id_fkey(display_name)'
-      )
+      .insert({
+        requester_id: requesterId,
+        owner_id: ownerId,
+        requested_sticker_key: requestedKey,
+        offered_sticker_key: offeredKey,
+      })
+      .select('id, requester_id, owner_id, requested_sticker_key, offered_sticker_key, status, created_at, updated_at')
       .single()
 
     if (error) throw error
-    return mapTradeRow(data as Record<string, unknown>)
+
+    const names = await fetchSessionNames([requesterId, ownerId])
+
+    return {
+      id: data.id,
+      requester_id: data.requester_id,
+      requester_name: names.get(data.requester_id) ?? '',
+      owner_id: data.owner_id,
+      owner_name: names.get(data.owner_id) ?? '',
+      requested_sticker_key: data.requested_sticker_key,
+      offered_sticker_key: data.offered_sticker_key,
+      status: data.status,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+    }
   },
 
   async respondToTrade(
@@ -103,55 +136,56 @@ export const tradeService = {
       .eq('id', tradeId)
 
     if (error) throw error
-
     if (response !== 'accepted') return
 
-    const upsertSticker = (sessionId: string, key: string, status: StickerState['status'], count: number) =>
+    const upsert = (sessionId: string, key: string, status: StickerState['status'], count: number) =>
       supabase
         .from('sticker_states')
         .upsert([{ session_id: sessionId, sticker_key: key, status, repeat_count: count }], {
           onConflict: 'session_id,sticker_key',
         })
 
+    // Owner loses one copy of requested sticker
     const ownerHasRequested = ownerStickers.find((s) => s.sticker_key === trade.requested_sticker_key)
     const newOwnerCount = Math.max(0, (ownerHasRequested?.repeat_count ?? 1) - 1)
-    await upsertSticker(
+    await upsert(
       trade.owner_id,
       trade.requested_sticker_key,
       newOwnerCount === 0 ? 'owned' : 'repeated',
       newOwnerCount
     )
 
+    // Requester gains requested sticker
     const requesterHasRequested = requesterStickers.find((s) => s.sticker_key === trade.requested_sticker_key)
+    const reqGainStatus = !requesterHasRequested || requesterHasRequested.status === 'missing' ? 'owned' : 'repeated'
     const reqGainCount =
       requesterHasRequested?.status === 'repeated'
         ? (requesterHasRequested.repeat_count ?? 0) + 1
         : requesterHasRequested?.status === 'owned'
         ? 1
         : 0
-    const reqGainStatus =
-      !requesterHasRequested || requesterHasRequested.status === 'missing' ? 'owned' : 'repeated'
-    await upsertSticker(trade.requester_id, trade.requested_sticker_key, reqGainStatus, reqGainCount)
+    await upsert(trade.requester_id, trade.requested_sticker_key, reqGainStatus, reqGainCount)
 
+    // Requester loses one copy of offered sticker
     const requesterHasOffered = requesterStickers.find((s) => s.sticker_key === trade.offered_sticker_key)
     const newRequesterCount = Math.max(0, (requesterHasOffered?.repeat_count ?? 1) - 1)
-    await upsertSticker(
+    await upsert(
       trade.requester_id,
       trade.offered_sticker_key,
       newRequesterCount === 0 ? 'owned' : 'repeated',
       newRequesterCount
     )
 
+    // Owner gains offered sticker
     const ownerHasOffered = ownerStickers.find((s) => s.sticker_key === trade.offered_sticker_key)
+    const ownerGainStatus = !ownerHasOffered || ownerHasOffered.status === 'missing' ? 'owned' : 'repeated'
     const ownerGainCount =
       ownerHasOffered?.status === 'repeated'
         ? (ownerHasOffered.repeat_count ?? 0) + 1
         : ownerHasOffered?.status === 'owned'
         ? 1
         : 0
-    const ownerGainStatus =
-      !ownerHasOffered || ownerHasOffered.status === 'missing' ? 'owned' : 'repeated'
-    await upsertSticker(trade.owner_id, trade.offered_sticker_key, ownerGainStatus, ownerGainCount)
+    await upsert(trade.owner_id, trade.offered_sticker_key, ownerGainStatus, ownerGainCount)
   },
 
   async cancelTradeRequest(tradeId: string): Promise<void> {
