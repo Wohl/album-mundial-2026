@@ -1,7 +1,7 @@
 'use client'
 
 import { TradeRequest } from '@/types'
-import { getStickerName } from '@/lib/stickers'
+import { getStickerName, getStickerTeamFlag } from '@/lib/stickers'
 
 interface TradeCardProps {
   trade: TradeRequest
@@ -11,65 +11,91 @@ interface TradeCardProps {
   onCancel: () => void
 }
 
-const STATUS_LABELS: Record<TradeRequest['status'], { label: string; className: string }> = {
-  pending:   { label: 'Pendiente', className: 'bg-amber-600/70 text-white' },
-  accepted:  { label: 'Aceptado',  className: 'bg-green-600/70 text-white' },
-  rejected:  { label: 'Rechazado', className: 'bg-red-600/70 text-white' },
-  cancelled: { label: 'Cancelado', className: 'bg-gray-600/70 text-white' },
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'ahora'
+  if (mins < 60) return `${mins}m`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h`
+  return `${Math.floor(hours / 24)}d`
+}
+
+const STATUS_STYLES: Record<TradeRequest['status'], { label: string; cls: string }> = {
+  pending:   { label: 'Pendiente', cls: 'bg-amber-500/20 text-amber-400 border-amber-500/40' },
+  accepted:  { label: 'Completado', cls: 'bg-green-500/20 text-green-400 border-green-500/40' },
+  rejected:  { label: 'Rechazado', cls: 'bg-red-500/20 text-red-400 border-red-500/40' },
+  cancelled: { label: 'Cancelado', cls: 'bg-gray-500/20 text-gray-500 border-gray-500/40' },
+}
+
+const StickerChip = ({ stickerKey, label }: { stickerKey: string; label: string }) => {
+  const flag = getStickerTeamFlag(stickerKey)
+  const name = getStickerName(stickerKey)
+  return (
+    <div className="flex-1 min-w-0 bg-surface3/60 rounded-lg p-3 text-center space-y-1">
+      <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">{label}</div>
+      {flag && <div className="text-2xl leading-none">{flag}</div>}
+      <div className="text-xs font-bold text-white leading-tight line-clamp-2">{name}</div>
+      <div className="text-[10px] text-gold2 font-mono">{stickerKey}</div>
+    </div>
+  )
 }
 
 export const TradeCard = ({ trade, mySessionId, onAccept, onReject, onCancel }: TradeCardProps) => {
   const isIncoming = trade.owner_id === mySessionId
-  const badge = STATUS_LABELS[trade.status]
+  const status = STATUS_STYLES[trade.status]
+  const otherName = isIncoming ? trade.requester_name : trade.owner_name
 
   return (
-    <div className="bg-surface2 border border-surface3 rounded-lg p-4 flex flex-col gap-3">
+    <div className={`bg-surface2 rounded-xl border overflow-hidden transition-all ${
+      isIncoming && trade.status === 'pending'
+        ? 'border-amber-500/50 shadow-lg shadow-amber-500/5'
+        : trade.status === 'accepted'
+        ? 'border-green-500/30'
+        : 'border-surface3'
+    }`}>
       {/* Header */}
-      <div className="flex justify-between items-start gap-2">
-        <div className="text-sm text-gray-300">
-          {isIncoming ? (
-            <span>
-              <span className="font-bold text-gold2">{trade.requester_name}</span> te solicita un intercambio
-            </span>
-          ) : (
-            <span>
-              Solicitud a <span className="font-bold text-gold2">{trade.owner_name}</span>
-            </span>
-          )}
+      <div className={`px-4 py-2.5 flex items-center justify-between gap-2 ${
+        isIncoming ? 'bg-amber-500/8' : 'bg-blue-500/8'
+      }`}>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={`text-xs font-bold uppercase tracking-wide shrink-0 ${
+            isIncoming ? 'text-amber-400' : 'text-blue-400'
+          }`}>
+            {isIncoming ? '⬇ Recibida' : '⬆ Enviada'}
+          </span>
+          <span className="text-gray-600 shrink-0">·</span>
+          <span className="text-gray-300 text-xs font-semibold truncate">{otherName}</span>
         </div>
-        <span className={`text-xs font-semibold px-2 py-1 rounded uppercase whitespace-nowrap ${badge.className}`}>
-          {badge.label}
-        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={`border px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${status.cls}`}>
+            {status.label}
+          </span>
+          <span className="text-gray-600 text-[10px]">{timeAgo(trade.created_at)}</span>
+        </div>
       </div>
 
-      {/* Stickers */}
-      <div className="grid grid-cols-2 gap-2 text-xs">
-        <div className="bg-surface3/50 rounded p-2">
-          <div className="text-gray-400 mb-1">Solicita</div>
-          <div className="font-semibold text-white">{getStickerName(trade.requested_sticker_key)}</div>
-          <div className="text-gold2 mt-0.5">{trade.requested_sticker_key}</div>
-        </div>
-        <div className="bg-surface3/50 rounded p-2">
-          <div className="text-gray-400 mb-1">Ofrece</div>
-          <div className="font-semibold text-white">{getStickerName(trade.offered_sticker_key)}</div>
-          <div className="text-gold2 mt-0.5">{trade.offered_sticker_key}</div>
-        </div>
+      {/* Sticker exchange */}
+      <div className="p-3 flex items-stretch gap-2">
+        <StickerChip stickerKey={trade.offered_sticker_key} label={isIncoming ? 'Él ofrece' : 'Vos ofrecés'} />
+        <div className="flex items-center text-gray-600 font-bold text-base shrink-0 pb-1">⇄</div>
+        <StickerChip stickerKey={trade.requested_sticker_key} label={isIncoming ? 'Él pide' : 'Vos pedís'} />
       </div>
 
       {/* Actions */}
       {trade.status === 'pending' && (
-        <div className="flex gap-2">
+        <div className="flex gap-2 px-3 pb-3">
           {isIncoming ? (
             <>
               <button
                 onClick={onAccept}
-                className="flex-1 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-bold rounded uppercase transition"
+                className="flex-1 py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg uppercase transition"
               >
                 Aceptar
               </button>
               <button
                 onClick={onReject}
-                className="flex-1 py-2 bg-red-700 hover:bg-red-600 text-white text-sm font-bold rounded uppercase transition"
+                className="flex-1 py-2 bg-red-800/80 hover:bg-red-700 text-white text-xs font-bold rounded-lg uppercase transition"
               >
                 Rechazar
               </button>
@@ -77,9 +103,9 @@ export const TradeCard = ({ trade, mySessionId, onAccept, onReject, onCancel }: 
           ) : (
             <button
               onClick={onCancel}
-              className="flex-1 py-2 bg-surface3 hover:bg-gray-600 text-white text-sm font-bold rounded uppercase transition"
+              className="w-full py-2 bg-surface3 hover:bg-gray-600 text-gray-400 hover:text-white text-xs font-bold rounded-lg uppercase transition"
             >
-              Cancelar
+              Cancelar solicitud
             </button>
           )}
         </div>

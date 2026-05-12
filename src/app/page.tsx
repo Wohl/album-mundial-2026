@@ -25,7 +25,7 @@ export default function Home() {
   const [showBulk, setShowBulk] = useState(false)
 
   const totalStickers = getTotalStickers()
-  const { stickers, progress, loading, updateSticker } = useStickers(session?.id || null, totalStickers)
+  const { stickers, progress, loading, updateSticker, refetch: refetchStickers } = useStickers(session?.id || null, totalStickers)
   const {
     trades,
     othersRepeated,
@@ -34,7 +34,7 @@ export default function Home() {
     createTrade,
     respondToTrade,
     cancelTrade,
-  } = useTrades(session?.id || null, stickers)
+  } = useTrades(session?.id || null, stickers, refetchStickers)
 
   const handleCreateSession = useCallback(
     async (name: string) => {

@@ -47,3 +47,16 @@ export const getStickerName = (key: string): string => {
   }
   return stickerNameCache.get(key) ?? key
 }
+
+let stickerFlagCache: Map<string, string> | null = null
+
+export const getStickerTeamFlag = (key: string): string => {
+  if (!stickerFlagCache) {
+    stickerFlagCache = new Map(
+      TEAMS.flatMap((team) =>
+        Array.from({ length: 20 }, (_, i) => [`${team.code}_${i}`, team.flag])
+      )
+    )
+  }
+  return stickerFlagCache.get(key) ?? ''
+}
