@@ -25,6 +25,9 @@ cd Album
 # Instalar dependencias
 npm install
 
+# Copiar variables de entorno
+cp .env.example .env
+
 # Ejecutar en modo desarrollo
 npm run dev
 

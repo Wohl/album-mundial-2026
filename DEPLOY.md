@@ -46,7 +46,7 @@ En el dashboard de Vercel:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://lwttzrboabtfweassaxr.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3dHR6cmJvYWJ0ZndlYXNzYXhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1OTE4NDUsImV4cCI6MjA5NDE2Nzg0NX0.4kc3ddYgiqW22Nz_L9qGCeQ7D1TMESEgLRzHUsDX7Rc
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_anon_key_aqui
 ```
 
 ## Paso 4: ¡Listo!
