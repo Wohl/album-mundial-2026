@@ -1,5 +1,3 @@
-'use client'
-
 import { Sticker } from '@/types'
 import { INTRO_STICKERS, TEAMS } from '@/stickers'
 

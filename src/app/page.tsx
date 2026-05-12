@@ -8,7 +8,7 @@ import { WelcomeModal } from '@/components/WelcomeModal'
 import { ProgressBar } from '@/components/ProgressBar'
 import { StickerGallery } from '@/components/StickerGallery'
 import { StickerContextMenu } from '@/components/StickerContextMenu'
-import { getAllStickers, getStickersByType, getTotalStickers } from '@/lib/stickers'
+import { getAllStickers, getTotalStickers } from '@/lib/stickers'
 import { INTRO_STICKERS, TEAMS } from '@/stickers'
 
 interface ContextMenuState {
@@ -73,6 +73,7 @@ export default function Home() {
   const handleStickerClick = useCallback(
     (e: MouseEvent<HTMLElement>, stickerKey: string) => {
       e.preventDefault()
+      e.stopPropagation()
       setContextMenu({
         visible: true,
         x: e.clientX,
@@ -86,11 +87,13 @@ export default function Home() {
   const handleUpdateSticker = useCallback(
     (status: 'missing' | 'owned' | 'repeated') => {
       if (session?.id) {
-        updateSticker(contextMenu.stickerKey, status, status === 'repeated' ? 1 : 0)
+        const current = stickers.find((s) => s.sticker_key === contextMenu.stickerKey)
+        const repeatCount = status === 'repeated' ? (current?.repeat_count ?? 0) + 1 : 0
+        updateSticker(contextMenu.stickerKey, status, repeatCount)
       }
       setContextMenu({ ...contextMenu, visible: false })
     },
-    [contextMenu, session?.id, updateSticker]
+    [contextMenu, session?.id, stickers, updateSticker]
   )
 
   if (sessionLoading) {

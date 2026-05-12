@@ -20,9 +20,9 @@ export const StickerContextMenu = ({
   onClose,
 }: StickerContextMenuProps) => {
   const menuItems = [
-    { label: '✓ No repetida', onClick: onOwned, color: 'from-green-600 to-green-500' },
-    { label: '× Repetida', onClick: onRepeated, color: 'from-amber-600 to-amber-500' },
-    { label: '○ Faltante', onClick: onMissing, color: 'from-red-600 to-red-500' },
+    { label: '✓ No repetida', onClick: onOwned, hoverClass: 'hover:bg-green-700' },
+    { label: '× Repetida', onClick: onRepeated, hoverClass: 'hover:bg-amber-700' },
+    { label: '○ Faltante', onClick: onMissing, hoverClass: 'hover:bg-red-700' },
   ]
 
   return (
@@ -43,7 +43,7 @@ export const StickerContextMenu = ({
                 item.onClick()
                 onClose()
               }}
-              className={`w-full px-4 py-3 text-white font-semibold text-left hover:bg-gradient-to-r hover:${item.color} transition text-sm uppercase`}
+              className={`w-full px-4 py-3 text-white font-semibold text-left transition text-sm uppercase ${item.hoverClass}`}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.05 }}
