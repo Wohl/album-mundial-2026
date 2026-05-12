@@ -72,6 +72,7 @@ export default function Home() {
       id: `${team.code}_${i}`,
       name: team.players[i] ?? `Jugador ${i + 1}`,
       team: team.name,
+      flag: team.flag,
       type: 'regular' as const,
       foil: i === 0,
     }))

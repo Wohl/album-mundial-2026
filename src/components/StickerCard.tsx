@@ -6,6 +6,7 @@ interface StickerCardProps {
   id: string
   name: string
   team?: string
+  flag?: string
   foil?: boolean
   status?: StickerState['status']
   repeatCount?: number
@@ -16,6 +17,7 @@ export const StickerCard = ({
   id,
   name,
   team,
+  flag,
   foil = false,
   status = 'missing',
   repeatCount = 0,
@@ -49,7 +51,10 @@ export const StickerCard = ({
           {name}
         </div>
         {team && (
-          <div className="text-[10px] text-gray-500 mt-1 truncate">{team}</div>
+          <div className="text-[10px] text-gray-500 mt-1 truncate flex items-center gap-1">
+            {flag && <span>{flag}</span>}
+            <span>{team}</span>
+          </div>
         )}
       </div>
 

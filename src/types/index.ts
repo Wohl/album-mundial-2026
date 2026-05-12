@@ -8,6 +8,7 @@ export interface Sticker {
   id: string
   name: string
   team?: string
+  flag?: string
   type: 'regular' | 'intro' | 'special'
   foil: boolean
 }

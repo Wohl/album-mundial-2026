@@ -9,16 +9,14 @@ const DEFAULT_STICKERS: Sticker[] = INTRO_STICKERS.map((s) => ({
 }))
 
 const TEAM_STICKERS: Sticker[] = TEAMS.flatMap((team) =>
-  Array.from({ length: 20 }, (_, i) => {
-    const isFoilSticker = i === 0
-    return {
-      id: `${team.code}_${i}`,
-      name: `${team.name} - ${team.players[i]}`,
-      team: team.name,
-      type: 'regular' as const,
-      foil: isFoilSticker,
-    }
-  })
+  Array.from({ length: 20 }, (_, i) => ({
+    id: `${team.code}_${i}`,
+    name: `${team.name} - ${team.players[i]}`,
+    team: team.name,
+    flag: team.flag,
+    type: 'regular' as const,
+    foil: i === 0,
+  }))
 )
 
 export const getAllStickers = (): Sticker[] => {

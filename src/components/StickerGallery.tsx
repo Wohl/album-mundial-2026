@@ -130,6 +130,7 @@ export const StickerGallery = ({
                   id={sticker.id}
                   name={sticker.name}
                   team={sticker.team}
+                  flag={sticker.flag}
                   foil={sticker.foil}
                   status={userState?.status ?? 'missing'}
                   repeatCount={userState?.repeat_count ?? 0}
