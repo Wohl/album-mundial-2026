@@ -86,11 +86,17 @@ export default function Home() {
   const handleUpdateSticker = useCallback(
     (status: 'missing' | 'owned' | 'repeated') => {
       if (session?.id) {
-        updateSticker(contextMenu.stickerKey, status, status === 'repeated' ? 1 : 0)
+        const existingSticker = stickers.find(s => s.sticker_key === contextMenu.stickerKey)
+        const currentRepeatCount = existingSticker?.repeat_count || 0
+        
+        // If marking as repeated, increment the count; otherwise reset to 0
+        const newRepeatCount = status === 'repeated' ? currentRepeatCount + 1 : 0
+        
+        updateSticker(contextMenu.stickerKey, status, newRepeatCount)
       }
       setContextMenu({ ...contextMenu, visible: false })
     },
-    [contextMenu, session?.id, updateSticker]
+    [contextMenu, session?.id, updateSticker, stickers]
   )
 
   if (sessionLoading) {
