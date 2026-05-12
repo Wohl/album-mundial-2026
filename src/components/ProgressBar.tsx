@@ -36,7 +36,7 @@ export const ProgressBar = ({ progress }: ProgressBarProps) => {
         </div>
         <div>
           <div className="text-amber-400 font-bold text-2xl">{repeated}</div>
-          <div className="text-xs text-gray-400 uppercase mt-1">Repetidas</div>
+          <div className="text-xs text-gray-400 uppercase mt-1">Extras</div>
         </div>
         <div>
           <div className="text-red-400 font-bold text-2xl">{progress.missing}</div>

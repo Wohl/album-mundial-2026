@@ -84,8 +84,11 @@ export const stickerService = {
   calculateProgress(stickers: StickerState[], total: number): UserProgress {
     // owned = stickers you have (unique + those with extras)
     const owned = stickers.filter((s) => s.status === 'owned' || s.status === 'repeated').length
-    // repeated = number of sticker types with extras
-    const repeated = stickers.filter((s) => s.status === 'repeated').length
+    // repeated = total number of extra copies across all sticker types
+    const repeated = stickers.reduce(
+      (sum, s) => sum + (s.status === 'repeated' ? (s.repeat_count ?? 0) : 0),
+      0
+    )
     const missing = total - owned
 
     return {

@@ -60,8 +60,14 @@ export const StatsPanel = ({ progress, stickers }: StatsPanelProps) => {
     [stickers]
   )
 
+  // Types with at least one extra (separate from progress.repeated which is now total extra copies)
+  const repeatedTypes = useMemo(
+    () => stickers.filter((s) => s.status === 'repeated').length,
+    [stickers]
+  )
+
   const complete100 = teamStats.filter((t) => t.pct === 100).length
-  const missingCount = progress.total - progress.owned - progress.repeated
+  const missingCount = progress.missing
 
   return (
     <div className="space-y-10">
@@ -71,25 +77,25 @@ export const StatsPanel = ({ progress, stickers }: StatsPanelProps) => {
           value={`${progress.percentComplete.toFixed(1)}%`}
           label="Completado"
           color="text-gold2"
-          sub={`${progress.owned + progress.repeated} / ${progress.total}`}
+          sub={`${progress.owned} / ${progress.total}`}
         />
         <StatCard
-          value={String(progress.owned + progress.repeated)}
+          value={String(progress.owned)}
           label="Tengo"
           color="text-blue-400"
-          sub={`${progress.owned} únicas`}
+          sub={`${progress.owned - repeatedTypes} únicas`}
         />
         <StatCard
           value={String(totalExtras)}
           label="Extras"
           color="text-amber-400"
-          sub={`${progress.repeated} tipos`}
+          sub={`${repeatedTypes} tipo${repeatedTypes !== 1 ? 's' : ''}`}
         />
         <StatCard
           value={String(missingCount)}
           label="Me faltan"
           color="text-red-400"
-          sub={`${((missingCount / progress.total) * 100).toFixed(0)}% del álbum`}
+          sub={`${progress.total > 0 ? ((missingCount / progress.total) * 100).toFixed(0) : 0}% del álbum`}
         />
       </div>
 
