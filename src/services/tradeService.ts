@@ -130,62 +130,72 @@ export const tradeService = {
   ): Promise<void> {
     if (isOfflineMode) throw new Error('Sin conexión')
 
-    const { error } = await supabase
+    const { error: statusError } = await supabase
       .from('trade_requests')
       .update({ status: response })
       .eq('id', tradeId)
 
-    if (error) throw error
+    if (statusError) throw statusError
     if (response !== 'accepted') return
 
-    const upsert = (sessionId: string, key: string, status: StickerState['status'], count: number) =>
-      supabase
+    const upsert = async (sessionId: string, key: string, status: StickerState['status'], count: number) => {
+      const { error } = await supabase
         .from('sticker_states')
-        .upsert([{ session_id: sessionId, sticker_key: key, status, repeat_count: count }], {
-          onConflict: 'session_id,sticker_key',
-        })
+        .upsert(
+          [{ session_id: sessionId, sticker_key: key, status, repeat_count: count }],
+          { onConflict: 'session_id,sticker_key' }
+        )
+      if (error) throw error
+    }
+
+    const decrementSticker = async (sessionId: string, key: string, sticker?: StickerState) => {
+      if (!sticker || sticker.status === 'missing') {
+        await upsert(sessionId, key, 'missing', 0)
+        return
+      }
+
+      if (sticker.status === 'owned') {
+        await upsert(sessionId, key, 'missing', 0)
+        return
+      }
+
+      const remainingExtras = Math.max(0, (sticker.repeat_count ?? 0) - 1)
+      if (remainingExtras === 0) {
+        await upsert(sessionId, key, 'owned', 0)
+      } else {
+        await upsert(sessionId, key, 'repeated', remainingExtras)
+      }
+    }
+
+    const incrementSticker = async (sessionId: string, key: string, sticker?: StickerState) => {
+      if (!sticker || sticker.status === 'missing') {
+        await upsert(sessionId, key, 'owned', 0)
+        return
+      }
+
+      if (sticker.status === 'owned') {
+        await upsert(sessionId, key, 'repeated', 1)
+        return
+      }
+
+      await upsert(sessionId, key, 'repeated', (sticker.repeat_count ?? 0) + 1)
+    }
 
     // Owner loses one copy of requested sticker
     const ownerHasRequested = ownerStickers.find((s) => s.sticker_key === trade.requested_sticker_key)
-    const newOwnerCount = Math.max(0, (ownerHasRequested?.repeat_count ?? 1) - 1)
-    await upsert(
-      trade.owner_id,
-      trade.requested_sticker_key,
-      newOwnerCount === 0 ? 'owned' : 'repeated',
-      newOwnerCount
-    )
+    await decrementSticker(trade.owner_id, trade.requested_sticker_key, ownerHasRequested)
 
     // Requester gains requested sticker
     const requesterHasRequested = requesterStickers.find((s) => s.sticker_key === trade.requested_sticker_key)
-    const reqGainStatus = !requesterHasRequested || requesterHasRequested.status === 'missing' ? 'owned' : 'repeated'
-    const reqGainCount =
-      requesterHasRequested?.status === 'repeated'
-        ? (requesterHasRequested.repeat_count ?? 0) + 1
-        : requesterHasRequested?.status === 'owned'
-        ? 1
-        : 0
-    await upsert(trade.requester_id, trade.requested_sticker_key, reqGainStatus, reqGainCount)
+    await incrementSticker(trade.requester_id, trade.requested_sticker_key, requesterHasRequested)
 
     // Requester loses one copy of offered sticker
     const requesterHasOffered = requesterStickers.find((s) => s.sticker_key === trade.offered_sticker_key)
-    const newRequesterCount = Math.max(0, (requesterHasOffered?.repeat_count ?? 1) - 1)
-    await upsert(
-      trade.requester_id,
-      trade.offered_sticker_key,
-      newRequesterCount === 0 ? 'owned' : 'repeated',
-      newRequesterCount
-    )
+    await decrementSticker(trade.requester_id, trade.offered_sticker_key, requesterHasOffered)
 
     // Owner gains offered sticker
     const ownerHasOffered = ownerStickers.find((s) => s.sticker_key === trade.offered_sticker_key)
-    const ownerGainStatus = !ownerHasOffered || ownerHasOffered.status === 'missing' ? 'owned' : 'repeated'
-    const ownerGainCount =
-      ownerHasOffered?.status === 'repeated'
-        ? (ownerHasOffered.repeat_count ?? 0) + 1
-        : ownerHasOffered?.status === 'owned'
-        ? 1
-        : 0
-    await upsert(trade.owner_id, trade.offered_sticker_key, ownerGainStatus, ownerGainCount)
+    await incrementSticker(trade.owner_id, trade.offered_sticker_key, ownerHasOffered)
   },
 
   async cancelTradeRequest(tradeId: string): Promise<void> {

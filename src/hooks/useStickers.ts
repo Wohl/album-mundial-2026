@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { StickerState, UserProgress } from '@/types'
 import { stickerService } from '@/services/stickerService'
+import { supabase, isOfflineMode } from '@/lib/supabase'
 
 export const useStickers = (sessionId: string | null, totalStickers: number) => {
   const [stickers, setStickers] = useState<StickerState[]>([])
@@ -84,6 +85,21 @@ export const useStickers = (sessionId: string | null, totalStickers: number) => 
   useEffect(() => {
     loadStickers()
   }, [loadStickers])
+
+  useEffect(() => {
+    if (!sessionId || isOfflineMode) return
+
+    const channel = supabase
+      .channel(`sticker_states:${sessionId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sticker_states', filter: `session_id=eq.${sessionId}` },
+        () => loadStickers()
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [sessionId, loadStickers])
 
   return {
     stickers,

@@ -15,6 +15,8 @@ export const useTrades = (
   const [loading, setLoading] = useState(false)
   const myStickersRef = useRef(myStickers)
   myStickersRef.current = myStickers
+  const onStickerUpdateRef = useRef(onStickerUpdate)
+  onStickerUpdateRef.current = onStickerUpdate
 
   const loadTrades = useCallback(async () => {
     if (!sessionId) return
@@ -49,7 +51,19 @@ export const useTrades = (
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'trade_requests', filter: `requester_id=eq.${sessionId}` },
+        { event: 'UPDATE', schema: 'public', table: 'trade_requests', filter: `requester_id=eq.${sessionId}` },
+        (payload) => {
+          loadTrades()
+          if ((payload.new as { status?: string })?.status === 'accepted') {
+            // Stickers were updated in DB — refresh after short delay
+            setTimeout(() => onStickerUpdateRef.current?.(), 600)
+            setTimeout(() => onStickerUpdateRef.current?.(), 1500)
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'trade_requests', filter: `requester_id=eq.${sessionId}` },
         () => loadTrades()
       )
       .subscribe()
@@ -58,12 +72,14 @@ export const useTrades = (
   }, [sessionId, loadTrades])
 
   const createTrade = useCallback(
-    async (ownerId: string, requestedKey: string, offeredKey: string) => {
-      if (!sessionId) return
+    async (ownerId: string, requestedKey: string, offeredKey: string): Promise<TradeRequest> => {
+      if (!sessionId) throw new Error('Sin sesión')
       const trade = await tradeService.createTradeRequest(sessionId, ownerId, requestedKey, offeredKey)
       setTrades((prev) => [trade, ...prev])
+      setTimeout(() => loadTrades(), 600)
+      return trade
     },
-    [sessionId]
+    [sessionId, loadTrades]
   )
 
   const respondToTrade = useCallback(
@@ -83,26 +99,33 @@ export const useTrades = (
       setTrades((prev) => prev.map((t) => (t.id === trade.id ? { ...t, status: response } : t)))
 
       if (response === 'accepted') {
-        // Refresh sticker collection since our stickers changed
-        onStickerUpdate?.()
-        // Reload market data after a short delay to let DB settle
-        setTimeout(() => loadTrades(), 600)
+        onStickerUpdateRef.current?.()
+        setTimeout(() => onStickerUpdateRef.current?.(), 800)
       }
+
+      setTimeout(() => loadTrades(), 600)
     },
-    [sessionId, onStickerUpdate, loadTrades]
+    [sessionId, loadTrades]
   )
 
-  const cancelTrade = useCallback(
-    async (tradeId: string) => {
-      await tradeService.cancelTradeRequest(tradeId)
-      setTrades((prev) => prev.map((t) => (t.id === tradeId ? { ...t, status: 'cancelled' } : t)))
-    },
-    []
-  )
+  const cancelTrade = useCallback(async (tradeId: string) => {
+    await tradeService.cancelTradeRequest(tradeId)
+    setTrades((prev) => prev.map((t) => (t.id === tradeId ? { ...t, status: 'cancelled' } : t)))
+    setTimeout(() => loadTrades(), 600)
+  }, [loadTrades])
 
   const pendingIncoming = trades.filter(
     (t) => t.owner_id === sessionId && t.status === 'pending'
   ).length
 
-  return { trades, othersRepeated, loading, pendingIncoming, createTrade, respondToTrade, cancelTrade, refetch: loadTrades }
+  return {
+    trades,
+    othersRepeated,
+    loading,
+    pendingIncoming,
+    createTrade,
+    respondToTrade,
+    cancelTrade,
+    refetch: loadTrades,
+  }
 }

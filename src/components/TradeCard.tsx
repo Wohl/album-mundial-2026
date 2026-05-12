@@ -6,6 +6,7 @@ import { getStickerName, getStickerTeamFlag } from '@/lib/stickers'
 interface TradeCardProps {
   trade: TradeRequest
   mySessionId: string
+  loading?: boolean
   onAccept: () => void
   onReject: () => void
   onCancel: () => void
@@ -41,7 +42,7 @@ const StickerChip = ({ stickerKey, label }: { stickerKey: string; label: string 
   )
 }
 
-export const TradeCard = ({ trade, mySessionId, onAccept, onReject, onCancel }: TradeCardProps) => {
+export const TradeCard = ({ trade, mySessionId, loading = false, onAccept, onReject, onCancel }: TradeCardProps) => {
   const isIncoming = trade.owner_id === mySessionId
   const status = STATUS_STYLES[trade.status]
   const otherName = isIncoming ? trade.requester_name : trade.owner_name
@@ -89,23 +90,26 @@ export const TradeCard = ({ trade, mySessionId, onAccept, onReject, onCancel }: 
             <>
               <button
                 onClick={onAccept}
-                className="flex-1 py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg uppercase transition"
+                disabled={loading}
+                className="flex-1 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg uppercase transition"
               >
-                Aceptar
+                {loading ? '...' : 'Aceptar'}
               </button>
               <button
                 onClick={onReject}
-                className="flex-1 py-2 bg-red-800/80 hover:bg-red-700 text-white text-xs font-bold rounded-lg uppercase transition"
+                disabled={loading}
+                className="flex-1 py-2 bg-red-800/80 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg uppercase transition"
               >
-                Rechazar
+                {loading ? '...' : 'Rechazar'}
               </button>
             </>
           ) : (
             <button
               onClick={onCancel}
-              className="w-full py-2 bg-surface3 hover:bg-gray-600 text-gray-400 hover:text-white text-xs font-bold rounded-lg uppercase transition"
+              disabled={loading}
+              className="w-full py-2 bg-surface3 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-gray-400 hover:text-white text-xs font-bold rounded-lg uppercase transition"
             >
-              Cancelar solicitud
+              {loading ? 'Cancelando...' : 'Cancelar solicitud'}
             </button>
           )}
         </div>
