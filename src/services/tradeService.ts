@@ -44,19 +44,28 @@ export const tradeService = {
   async getMyTrades(sessionId: string): Promise<TradeRequest[]> {
     if (isOfflineMode) return []
 
-    const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
-
     const { data, error } = await supabase
       .from('trade_requests')
       .select(
         '*, requester:sessions!trade_requests_requester_id_fkey(display_name), owner:sessions!trade_requests_owner_id_fkey(display_name)'
       )
       .or(`owner_id.eq.${sessionId},requester_id.eq.${sessionId}`)
-      .or(`status.eq.pending,and(updated_at.gte.${since})`)
+      .neq('status', 'cancelled')
       .order('created_at', { ascending: false })
 
     if (error) throw error
     return (data ?? []).map(mapTradeRow)
+  },
+
+  async getUserMissingStickers(targetSessionId: string): Promise<string[]> {
+    if (isOfflineMode) return []
+    const { data, error } = await supabase
+      .from('sticker_states')
+      .select('sticker_key')
+      .eq('session_id', targetSessionId)
+      .eq('status', 'missing')
+    if (error) return []
+    return (data ?? []).map((r) => r.sticker_key)
   },
 
   async createTradeRequest(
