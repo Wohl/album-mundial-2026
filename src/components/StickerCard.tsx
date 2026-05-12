@@ -10,7 +10,7 @@ interface StickerCardProps {
   foil?: boolean
   status?: StickerState['status']
   repeatCount?: number
-  onClick?: () => void
+  onClick?: (e: React.MouseEvent) => void
   onRightClick?: (e: React.MouseEvent) => void
 }
 
