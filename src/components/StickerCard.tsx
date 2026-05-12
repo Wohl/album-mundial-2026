@@ -10,7 +10,7 @@ interface StickerCardProps {
   foil?: boolean
   status?: StickerState['status']
   repeatCount?: number
-  onClick?: () => void
+  onClick?: (e: React.MouseEvent) => void
   onRightClick?: (e: React.MouseEvent) => void
 }
 
@@ -24,6 +24,10 @@ export const StickerCard = ({
   onClick,
   onRightClick,
 }: StickerCardProps) => {
+  const handleClick = (e: React.MouseEvent) => {
+    onClick?.(e)
+  }
+
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault()
     onRightClick?.(e)
@@ -31,7 +35,7 @@ export const StickerCard = ({
 
   return (
     <div
-      onClick={onClick}
+      onClick={handleClick}
       onContextMenu={handleContextMenu}
       className={clsx(
         'relative h-32 rounded-lg cursor-pointer transition-all duration-300',

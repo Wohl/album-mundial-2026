@@ -7,7 +7,7 @@ import { useMemo, type MouseEvent } from 'react'
 interface StickerGalleryProps {
   stickers: Sticker[]
   userStickers: StickerState[]
-  onStickerClick: (event: MouseEvent<HTMLElement>, stickerId: string) => void
+  onStickerClick: (event: MouseEvent<Element>, stickerId: string) => void
   title?: string
 }
 
