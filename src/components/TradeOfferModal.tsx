@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { StickerState } from '@/types'
 import { getStickerName, getStickerTeamFlag } from '@/lib/stickers'
+import { isOfflineMode } from '@/lib/supabase'
 import { OtherUserSticker } from '@/services/tradeService'
 
 type Phase = 'select' | 'submitting' | 'success' | 'error'
@@ -139,7 +140,9 @@ export const TradeOfferModal = ({
           {phase === 'error' && (
             <div className="shrink-0 bg-red-900/70 border-b border-red-700/50 px-5 py-3 flex items-center justify-between gap-3">
               <p className="text-red-300 text-sm font-semibold">
-                ✗ Error al enviar — revisá tu conexión
+                ✗ Error al enviar — {isOfflineMode || (typeof navigator !== 'undefined' && !navigator.onLine)
+                  ? 'Revisá tu red o la configuración de Supabase'
+                  : 'Revisá tu conexión'}
               </p>
               <button
                 onClick={onRetry}

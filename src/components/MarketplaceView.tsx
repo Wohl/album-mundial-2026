@@ -256,7 +256,9 @@ export const MarketplaceView = ({
       <div className="text-center py-20 text-gray-400">
         <div className="text-4xl mb-4">🔌</div>
         <div className="text-xl font-display uppercase text-gold2">Sin conexión</div>
-        <p className="mt-2 text-sm">El mercado requiere conexión a Supabase.</p>
+        <p className="mt-2 text-sm">
+          El mercado requiere conexión a Supabase. Verificá las variables de entorno y tu red.
+        </p>
       </div>
     )
   }
