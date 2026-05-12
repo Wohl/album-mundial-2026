@@ -20,9 +20,9 @@ export const StickerContextMenu = ({
   onClose,
 }: StickerContextMenuProps) => {
   const menuItems = [
-    { label: '✓ Tengo', onClick: onOwned, color: 'from-green-600 to-green-500' },
+    { label: '✓ No repetida', onClick: onOwned, color: 'from-green-600 to-green-500' },
     { label: '× Repetida', onClick: onRepeated, color: 'from-amber-600 to-amber-500' },
-    { label: '○ No tengo', onClick: onMissing, color: 'from-red-600 to-red-500' },
+    { label: '○ Faltante', onClick: onMissing, color: 'from-red-600 to-red-500' },
   ]
 
   return (

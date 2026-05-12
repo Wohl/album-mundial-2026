@@ -2,12 +2,12 @@
 
 import { Sticker, StickerState } from '@/types'
 import { StickerCard } from './StickerCard'
-import { useMemo } from 'react'
+import { useMemo, type MouseEvent } from 'react'
 
 interface StickerGalleryProps {
   stickers: Sticker[]
   userStickers: StickerState[]
-  onStickerClick: (stickerId: string) => void
+  onStickerClick: (event: MouseEvent<HTMLElement>, stickerId: string) => void
   title?: string
 }
 
@@ -31,21 +31,18 @@ export const StickerGallery = ({
         {stickers.map((sticker) => {
           const userState = stickerMap.get(sticker.id)
           return (
-            <div 
-              key={sticker.id} 
-              onClick={() => onStickerClick(sticker.id)}
-              className="cursor-pointer"
-            >
-              <StickerCard
-                id={sticker.id}
-                name={sticker.name}
-                team={sticker.team}
-                foil={sticker.foil}
-                status={userState?.status || 'missing'}
-                repeatCount={userState?.repeat_count || 0}
-              />
-            </div>
-          )
+          <StickerCard
+            key={sticker.id}
+            id={sticker.id}
+            name={sticker.name}
+            team={sticker.team}
+            foil={sticker.foil}
+            status={userState?.status || 'missing'}
+            repeatCount={userState?.repeat_count || 0}
+            onClick={(e) => onStickerClick(e, sticker.id)}
+            onRightClick={(e) => onStickerClick(e, sticker.id)}
+          />
+        )
         })}
       </div>
     </div>

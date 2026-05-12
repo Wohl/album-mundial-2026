@@ -64,12 +64,17 @@ export const StickerCard = ({
         <div className="flex justify-between items-center">
           {status === 'owned' && (
             <span className="text-xs bg-green-600/60 px-2 py-1 rounded text-white font-semibold">
-              ✓ Tengo
+              ✓ No repetida
             </span>
           )}
           {status === 'repeated' && (
             <span className="text-xs bg-amber-600/60 px-2 py-1 rounded text-white font-semibold">
               × {repeatCount}
+            </span>
+          )}
+          {status === 'missing' && (
+            <span className="text-xs bg-red-600/60 px-2 py-1 rounded text-white font-semibold">
+              ○ Faltante
             </span>
           )}
           {foil && (

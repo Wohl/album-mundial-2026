@@ -45,21 +45,21 @@ export const useStickers = (sessionId: string | null, totalStickers: number) => 
 
         setStickers((prev) => {
           const existing = prev.findIndex((s) => s.sticker_key === stickerKey)
-          if (existing >= 0) {
-            const newStickers = [...prev]
-            newStickers[existing] = updated
-            return newStickers
-          }
-          return [...prev, updated]
-        })
+          const newStickers = existing >= 0 ? [...prev] : [...prev, updated]
 
-        const newProgress = stickerService.calculateProgress(stickers, totalStickers)
-        setProgress(newProgress)
+          if (existing >= 0) {
+            newStickers[existing] = updated
+          }
+
+          const newProgress = stickerService.calculateProgress(newStickers, totalStickers)
+          setProgress(newProgress)
+          return newStickers
+        })
       } catch (error) {
         console.error('Error updating sticker:', error)
       }
     },
-    [sessionId, stickers, totalStickers]
+    [sessionId, totalStickers]
   )
 
   const deleteSticker = useCallback(
@@ -68,15 +68,17 @@ export const useStickers = (sessionId: string | null, totalStickers: number) => 
 
       try {
         await stickerService.deleteSticker(sessionId, stickerKey)
-        setStickers((prev) => prev.filter((s) => s.sticker_key !== stickerKey))
-
-        const newProgress = stickerService.calculateProgress(stickers, totalStickers)
-        setProgress(newProgress)
+        setStickers((prev) => {
+          const newStickers = prev.filter((s) => s.sticker_key !== stickerKey)
+          const newProgress = stickerService.calculateProgress(newStickers, totalStickers)
+          setProgress(newProgress)
+          return newStickers
+        })
       } catch (error) {
         console.error('Error deleting sticker:', error)
       }
     },
-    [sessionId, stickers, totalStickers]
+    [sessionId, totalStickers]
   )
 
   useEffect(() => {

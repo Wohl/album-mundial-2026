@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, type MouseEvent } from 'react'
 import { motion } from 'framer-motion'
 import { useSession } from '@/hooks/useSession'
 import { useStickers } from '@/hooks/useStickers'
@@ -71,7 +71,7 @@ export default function Home() {
   }, [activeTab, allStickers])
 
   const handleStickerClick = useCallback(
-    (e: React.MouseEvent, stickerKey: string) => {
+    (e: MouseEvent<HTMLElement>, stickerKey: string) => {
       e.preventDefault()
       setContextMenu({
         visible: true,
@@ -86,7 +86,7 @@ export default function Home() {
   const handleUpdateSticker = useCallback(
     (status: 'missing' | 'owned' | 'repeated') => {
       if (session?.id) {
-        updateSticker(contextMenu.stickerKey, status, 0)
+        updateSticker(contextMenu.stickerKey, status, status === 'repeated' ? 1 : 0)
       }
       setContextMenu({ ...contextMenu, visible: false })
     },
@@ -187,17 +187,7 @@ export default function Home() {
               <StickerGallery
                 stickers={displayStickers}
                 userStickers={stickers}
-                onStickerClick={(stickerKey) => {
-                  const element = document.elementFromPoint(0, 0) as HTMLElement
-                  handleStickerClick(
-                    {
-                      preventDefault: () => {},
-                      clientX: window.innerWidth / 2,
-                      clientY: window.innerHeight / 2,
-                    } as any,
-                    stickerKey
-                  )
-                }}
+                onStickerClick={handleStickerClick}
               />
             </div>
           )}
@@ -211,7 +201,7 @@ export default function Home() {
           transition={{ delay: 0.5 }}
         >
           <p>Haz clic en las figuritas para marcar tu progreso</p>
-          <p className="text-xs mt-2 text-gray-500">✓ = Tengo | × = Repetida | ○ = No tengo</p>
+          <p className="text-xs mt-2 text-gray-500">✓ = No repetida | × = Repetida | ○ = Faltante</p>
         </motion.div>
       </main>
 
