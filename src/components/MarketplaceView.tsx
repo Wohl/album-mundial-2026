@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { StickerState, TradeRequest, TradeMatch } from '@/types'
 import { OtherUserSticker, tradeService } from '@/services/tradeService'
 import { getStickerName, getAllStickers } from '@/lib/stickers'
-import { TEAMS } from '@/stickers'
 import { StickerFlag } from '@/components/TeamFlag'
 import { TradeCard } from './TradeCard'
 import { TradeOfferModal } from './TradeOfferModal'
@@ -214,18 +213,19 @@ export const MarketplaceView = ({
       .sort((a, b) => b.count - a.count) // stickers with available traders first
   }, [othersRepeated, myOwnedOrRepeatedKeys])
 
-  const teamsWithStickers = useMemo(() => {
-    const codes = new Set(
-      availableWantStickers
-        .map(({ key }) => (key.includes('_') ? key.split('_')[0] : null))
-        .filter(Boolean) as string[]
-    )
-    return TEAMS.filter((t) => codes.has(t.code))
-  }, [availableWantStickers])
+  const hasMissingFWC = useMemo(
+    () => availableWantStickers.some(({ key }) => !key.includes('_') && !key.startsWith('CC')),
+    [availableWantStickers]
+  )
+  const hasMissingCC = useMemo(
+    () => availableWantStickers.some(({ key }) => key.startsWith('CC')),
+    [availableWantStickers]
+  )
 
   const filteredWantStickers = useMemo(() => {
     let base = availableWantStickers
-    if (wantTeamFilter) base = base.filter(({ key }) => key.startsWith(wantTeamFilter + '_'))
+    if (wantTeamFilter === 'fwc') base = base.filter(({ key }) => !key.includes('_') && !key.startsWith('CC'))
+    else if (wantTeamFilter === 'cocacola') base = base.filter(({ key }) => key.startsWith('CC'))
     if (wantSearch.trim()) {
       const q = wantSearch.toLowerCase()
       base = base.filter(
@@ -1005,34 +1005,28 @@ export const MarketplaceView = ({
               </div>
             ) : (
               <>
-                {/* Team filter chips */}
-                {teamsWithStickers.length > 0 && (
-                  <div className="flex gap-1.5 overflow-x-auto scrollbar-none mb-2 pb-0.5">
+                {/* Category filter chips */}
+                <div className="flex gap-1.5 mb-2">
+                  {(
+                    [
+                      { id: null,        label: 'Todos'     },
+                      ...(hasMissingFWC  ? [{ id: 'fwc'      as const, label: 'FWC'      }] : []),
+                      ...(hasMissingCC   ? [{ id: 'cocacola' as const, label: 'Coca-Cola' }] : []),
+                    ] as { id: string | null; label: string }[]
+                  ).map(({ id, label }) => (
                     <button
-                      onClick={() => setWantTeamFilter(null)}
-                      className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition border ${
-                        wantTeamFilter === null
+                      key={id ?? 'all'}
+                      onClick={() => setWantTeamFilter(id)}
+                      className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition border ${
+                        wantTeamFilter === id
                           ? 'bg-gold2 text-dark border-gold2'
                           : 'bg-surface2 text-gray-400 border-surface3 hover:border-gold2/50'
                       }`}
                     >
-                      Todos
+                      {label}
                     </button>
-                    {teamsWithStickers.map((team) => (
-                      <button
-                        key={team.code}
-                        onClick={() => setWantTeamFilter(wantTeamFilter === team.code ? null : team.code)}
-                        className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition border ${
-                          wantTeamFilter === team.code
-                            ? 'bg-gold2 text-dark border-gold2'
-                            : 'bg-surface2 text-gray-400 border-surface3 hover:border-gold2/50'
-                        }`}
-                      >
-                        {team.code}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                  ))}
+                </div>
                 <input
                   type="text"
                   value={wantSearch}
@@ -1106,8 +1100,13 @@ export const MarketplaceView = ({
                       }`}
                     >
                       <StickerFlag stickerKey={s.sticker_key} className="text-sm shrink-0" />
-                      <span className="font-mono">{s.sticker_key}</span>
-                      <span className="text-gray-500">×{s.repeat_count}</span>
+                      <div className="text-left min-w-0">
+                        <div className="font-mono leading-tight">{s.sticker_key}</div>
+                        <div className="text-[10px] font-normal text-gray-400 truncate max-w-[8rem] leading-tight">
+                          {getStickerName(s.sticker_key)}
+                        </div>
+                      </div>
+                      <span className="text-gray-500 shrink-0 text-[10px]">×{s.repeat_count}</span>
                     </button>
                   ))}
                 </div>
