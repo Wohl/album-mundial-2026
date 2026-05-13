@@ -5,7 +5,7 @@ import { StickerState, UserProgress } from '@/types'
 import { stickerService } from '@/services/stickerService'
 import { supabase, isOfflineMode } from '@/lib/supabase'
 
-export const useStickers = (sessionId: string | null, totalStickers: number) => {
+export const useStickers = (userId: string | null, totalStickers: number) => {
   const [stickers, setStickers] = useState<StickerState[]>([])
   const [progress, setProgress] = useState<UserProgress>({
     total: totalStickers,
@@ -17,11 +17,11 @@ export const useStickers = (sessionId: string | null, totalStickers: number) => 
   const [loading, setLoading] = useState(false)
 
   const loadStickers = useCallback(async () => {
-    if (!sessionId) return
+    if (!userId) return
 
     setLoading(true)
     try {
-      const userStickers = await stickerService.getUserStickers(sessionId)
+      const userStickers = await stickerService.getUserStickers(userId)
       setStickers(userStickers)
       const newProgress = stickerService.calculateProgress(userStickers, totalStickers)
       setProgress(newProgress)
@@ -30,15 +30,15 @@ export const useStickers = (sessionId: string | null, totalStickers: number) => 
     } finally {
       setLoading(false)
     }
-  }, [sessionId, totalStickers])
+  }, [userId, totalStickers])
 
   const updateSticker = useCallback(
     async (stickerKey: string, status: 'missing' | 'owned' | 'repeated', repeatCount: number = 0) => {
-      if (!sessionId) return
+      if (!userId) return
 
       try {
         const updated = await stickerService.updateStickerStatus(
-          sessionId,
+          userId,
           stickerKey,
           status,
           repeatCount
@@ -60,15 +60,15 @@ export const useStickers = (sessionId: string | null, totalStickers: number) => 
         console.error('Error updating sticker:', error)
       }
     },
-    [sessionId, totalStickers]
+    [userId, totalStickers]
   )
 
   const deleteSticker = useCallback(
     async (stickerKey: string) => {
-      if (!sessionId) return
+      if (!userId) return
 
       try {
-        await stickerService.deleteSticker(sessionId, stickerKey)
+        await stickerService.deleteSticker(userId, stickerKey)
         setStickers((prev) => {
           const newStickers = prev.filter((s) => s.sticker_key !== stickerKey)
           const newProgress = stickerService.calculateProgress(newStickers, totalStickers)
@@ -79,7 +79,7 @@ export const useStickers = (sessionId: string | null, totalStickers: number) => 
         console.error('Error deleting sticker:', error)
       }
     },
-    [sessionId, totalStickers]
+    [userId, totalStickers]
   )
 
   useEffect(() => {
@@ -87,19 +87,19 @@ export const useStickers = (sessionId: string | null, totalStickers: number) => 
   }, [loadStickers])
 
   useEffect(() => {
-    if (!sessionId || isOfflineMode) return
+    if (!userId || isOfflineMode) return
 
     const channel = supabase
-      .channel(`sticker_states:${sessionId}`)
+      .channel(`sticker_states:${userId}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'sticker_states', filter: `session_id=eq.${sessionId}` },
+        { event: '*', schema: 'public', table: 'sticker_states', filter: `user_id=eq.${userId}` },
         () => loadStickers()
       )
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [sessionId, loadStickers])
+  }, [userId, loadStickers])
 
   return {
     stickers,

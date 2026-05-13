@@ -3,7 +3,7 @@ import { supabase, isOfflineMode } from '@/lib/supabase'
 import { localStorageService } from '@/lib/localStorage'
 
 export const stickerService = {
-  async getUserStickers(sessionId: string): Promise<StickerState[]> {
+  async getUserStickers(userId: string): Promise<StickerState[]> {
     if (isOfflineMode) {
       return localStorageService.getStickers()
     }
@@ -12,7 +12,7 @@ export const stickerService = {
       const { data, error } = await supabase
         .from('sticker_states')
         .select()
-        .eq('session_id', sessionId)
+        .eq('user_id', userId)
 
       if (error) throw error
       return data || []
@@ -23,14 +23,14 @@ export const stickerService = {
   },
 
   async updateStickerStatus(
-    sessionId: string,
+    userId: string,
     stickerKey: string,
     status: 'missing' | 'owned' | 'repeated',
     repeatCount: number = 0
   ): Promise<StickerState> {
     const sticker: StickerState = {
       id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(),
-      session_id: sessionId,
+      user_id: userId,
       sticker_key: stickerKey,
       status,
       repeat_count: repeatCount,
@@ -46,8 +46,8 @@ export const stickerService = {
       const { data, error } = await supabase
         .from('sticker_states')
         .upsert(
-          [{ session_id: sessionId, sticker_key: stickerKey, status, repeat_count: repeatCount }],
-          { onConflict: 'session_id,sticker_key' }
+          [{ user_id: userId, sticker_key: stickerKey, status, repeat_count: repeatCount }],
+          { onConflict: 'user_id,sticker_key' }
         )
         .select()
         .single()
@@ -60,11 +60,11 @@ export const stickerService = {
     }
   },
 
-  async deleteSticker(sessionId: string, stickerKey: string): Promise<void> {
+  async deleteSticker(userId: string, stickerKey: string): Promise<void> {
     if (isOfflineMode) {
       const stickers = localStorageService.getStickers()
       const filtered = stickers.filter(
-        (s) => !(s.session_id === sessionId && s.sticker_key === stickerKey)
+        (s) => !(s.user_id === userId && s.sticker_key === stickerKey)
       )
       localStorageService.setStickers(filtered)
       return
@@ -74,7 +74,7 @@ export const stickerService = {
       await supabase
         .from('sticker_states')
         .delete()
-        .eq('session_id', sessionId)
+        .eq('user_id', userId)
         .eq('sticker_key', stickerKey)
     } catch (error) {
       console.error('Error deleting sticker:', error)
@@ -82,9 +82,7 @@ export const stickerService = {
   },
 
   calculateProgress(stickers: StickerState[], total: number): UserProgress {
-    // owned = stickers you have (unique + those with extras)
     const owned = stickers.filter((s) => s.status === 'owned' || s.status === 'repeated').length
-    // repeated = total number of extra copies across all sticker types
     const repeated = stickers.reduce(
       (sum, s) => sum + (s.status === 'repeated' ? (s.repeat_count ?? 0) : 0),
       0

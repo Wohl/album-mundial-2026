@@ -2,10 +2,10 @@
 
 import { useState, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { useSession } from '@/hooks/useSession'
+import { useAuth } from '@/hooks/useAuth'
 import { useStickers } from '@/hooks/useStickers'
 import { useTrades } from '@/hooks/useTrades'
-import { WelcomeModal } from '@/components/WelcomeModal'
+import { AuthModal } from '@/components/AuthModal'
 import { ProgressBar } from '@/components/ProgressBar'
 import { StickerGallery } from '@/components/StickerGallery'
 import { TeamOverview } from '@/components/TeamOverview'
@@ -14,9 +14,6 @@ import { StatsPanel } from '@/components/StatsPanel'
 import { BulkEntryModal } from '@/components/BulkEntryModal'
 import { TeamFlag } from '@/components/TeamFlag'
 import {
-  getIntroFWCStickers,
-  getFinalFWCStickers,
-  getCocaColaStickers,
   getAllStickers,
   getTotalStickers,
 } from '@/lib/stickers'
@@ -26,13 +23,13 @@ import type { Sticker } from '@/types'
 type Tab = 'intro' | 'equipos' | 'final' | 'cocacola' | 'repetidas' | 'stats' | 'market'
 
 export default function Home() {
-  const { session, loading: sessionLoading, createSession } = useSession()
+  const { userId, profile, loading: authLoading, signIn, signUp, signOut } = useAuth()
   const [activeTab, setActiveTab] = useState<Tab>('equipos')
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null)
   const [showBulk, setShowBulk] = useState(false)
 
   const totalStickers = getTotalStickers()
-  const { stickers, progress, loading, updateSticker, refetch: refetchStickers } = useStickers(session?.id || null, totalStickers)
+  const { stickers, progress, loading, updateSticker, refetch: refetchStickers } = useStickers(userId, totalStickers)
   const {
     trades,
     othersRepeated,
@@ -41,20 +38,13 @@ export default function Home() {
     createTrade,
     respondToTrade,
     cancelTrade,
-  } = useTrades(session?.id || null, stickers, refetchStickers)
-
-  const handleCreateSession = useCallback(
-    async (name: string) => {
-      try { await createSession(name) } catch (e) { console.error(e) }
-    },
-    [createSession]
-  )
+  } = useTrades(userId, stickers, refetchStickers)
 
   const handleUpdateSticker = useCallback(
     (key: string, status: 'owned' | 'missing' | 'repeated', count: number = 0) => {
-      if (session?.id) updateSticker(key, status, count)
+      if (userId) updateSticker(key, status, count)
     },
-    [session?.id, updateSticker]
+    [userId, updateSticker]
   )
 
   const handleBulkMark = useCallback(
@@ -94,7 +84,7 @@ export default function Home() {
     }))
   }, [selectedTeam])
 
-  if (sessionLoading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-gold2 text-2xl font-display uppercase">Cargando...</div>
@@ -102,16 +92,18 @@ export default function Home() {
     )
   }
 
-  if (!session) return <WelcomeModal onSubmit={handleCreateSession} />
+  if (!userId || !profile) {
+    return <AuthModal onSignIn={signIn} onSignUp={signUp} />
+  }
 
   const tabs: { id: Tab; label: string; badge?: number }[] = [
-    { id: 'intro',    label: 'Intro FWC'  },
-    { id: 'equipos',  label: 'Equipos'    },
-    { id: 'final',    label: 'Final FWC'  },
-    { id: 'cocacola', label: 'Coca-Cola'  },
-    { id: 'repetidas',label: 'Repetidas'  },
-    { id: 'stats',    label: 'Stats'      },
-    { id: 'market',   label: 'Mercado', badge: pendingIncoming },
+    { id: 'intro',     label: 'Intro FWC'  },
+    { id: 'equipos',   label: 'Equipos'    },
+    { id: 'final',     label: 'Final FWC'  },
+    { id: 'cocacola',  label: 'Coca-Cola'  },
+    { id: 'repetidas', label: 'Repetidas'  },
+    { id: 'stats',     label: 'Stats'      },
+    { id: 'market',    label: 'Mercado', badge: pendingIncoming },
   ]
 
   const handleTabChange = (tab: Tab) => {
@@ -142,9 +134,18 @@ export default function Home() {
               >
                 + Entrada rápida
               </button>
-              <div className="text-right">
-                <p className="text-xs text-gray-400">Hola,</p>
-                <p className="font-bold text-gold2 text-sm leading-tight">{session.display_name}</p>
+              <div className="flex items-center gap-2">
+                <div className="text-right">
+                  <p className="text-xs text-gray-400">Hola,</p>
+                  <p className="font-bold text-gold2 text-sm leading-tight">{profile.display_name}</p>
+                </div>
+                <button
+                  onClick={signOut}
+                  className="px-2 py-1.5 rounded-lg text-xs text-gray-500 hover:text-white hover:bg-surface3 border border-transparent hover:border-surface3 transition"
+                  title="Cerrar sesión"
+                >
+                  ↩
+                </button>
               </div>
             </div>
           </div>
@@ -287,7 +288,7 @@ export default function Home() {
           {/* MERCADO */}
           {activeTab === 'market' && (
             <MarketplaceView
-              sessionId={session.id}
+              userId={userId}
               myStickers={stickers}
               trades={trades}
               othersRepeated={othersRepeated}

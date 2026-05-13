@@ -1,22 +1,8 @@
-import { Session, StickerState } from '@/types'
+import { StickerState } from '@/types'
 
-const SESSION_KEY = 'album_session'
 const STICKERS_KEY = 'album_stickers'
 
 export const localStorageService = {
-  // Session
-  getSession: (): Session | null => {
-    if (typeof window === 'undefined') return null
-    const data = localStorage.getItem(SESSION_KEY)
-    return data ? JSON.parse(data) : null
-  },
-
-  setSession: (session: Session) => {
-    if (typeof window === 'undefined') return
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session))
-  },
-
-  // Stickers
   getStickers: (): StickerState[] => {
     if (typeof window === 'undefined') return []
     const data = localStorage.getItem(STICKERS_KEY)
@@ -42,7 +28,6 @@ export const localStorageService = {
 
   clear: () => {
     if (typeof window === 'undefined') return
-    localStorage.removeItem(SESSION_KEY)
     localStorage.removeItem(STICKERS_KEY)
   },
 }

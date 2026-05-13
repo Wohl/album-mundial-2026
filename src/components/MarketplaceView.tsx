@@ -11,7 +11,7 @@ import { TradeOfferModal } from './TradeOfferModal'
 import { isOfflineMode } from '@/lib/supabase'
 
 interface MarketplaceViewProps {
-  sessionId: string
+  userId: string
   myStickers: StickerState[]
   trades: TradeRequest[]
   othersRepeated: OtherUserSticker[]
@@ -57,7 +57,7 @@ function notifStyle(
 }
 
 export const MarketplaceView = ({
-  sessionId,
+  userId,
   myStickers,
   trades,
   othersRepeated,
@@ -98,9 +98,9 @@ export const MarketplaceView = ({
   const users = useMemo(() => {
     const map = new Map<string, { ownerName: string; ownerId: string; count: number; iNeedCount: number }>()
     othersRepeated.forEach((s) => {
-      if (!map.has(s.session_id))
-        map.set(s.session_id, { ownerName: s.owner_name, ownerId: s.session_id, count: 0, iNeedCount: 0 })
-      const e = map.get(s.session_id)!
+      if (!map.has(s.user_id))
+        map.set(s.user_id, { ownerName: s.owner_name, ownerId: s.user_id, count: 0, iNeedCount: 0 })
+      const e = map.get(s.user_id)!
       e.count++
       if (myMissingKeys.has(s.sticker_key)) e.iNeedCount++
     })
@@ -108,7 +108,7 @@ export const MarketplaceView = ({
   }, [othersRepeated, myMissingKeys])
 
   const selectedUserStickers = useMemo(
-    () => othersRepeated.filter((s) => s.session_id === selectedUserId),
+    () => othersRepeated.filter((s) => s.user_id === selectedUserId),
     [othersRepeated, selectedUserId]
   )
 
@@ -149,12 +149,12 @@ export const MarketplaceView = ({
 
   // Trade buckets
   const pendingIncoming = useMemo(
-    () => trades.filter((t) => t.owner_id === sessionId && t.status === 'pending'),
-    [trades, sessionId]
+    () => trades.filter((t) => t.owner_id === userId && t.status === 'pending'),
+    [trades, userId]
   )
   const pendingOutgoing = useMemo(
-    () => trades.filter((t) => t.requester_id === sessionId && t.status === 'pending'),
-    [trades, sessionId]
+    () => trades.filter((t) => t.requester_id === userId && t.status === 'pending'),
+    [trades, userId]
   )
   const historyTrades = useMemo(() => trades.filter((t) => t.status !== 'pending'), [trades])
   const completedCount = useMemo(() => trades.filter((t) => t.status === 'accepted').length, [trades])
@@ -186,7 +186,7 @@ export const MarketplaceView = ({
       setOfferPhase('submitting')
       setOfferError(null)
       try {
-        await onCreateTrade(offerTarget.session_id, offerTarget.sticker_key, offeredKey)
+        await onCreateTrade(offerTarget.user_id, offerTarget.sticker_key, offeredKey)
         setOfferPhase('success')
         pushToast('Solicitud enviada correctamente')
         setTimeout(() => {
@@ -339,7 +339,7 @@ export const MarketplaceView = ({
                   </div>
                 ) : (
                   activityFeed.map((trade) => {
-                    const isIncoming = trade.owner_id === sessionId
+                    const isIncoming = trade.owner_id === userId
                     const other = isIncoming ? trade.requester_name : trade.owner_name
                     const { icon, label, cls } = notifStyle(trade, isIncoming, other)
                     return (
@@ -478,7 +478,7 @@ export const MarketplaceView = ({
                   <TradeCard
                     key={trade.id}
                     trade={trade}
-                    mySessionId={sessionId}
+                    mySessionId={userId}
                     loading={actionLoading === trade.id}
                     onAccept={() => handleAccept(trade)}
                     onReject={() => handleReject(trade)}
@@ -503,7 +503,7 @@ export const MarketplaceView = ({
                   <TradeCard
                     key={trade.id}
                     trade={trade}
-                    mySessionId={sessionId}
+                    mySessionId={userId}
                     loading={actionLoading === trade.id}
                     onAccept={() => handleAccept(trade)}
                     onReject={() => handleReject(trade)}
@@ -538,7 +538,7 @@ export const MarketplaceView = ({
                     <TradeCard
                       key={trade.id}
                       trade={trade}
-                      mySessionId={sessionId}
+                      mySessionId={userId}
                       loading={actionLoading === trade.id}
                       onAccept={() => handleAccept(trade)}
                       onReject={() => handleReject(trade)}
@@ -679,9 +679,9 @@ export const MarketplaceView = ({
                         const iNeedIt = myMissingKeys.has(sticker.sticker_key)
                         const alreadyRequested = trades.some(
                           (t) =>
-                            t.requester_id === sessionId &&
+                            t.requester_id === userId &&
                             t.requested_sticker_key === sticker.sticker_key &&
-                            t.owner_id === sticker.session_id &&
+                            t.owner_id === sticker.user_id &&
                             t.status === 'pending'
                         )
                         const canRequest = !alreadyRequested && myRepeated.length > 0

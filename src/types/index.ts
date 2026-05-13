@@ -12,20 +12,19 @@ export interface Sticker {
   foil: boolean
 }
 
+export interface Profile {
+  id: string
+  display_name: string
+  created_at: string
+}
+
 export interface StickerState {
   id: string
-  session_id: string
+  user_id: string
   sticker_key: string
   status: 'missing' | 'owned' | 'repeated'
   repeat_count: number
   updated_at: string
-}
-
-export interface Session {
-  id: string
-  display_name: string
-  created_at: string
-  last_seen: string
 }
 
 export interface UserProgress {
