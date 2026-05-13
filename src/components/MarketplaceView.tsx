@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { StickerState, TradeRequest, TradeMatch } from '@/types'
 import { OtherUserSticker, tradeService } from '@/services/tradeService'
 import { getStickerName } from '@/lib/stickers'
+import { TEAMS } from '@/stickers'
 import { StickerFlag } from '@/components/TeamFlag'
 import { TradeCard } from './TradeCard'
 import { TradeOfferModal } from './TradeOfferModal'
@@ -30,16 +31,7 @@ type ExploreFilter = 'all' | 'need'
 type ToastMsg = { id: number; msg: string; type: 'success' | 'error' }
 type OfferPhase = 'select' | 'submitting' | 'success' | 'error'
 type CounterPhase = 'select' | 'submitting' | 'error'
-
-function getTradeKeys(trade: TradeRequest) {
-  const req = trade.requested_sticker_keys?.length
-    ? trade.requested_sticker_keys
-    : [trade.requested_sticker_key].filter(Boolean)
-  const off = trade.offered_sticker_keys?.length
-    ? trade.offered_sticker_keys
-    : [trade.offered_sticker_key].filter(Boolean)
-  return { req, off }
-}
+type WishItem = { id: string; wantKey: string; offerKey: string; savedAt: number }
 
 export const MarketplaceView = ({
   userId,
@@ -77,6 +69,35 @@ export const MarketplaceView = ({
   const [wantSearch, setWantSearch] = useState('')
   const [wantKey, setWantKey] = useState<string | null>(null)
   const [requestOfferKey, setRequestOfferKey] = useState<string | null>(null)
+  const [wantTeamFilter, setWantTeamFilter] = useState<string | null>(null)
+  const [wishes, setWishes] = useState<WishItem[]>([])
+
+  useEffect(() => {
+    if (!userId) return
+    try {
+      const raw = localStorage.getItem(`album-wishes-${userId}`)
+      setWishes(raw ? JSON.parse(raw) : [])
+    } catch {
+      setWishes([])
+    }
+  }, [userId])
+
+  useEffect(() => {
+    if (!userId) return
+    localStorage.setItem(`album-wishes-${userId}`, JSON.stringify(wishes))
+  }, [wishes, userId])
+
+  const addWish = useCallback(() => {
+    if (!wantKey || !requestOfferKey) return
+    setWishes((prev) => {
+      if (prev.some((w) => w.wantKey === wantKey && w.offerKey === requestOfferKey)) return prev
+      return [...prev, { id: `${Date.now()}`, wantKey, offerKey: requestOfferKey, savedAt: Date.now() }]
+    })
+  }, [wantKey, requestOfferKey])
+
+  const removeWish = useCallback((id: string) => {
+    setWishes((prev) => prev.filter((w) => w.id !== id))
+  }, [])
 
   const pushToast = useCallback((msg: string, type: ToastMsg['type'] = 'success') => {
     const id = ++toastId.current
@@ -194,13 +215,24 @@ export const MarketplaceView = ({
       .map(([key, count]) => ({ key, count }))
   }, [othersRepeated, myOwnedOrRepeatedKeys])
 
+  const teamsWithStickers = useMemo(() => {
+    const codes = new Set(
+      availableWantStickers
+        .map(({ key }) => (key.includes('_') ? key.split('_')[0] : null))
+        .filter(Boolean) as string[]
+    )
+    return TEAMS.filter((t) => codes.has(t.code))
+  }, [availableWantStickers])
+
   const filteredWantStickers = useMemo(() => {
-    if (!wantSearch.trim()) return availableWantStickers.slice(0, 12)
+    let base = availableWantStickers
+    if (wantTeamFilter) base = base.filter(({ key }) => key.startsWith(wantTeamFilter + '_'))
+    if (!wantSearch.trim()) return base.slice(0, wantTeamFilter ? 20 : 12)
     const q = wantSearch.toLowerCase()
-    return availableWantStickers
+    return base
       .filter(({ key }) => key.toLowerCase().includes(q) || getStickerName(key).toLowerCase().includes(q))
       .slice(0, 20)
-  }, [availableWantStickers, wantSearch])
+  }, [availableWantStickers, wantSearch, wantTeamFilter])
 
   const usersWithWant = useMemo(() => {
     if (!wantKey) return []
@@ -893,9 +925,63 @@ export const MarketplaceView = ({
           <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
             <p className="text-blue-300 text-sm font-semibold">📋 Solicitud manual de intercambio</p>
             <p className="text-gray-400 text-xs mt-1">
-              Especificá qué figurita querés y cuál ofrecés. El sistema te muestra quién la tiene disponible y si son compatibles.
+              Especificá qué figurita querés y cuál ofrecés. Guardá deseos para rastrearlos más tarde.
             </p>
           </div>
+
+          {/* Deseos guardados */}
+          {wishes.length > 0 && (
+            <section>
+              <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-2">
+                Mis deseos guardados ({wishes.length})
+              </div>
+              <div className="space-y-2">
+                {wishes.map((w) => {
+                  const availableCount = othersRepeated.filter((s) => s.sticker_key === w.wantKey).length
+                  const isCurrentView = wantKey === w.wantKey && requestOfferKey === w.offerKey
+                  return (
+                    <div
+                      key={w.id}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition ${
+                        isCurrentView
+                          ? 'border-gold2/50 bg-gold2/5'
+                          : 'border-surface3 bg-surface2'
+                      }`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap text-xs">
+                          <span className="text-gray-500">Quiero</span>
+                          <span className="font-mono font-bold text-green-400">{w.wantKey}</span>
+                          <span className="text-gray-600">⇄</span>
+                          <span className="text-gray-500">Ofrezco</span>
+                          <span className="font-mono font-bold text-gold2">{w.offerKey}</span>
+                        </div>
+                        <div className="text-[10px] text-gray-600 mt-0.5">
+                          {availableCount > 0
+                            ? <span className="text-green-500">{availableCount} disponible{availableCount !== 1 ? 's' : ''} en el mercado</span>
+                            : 'Nadie tiene esta figurita disponible ahora'}
+                        </div>
+                      </div>
+                      <div className="flex gap-1.5 shrink-0">
+                        <button
+                          onClick={() => { setWantKey(w.wantKey); setRequestOfferKey(w.offerKey) }}
+                          className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-surface3 hover:bg-gray-600 text-gray-300 transition"
+                        >
+                          Abrir
+                        </button>
+                        <button
+                          onClick={() => removeWish(w.id)}
+                          className="text-[10px] font-bold px-2 py-1 rounded-lg bg-red-900/30 hover:bg-red-800/50 text-red-400 transition"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )}
 
           {/* PASO 1: ¿Qué querés? */}
           <section>
@@ -903,14 +989,14 @@ export const MarketplaceView = ({
               Paso 1 — ¿Qué figurita querés?
             </div>
             {wantKey ? (
-              <div className="flex items-center gap-3 p-3 bg-gold2/10 border border-gold2/30 rounded-xl mb-3">
+              <div className="flex items-center gap-3 p-3 bg-gold2/10 border border-gold2/30 rounded-xl">
                 <StickerFlag stickerKey={wantKey} className="text-3xl shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="text-gold2 text-xs font-mono font-bold">{wantKey}</div>
                   <div className="text-white text-sm font-semibold">{getStickerName(wantKey)}</div>
                 </div>
                 <button
-                  onClick={() => { setWantKey(null); setRequestOfferKey(null) }}
+                  onClick={() => { setWantKey(null); setRequestOfferKey(null); setWantTeamFilter(null) }}
                   className="shrink-0 text-gray-500 hover:text-white text-sm w-7 h-7 flex items-center justify-center rounded-lg hover:bg-surface3 transition"
                 >
                   ✕
@@ -918,6 +1004,34 @@ export const MarketplaceView = ({
               </div>
             ) : (
               <>
+                {/* Team filter chips */}
+                {teamsWithStickers.length > 0 && (
+                  <div className="flex gap-1.5 overflow-x-auto scrollbar-none mb-2 pb-0.5">
+                    <button
+                      onClick={() => setWantTeamFilter(null)}
+                      className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition border ${
+                        wantTeamFilter === null
+                          ? 'bg-gold2 text-dark border-gold2'
+                          : 'bg-surface2 text-gray-400 border-surface3 hover:border-gold2/50'
+                      }`}
+                    >
+                      Todos
+                    </button>
+                    {teamsWithStickers.map((team) => (
+                      <button
+                        key={team.code}
+                        onClick={() => setWantTeamFilter(wantTeamFilter === team.code ? null : team.code)}
+                        className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition border ${
+                          wantTeamFilter === team.code
+                            ? 'bg-gold2 text-dark border-gold2'
+                            : 'bg-surface2 text-gray-400 border-surface3 hover:border-gold2/50'
+                        }`}
+                      >
+                        {team.code}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <input
                   type="text"
                   value={wantSearch}
@@ -927,11 +1041,13 @@ export const MarketplaceView = ({
                 />
                 {filteredWantStickers.length === 0 ? (
                   <div className="text-center py-8 text-gray-500 text-sm border border-dashed border-surface3 rounded-xl">
-                    {wantSearch ? 'Sin resultados — probá otro nombre o código' : 'No hay figuritas disponibles en el mercado'}
+                    {wantSearch || wantTeamFilter
+                      ? 'Sin resultados — probá otro nombre o seleccioná otro equipo'
+                      : 'No hay figuritas disponibles en el mercado'}
                   </div>
                 ) : (
                   <>
-                    {!wantSearch && (
+                    {!wantSearch && !wantTeamFilter && (
                       <p className="text-[10px] text-gray-600 mb-2">Más disponibles en el mercado:</p>
                     )}
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
@@ -986,6 +1102,17 @@ export const MarketplaceView = ({
                     </button>
                   ))}
                 </div>
+              )}
+              {wantKey && requestOfferKey && (
+                <button
+                  onClick={addWish}
+                  disabled={wishes.some((w) => w.wantKey === wantKey && w.offerKey === requestOfferKey)}
+                  className="mt-3 flex items-center gap-1.5 text-[11px] font-bold text-blue-400 hover:text-blue-300 disabled:text-gray-600 disabled:cursor-default transition"
+                >
+                  {wishes.some((w) => w.wantKey === wantKey && w.offerKey === requestOfferKey)
+                    ? '✓ Guardado en mis deseos'
+                    : '+ Guardar este deseo'}
+                </button>
               )}
             </section>
           )}

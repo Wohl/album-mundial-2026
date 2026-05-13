@@ -34,6 +34,7 @@ export default function Home() {
   const [globalToasts, setGlobalToasts] = useState<GlobalToast[]>([])
   const globalToastId = useRef(0)
   const prevPendingRef = useRef(0)
+  const prevMatchesRef = useRef(0)
 
   const totalStickers = getTotalStickers()
   const { stickers, progress, loading, updateSticker, refetch: refetchStickers } = useStickers(userId, totalStickers)
@@ -62,6 +63,13 @@ export default function Home() {
     }
     prevPendingRef.current = pendingIncoming
   }, [pendingIncoming, activeTab, pushGlobalToast])
+
+  useEffect(() => {
+    if (matches.length > prevMatchesRef.current && prevMatchesRef.current > 0 && activeTab !== 'market') {
+      pushGlobalToast('Nuevo match encontrado — hay alguien compatible')
+    }
+    prevMatchesRef.current = matches.length
+  }, [matches.length, activeTab, pushGlobalToast])
 
   const handleUpdateSticker = useCallback(
     (key: string, status: 'owned' | 'missing' | 'repeated', count: number = 0) => {
