@@ -1,12 +1,12 @@
 'use client'
 
 import { StickerState } from '@/types'
+import { StickerFlag } from '@/components/TeamFlag'
 
 interface StickerCardProps {
   id: string
   name: string
   team?: string
-  flag?: string
   foil?: boolean
   status?: StickerState['status']
   repeatCount?: number
@@ -17,16 +17,29 @@ export const StickerCard = ({
   id,
   name,
   team,
-  flag,
   foil = false,
   status = 'missing',
   repeatCount = 0,
   onMark,
 }: StickerCardProps) => {
+  const totalCount = status === 'owned' ? 1 : status === 'repeated' ? repeatCount + 1 : 0
+
   const handleDecrement = () => {
-    const newCount = repeatCount - 1
-    if (newCount <= 0) onMark('owned', 0)
-    else onMark('repeated', newCount)
+    if (status === 'owned') {
+      onMark('missing')
+    } else {
+      const newCount = repeatCount - 1
+      if (newCount <= 0) onMark('owned', 0)
+      else onMark('repeated', newCount)
+    }
+  }
+
+  const handleIncrement = () => {
+    if (status === 'owned') {
+      onMark('repeated', 1)
+    } else {
+      onMark('repeated', repeatCount + 1)
+    }
   }
 
   return (
@@ -35,24 +48,35 @@ export const StickerCard = ({
         status === 'owned'
           ? foil
             ? 'border-gold2 bg-gradient-to-br from-gold/20 to-gold2/10 shadow-md shadow-gold/20'
-            : 'border-blue-500/50 bg-blue-500/10'
+            : 'border-green-500/60 bg-green-500/10'
           : status === 'repeated'
           ? 'border-amber-500/60 bg-amber-500/10'
           : 'border-surface3 bg-surface2 opacity-55'
       }`}
     >
+      {/* Count badge — top-right corner */}
+      {totalCount > 0 && (
+        <div
+          className={`absolute top-1.5 right-1.5 text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center z-10 ${
+            status === 'owned' ? 'bg-green-500 text-white' : 'bg-amber-500 text-dark'
+          }`}
+        >
+          {totalCount}
+        </div>
+      )}
+
       {/* Top: sticker info */}
       <div className="p-3 flex-1">
-        <div className="flex justify-between items-start mb-1">
-          <span className="text-[10px] font-mono text-gold2 font-bold leading-none">{id}</span>
+        <div className="flex items-start gap-1 mb-1">
           {foil && <span className="text-xs leading-none">✨</span>}
+          <span className="text-[10px] font-mono text-gold2 font-bold leading-none">{id}</span>
         </div>
         <div className="text-xs font-semibold text-white line-clamp-2 leading-snug min-h-[2.4rem]">
           {name}
         </div>
         {team && (
           <div className="text-[10px] text-gray-500 mt-1 truncate flex items-center gap-1">
-            {flag && <span>{flag}</span>}
+            <StickerFlag stickerKey={id} className="text-sm leading-none" />
             <span>{team}</span>
           </div>
         )}
@@ -69,25 +93,7 @@ export const StickerCard = ({
           </button>
         )}
 
-        {status === 'owned' && (
-          <div className="flex gap-1">
-            <button
-              onClick={() => onMark('missing')}
-              title="Marcar como faltante"
-              className="w-8 py-1.5 rounded-lg text-xs font-bold bg-surface3 hover:bg-gray-600 active:scale-95 text-gray-400 transition"
-            >
-              ✕
-            </button>
-            <button
-              onClick={() => onMark('repeated', 1)}
-              className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-amber-600/70 hover:bg-amber-600 active:scale-95 text-white transition"
-            >
-              +1 extra
-            </button>
-          </div>
-        )}
-
-        {status === 'repeated' && (
+        {(status === 'owned' || status === 'repeated') && (
           <div className="flex items-center gap-1">
             <button
               onClick={handleDecrement}
@@ -95,13 +101,18 @@ export const StickerCard = ({
             >
               −
             </button>
-            <div className="flex-1 text-center">
-              <span className="text-sm font-bold text-amber-400">{repeatCount}</span>
-              <span className="text-[10px] text-gray-500 ml-1">extra{repeatCount !== 1 ? 's' : ''}</span>
-            </div>
             <button
-              onClick={() => onMark('repeated', repeatCount + 1)}
-              className="w-8 h-7 rounded-lg text-sm font-bold bg-amber-600/70 hover:bg-amber-600 active:scale-95 text-white transition flex items-center justify-center"
+              className={`flex-1 py-1.5 rounded-lg text-xs font-bold active:scale-95 transition pointer-events-none ${
+                status === 'owned'
+                  ? 'bg-green-600/80 text-white'
+                  : 'bg-amber-500/80 text-dark'
+              }`}
+            >
+              Lo tengo
+            </button>
+            <button
+              onClick={handleIncrement}
+              className="w-8 h-7 rounded-lg text-sm font-bold bg-surface3 hover:bg-gray-600 active:scale-95 text-white transition flex items-center justify-center"
             >
               +
             </button>

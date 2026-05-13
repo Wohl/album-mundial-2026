@@ -1,7 +1,8 @@
 'use client'
 
 import { TradeRequest } from '@/types'
-import { getStickerName, getStickerTeamFlag } from '@/lib/stickers'
+import { getStickerName } from '@/lib/stickers'
+import { StickerFlag } from '@/components/TeamFlag'
 
 interface TradeCardProps {
   trade: TradeRequest
@@ -30,12 +31,11 @@ const STATUS_STYLES: Record<TradeRequest['status'], { label: string; cls: string
 }
 
 const StickerChip = ({ stickerKey, label }: { stickerKey: string; label: string }) => {
-  const flag = getStickerTeamFlag(stickerKey)
   const name = getStickerName(stickerKey)
   return (
     <div className="flex-1 min-w-0 bg-surface3/60 rounded-lg p-3 text-center space-y-1">
       <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">{label}</div>
-      {flag && <div className="text-2xl leading-none">{flag}</div>}
+      <StickerFlag stickerKey={stickerKey} className="text-2xl leading-none block mx-auto" />
       <div className="text-xs font-bold text-white leading-tight line-clamp-2">{name}</div>
       <div className="text-[10px] text-gold2 font-mono">{stickerKey}</div>
     </div>

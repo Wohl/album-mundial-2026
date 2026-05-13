@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { StickerState } from '@/types'
-import { getStickerName, getStickerTeamFlag } from '@/lib/stickers'
+import { getStickerName } from '@/lib/stickers'
 import { isOfflineMode } from '@/lib/supabase'
 import { OtherUserSticker } from '@/services/tradeService'
+import { StickerFlag } from '@/components/TeamFlag'
 
 type Phase = 'select' | 'submitting' | 'success' | 'error'
 
@@ -14,6 +15,7 @@ interface TradeOfferModalProps {
   myRepeated: StickerState[]
   targetMissing: string[]
   phase: Phase
+  errorMessage?: string | null
   onConfirm: (offeredKey: string) => void
   onRetry: () => void
   onClose: () => void
@@ -32,7 +34,6 @@ const StickerOption = ({
   disabled: boolean
   onClick: () => void
 }) => {
-  const flag = getStickerTeamFlag(sticker.sticker_key)
   return (
     <button
       onClick={onClick}
@@ -57,7 +58,7 @@ const StickerOption = ({
           ✓
         </div>
       )}
-      {flag && <div className="text-lg mb-1 leading-none">{flag}</div>}
+      <StickerFlag stickerKey={sticker.sticker_key} className="text-lg mb-1 leading-none block" />
       <div className="font-semibold text-white line-clamp-2 leading-tight">{getStickerName(sticker.sticker_key)}</div>
       <div className="text-gold2 mt-1 font-mono">{sticker.sticker_key}</div>
       <div className="text-gray-500 mt-1">×{sticker.repeat_count} extras</div>
@@ -70,6 +71,7 @@ export const TradeOfferModal = ({
   myRepeated,
   targetMissing,
   phase,
+  errorMessage,
   onConfirm,
   onRetry,
   onClose,
@@ -78,7 +80,6 @@ export const TradeOfferModal = ({
   const others = myRepeated.filter((s) => !targetMissing.includes(s.sticker_key))
   const [selected, setSelected] = useState<string | null>(null)
 
-  const targetFlag = getStickerTeamFlag(targetSticker.sticker_key)
   const isLocked = phase === 'submitting' || phase === 'success'
 
   useEffect(() => {
@@ -138,18 +139,25 @@ export const TradeOfferModal = ({
 
           {/* ── ERROR banner ────────────────────────────────────────────────── */}
           {phase === 'error' && (
-            <div className="shrink-0 bg-red-900/70 border-b border-red-700/50 px-5 py-3 flex items-center justify-between gap-3">
-              <p className="text-red-300 text-sm font-semibold">
-                ✗ Error al enviar — {isOfflineMode || (typeof navigator !== 'undefined' && !navigator.onLine)
-                  ? 'Revisá tu red o la configuración de Supabase'
-                  : 'Revisá tu conexión'}
+            <div className="shrink-0 bg-red-900/70 border-b border-red-700/50 px-5 py-3 space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-red-300 text-sm font-semibold">
+                  ✗ Error al enviar la oferta
+                </p>
+                <button
+                  onClick={onRetry}
+                  className="shrink-0 text-xs font-bold text-white bg-red-700 hover:bg-red-600 px-3 py-1 rounded-lg transition"
+                >
+                  Reintentar
+                </button>
+              </div>
+              <p className="text-red-400 text-xs leading-snug">
+                {errorMessage
+                  ? errorMessage
+                  : isOfflineMode || (typeof navigator !== 'undefined' && !navigator.onLine)
+                  ? 'Sin conexión — revisá tu red o la configuración de Supabase'
+                  : 'No se pudo conectar con el servidor. Si el problema persiste, verificá las políticas RLS de la tabla trade_requests en Supabase.'}
               </p>
-              <button
-                onClick={onRetry}
-                className="shrink-0 text-xs font-bold text-white bg-red-700 hover:bg-red-600 px-3 py-1 rounded-lg transition"
-              >
-                Reintentar
-              </button>
             </div>
           )}
 
@@ -167,7 +175,7 @@ export const TradeOfferModal = ({
               Querés esta figurita
             </div>
             <div className="flex items-center gap-3 bg-surface3/40 border border-surface3 rounded-xl p-3">
-              {targetFlag && <span className="text-4xl leading-none shrink-0">{targetFlag}</span>}
+              <StickerFlag stickerKey={targetSticker.sticker_key} className="text-4xl leading-none shrink-0" />
               <div className="min-w-0">
                 <div className="font-bold text-white leading-tight">
                   {getStickerName(targetSticker.sticker_key)}
@@ -242,15 +250,17 @@ export const TradeOfferModal = ({
               <div className="flex items-center gap-2 text-xs">
                 <div className="flex-1 text-center">
                   <div className="text-[10px] text-gray-500 mb-1">Vos dás</div>
-                  <div className="font-bold text-white line-clamp-1">
-                    {getStickerTeamFlag(selected)} {getStickerName(selected)}
+                  <div className="flex items-center justify-center gap-1 font-bold text-white">
+                    <StickerFlag stickerKey={selected} className="text-sm shrink-0" />
+                    <span className="line-clamp-1">{getStickerName(selected)}</span>
                   </div>
                 </div>
                 <div className="text-gray-500 font-bold shrink-0">⇄</div>
                 <div className="flex-1 text-center">
                   <div className="text-[10px] text-gray-500 mb-1">Vos recibís</div>
-                  <div className="font-bold text-white line-clamp-1">
-                    {targetFlag} {getStickerName(targetSticker.sticker_key)}
+                  <div className="flex items-center justify-center gap-1 font-bold text-white">
+                    <StickerFlag stickerKey={targetSticker.sticker_key} className="text-sm shrink-0" />
+                    <span className="line-clamp-1">{getStickerName(targetSticker.sticker_key)}</span>
                   </div>
                 </div>
               </div>

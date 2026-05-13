@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import 'flag-icons/css/flag-icons.min.css'
 
 export const metadata: Metadata = {
   title: 'Álbum Mundial 2026',

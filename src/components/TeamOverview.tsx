@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import { StickerState } from '@/types'
 import { TEAMS } from '@/stickers'
+import { TeamFlag } from '@/components/TeamFlag'
 
 interface TeamOverviewProps {
   userStickers: StickerState[]
@@ -58,7 +59,7 @@ export const TeamOverview = ({ userStickers, selectedTeam, onSelectTeam }: TeamO
                 }`}
               >
                 <div className="flex items-center gap-2 mb-2.5">
-                  <span className="text-xl">{team.flag}</span>
+                  <TeamFlag code={team.code} className="text-xl" />
                   <span className="text-sm font-semibold text-white truncate leading-tight">
                     {team.name}
                   </span>

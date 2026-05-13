@@ -4,7 +4,8 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { StickerState, TradeRequest } from '@/types'
 import { OtherUserSticker, tradeService } from '@/services/tradeService'
-import { getStickerName, getStickerTeamFlag } from '@/lib/stickers'
+import { getStickerName } from '@/lib/stickers'
+import { StickerFlag } from '@/components/TeamFlag'
 import { TradeCard } from './TradeCard'
 import { TradeOfferModal } from './TradeOfferModal'
 import { isOfflineMode } from '@/lib/supabase'
@@ -76,6 +77,7 @@ export const MarketplaceView = ({
   const [searchQuery, setSearchQuery] = useState('')
   const [toasts, setToasts] = useState<ToastMsg[]>([])
   const [showNotifications, setShowNotifications] = useState(false)
+  const [offerError, setOfferError] = useState<string | null>(null)
   const toastId = useRef(0)
 
   const pushToast = useCallback((msg: string, type: ToastMsg['type'] = 'success') => {
@@ -182,6 +184,7 @@ export const MarketplaceView = ({
     async (offeredKey: string) => {
       if (!offerTarget) return
       setOfferPhase('submitting')
+      setOfferError(null)
       try {
         await onCreateTrade(offerTarget.session_id, offerTarget.sticker_key, offeredKey)
         setOfferPhase('success')
@@ -189,9 +192,15 @@ export const MarketplaceView = ({
         setTimeout(() => {
           setOfferTarget(null)
           setOfferPhase('select')
+          setOfferError(null)
         }, 2000)
       } catch (err) {
         console.error('createTrade error:', err)
+        const msg =
+          err instanceof Error
+            ? err.message
+            : (err as { message?: string })?.message ?? null
+        setOfferError(msg)
         setOfferPhase('error')
       }
     },
@@ -340,10 +349,10 @@ export const MarketplaceView = ({
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-white leading-snug">{label}</p>
                             <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                              {getStickerTeamFlag(trade.offered_sticker_key)}{' '}
+                              <StickerFlag stickerKey={trade.offered_sticker_key} className="text-sm align-middle mr-0.5" />
                               {getStickerName(trade.offered_sticker_key)}
                               <span className="mx-1.5 text-gray-600">⇄</span>
-                              {getStickerTeamFlag(trade.requested_sticker_key)}{' '}
+                              <StickerFlag stickerKey={trade.requested_sticker_key} className="text-sm align-middle mr-0.5" />
                               {getStickerName(trade.requested_sticker_key)}
                             </p>
                             <p className="text-[10px] text-gray-600 mt-1.5">
@@ -676,8 +685,6 @@ export const MarketplaceView = ({
                             t.status === 'pending'
                         )
                         const canRequest = !alreadyRequested && myRepeated.length > 0
-                        const flag = getStickerTeamFlag(sticker.sticker_key)
-
                         return (
                           <button
                             key={sticker.sticker_key}
@@ -703,7 +710,7 @@ export const MarketplaceView = ({
                                 Solicitada
                               </div>
                             )}
-                            {flag && <div className="text-xl mb-1 leading-none">{flag}</div>}
+                            <StickerFlag stickerKey={sticker.sticker_key} className="text-xl mb-1 leading-none block" />
                             <div className="text-[11px] text-gold2 font-mono font-bold">
                               {sticker.sticker_key}
                             </div>
@@ -749,12 +756,14 @@ export const MarketplaceView = ({
           myRepeated={myRepeated}
           targetMissing={targetMissing}
           phase={offerPhase}
+          errorMessage={offerError}
           onConfirm={handleConfirmOffer}
-          onRetry={() => setOfferPhase('select')}
+          onRetry={() => { setOfferPhase('select'); setOfferError(null) }}
           onClose={() => {
             if (offerPhase === 'submitting' || offerPhase === 'success') return
             setOfferTarget(null)
             setOfferPhase('select')
+            setOfferError(null)
           }}
         />
       )}
