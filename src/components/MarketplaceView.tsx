@@ -202,7 +202,7 @@ export const MarketplaceView = ({
     [selectedUserStickers, myOwnedOrRepeatedKeys]
   )
 
-  // Solicitar tab: ALL stickers I don't own, annotated with how many people have them available
+  // Solicitar tab: only stickers I don't own that at least one other user has as repeated
   const availableWantStickers = useMemo(() => {
     const marketCounts = new Map<string, number>()
     othersRepeated.forEach((s) => {
@@ -211,7 +211,8 @@ export const MarketplaceView = ({
     return getAllStickers()
       .filter((s) => !myOwnedOrRepeatedKeys.has(s.id))
       .map((s) => ({ key: s.id, count: marketCounts.get(s.id) ?? 0 }))
-      .sort((a, b) => b.count - a.count) // stickers with available traders first
+      .filter(({ count }) => count > 0)
+      .sort((a, b) => b.count - a.count)
   }, [othersRepeated, myOwnedOrRepeatedKeys])
 
   const hasMissingFWC = useMemo(
@@ -1049,7 +1050,7 @@ export const MarketplaceView = ({
                   <div className="text-center py-8 text-gray-500 text-sm border border-dashed border-surface3 rounded-xl">
                     {wantSearch || wantTeamFilter
                       ? 'Sin resultados — probá otro nombre o seleccioná otro equipo'
-                      : 'Ya completaste tu álbum — no te falta ninguna figurita'}
+                      : 'Nadie tiene tus figuritas faltantes disponibles por ahora'}
                   </div>
                 ) : (
                   <>
