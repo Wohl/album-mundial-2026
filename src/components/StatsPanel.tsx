@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { StickerState, UserProgress } from '@/types'
 import { TEAMS } from '@/stickers'
 import { getStickerName } from '@/lib/stickers'
+import { TeamFlag } from '@/components/TeamFlag'
 
 interface StatsPanelProps {
   progress: UserProgress
@@ -113,7 +114,7 @@ export const StatsPanel = ({ progress, stickers }: StatsPanelProps) => {
           {teamStats.map((team, i) => (
             <div key={team.code} className="flex items-center gap-3">
               <span className="text-xs text-gray-600 w-5 text-right">{i + 1}</span>
-              <span className="text-lg w-7 text-center">{team.flag}</span>
+              <TeamFlag code={team.code} className="text-lg w-7 text-center" />
               <span className="text-sm text-white w-28 truncate shrink-0">{team.name}</span>
               <div className="flex-1 bg-surface3 rounded-full h-2 min-w-0">
                 <div

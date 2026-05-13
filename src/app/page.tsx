@@ -12,11 +12,18 @@ import { TeamOverview } from '@/components/TeamOverview'
 import { MarketplaceView } from '@/components/MarketplaceView'
 import { StatsPanel } from '@/components/StatsPanel'
 import { BulkEntryModal } from '@/components/BulkEntryModal'
-import { getAllStickers, getTotalStickers } from '@/lib/stickers'
-import { INTRO_STICKERS, TEAMS } from '@/stickers'
+import { TeamFlag } from '@/components/TeamFlag'
+import {
+  getIntroFWCStickers,
+  getFinalFWCStickers,
+  getCocaColaStickers,
+  getAllStickers,
+  getTotalStickers,
+} from '@/lib/stickers'
+import { INTRO_FWC_STICKERS, FINAL_FWC_STICKERS, COCA_COLA_STICKERS, TEAMS } from '@/stickers'
 import type { Sticker } from '@/types'
 
-type Tab = 'portada' | 'equipos' | 'todo' | 'repetidas' | 'stats' | 'market'
+type Tab = 'intro' | 'equipos' | 'final' | 'cocacola' | 'repetidas' | 'stats' | 'market'
 
 export default function Home() {
   const { session, loading: sessionLoading, createSession } = useSession()
@@ -59,8 +66,18 @@ export default function Home() {
 
   const allStickers = useMemo(() => getAllStickers(), [])
 
-  const introStickers = useMemo<Sticker[]>(() =>
-    INTRO_STICKERS.map((s) => ({ id: s.id, name: s.name, type: 'intro', foil: s.foil })),
+  const introFWCStickers = useMemo<Sticker[]>(() =>
+    INTRO_FWC_STICKERS.map((s) => ({ id: s.id, name: s.name, type: 'intro', foil: s.foil })),
+    []
+  )
+
+  const finalFWCStickers = useMemo<Sticker[]>(() =>
+    FINAL_FWC_STICKERS.map((s) => ({ id: s.id, name: s.name, type: 'final', foil: s.foil })),
+    []
+  )
+
+  const cocaColaStickers = useMemo<Sticker[]>(() =>
+    COCA_COLA_STICKERS.map((s) => ({ id: s.id, name: s.name, type: 'cocacola', foil: s.foil })),
     []
   )
 
@@ -72,7 +89,6 @@ export default function Home() {
       id: `${team.code}_${i}`,
       name: team.players[i] ?? `Jugador ${i + 1}`,
       team: team.name,
-      flag: team.flag,
       type: 'regular' as const,
       foil: i === 0,
     }))
@@ -89,9 +105,10 @@ export default function Home() {
   if (!session) return <WelcomeModal onSubmit={handleCreateSession} />
 
   const tabs: { id: Tab; label: string; badge?: number }[] = [
-    { id: 'portada',  label: 'Portada'    },
+    { id: 'intro',    label: 'Intro FWC'  },
     { id: 'equipos',  label: 'Equipos'    },
-    { id: 'todo',     label: 'Todo'       },
+    { id: 'final',    label: 'Final FWC'  },
+    { id: 'cocacola', label: 'Coca-Cola'  },
     { id: 'repetidas',label: 'Repetidas'  },
     { id: 'stats',    label: 'Stats'      },
     { id: 'market',   label: 'Mercado', badge: pendingIncoming },
@@ -101,6 +118,8 @@ export default function Home() {
     setActiveTab(tab)
     if (tab !== 'equipos') setSelectedTeam(null)
   }
+
+  const selectedTeamData = selectedTeam ? TEAMS.find((t) => t.code === selectedTeam) : null
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-dark via-surface to-dark">
@@ -134,7 +153,7 @@ export default function Home() {
 
       {/* Main */}
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-        {/* Progress bar — solo en tabs de álbum */}
+        {/* Progress bar */}
         {activeTab !== 'market' && activeTab !== 'stats' && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -159,7 +178,7 @@ export default function Home() {
             >
               {tab.label}
               {tab.badge != null && tab.badge > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full w-4.5 h-4.5 min-w-[1.1rem] px-1 flex items-center justify-center">
+                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[1.1rem] px-1 flex items-center justify-center">
                   {tab.badge}
                 </span>
               )}
@@ -174,20 +193,20 @@ export default function Home() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.15 }}
         >
-          {/* PORTADA */}
-          {activeTab === 'portada' && !loading && (
+          {/* INTRO FWC */}
+          {activeTab === 'intro' && !loading && (
             <StickerGallery
-              stickers={introStickers}
+              stickers={introFWCStickers}
               userStickers={stickers}
               onUpdateSticker={handleUpdateSticker}
-              title="Portada e introducción"
+              title="Intro FWC — Portada y presentación"
             />
           )}
 
           {/* EQUIPOS */}
           {activeTab === 'equipos' && !loading && (
             <div className="space-y-6">
-              {selectedTeam ? (
+              {selectedTeam && selectedTeamData ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <button
@@ -197,10 +216,13 @@ export default function Home() {
                       ← Volver
                     </button>
                     <span className="text-gray-600">·</span>
-                    <span className="text-sm font-semibold text-white">
-                      {TEAMS.find((t) => t.code === selectedTeam)?.flag}{' '}
-                      {TEAMS.find((t) => t.code === selectedTeam)?.name}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <TeamFlag code={selectedTeam} className="text-lg" />
+                      <span className="text-sm font-semibold text-white">{selectedTeamData.name}</span>
+                      <span className="text-xs text-gray-500 bg-surface3 px-2 py-0.5 rounded-full">
+                        Grupo {selectedTeamData.group}
+                      </span>
+                    </div>
                   </div>
                   <StickerGallery
                     stickers={selectedTeamStickers}
@@ -218,14 +240,32 @@ export default function Home() {
             </div>
           )}
 
-          {/* TODO */}
-          {activeTab === 'todo' && !loading && (
+          {/* FINAL FWC */}
+          {activeTab === 'final' && !loading && (
             <StickerGallery
-              stickers={allStickers}
+              stickers={finalFWCStickers}
               userStickers={stickers}
               onUpdateSticker={handleUpdateSticker}
-              title="Todas las figuritas"
+              title="Final FWC — Historia del torneo"
             />
+          )}
+
+          {/* COCA-COLA */}
+          {activeTab === 'cocacola' && !loading && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-4 bg-red-900/20 border border-red-700/30 rounded-xl">
+                <span className="text-2xl">🥤</span>
+                <div>
+                  <div className="text-white font-bold text-sm">Coca-Cola Special Edition</div>
+                  <div className="text-gray-400 text-xs">14 stickers premium — CC1 al CC14</div>
+                </div>
+              </div>
+              <StickerGallery
+                stickers={cocaColaStickers}
+                userStickers={stickers}
+                onUpdateSticker={handleUpdateSticker}
+              />
+            </div>
           )}
 
           {/* REPETIDAS */}
@@ -267,7 +307,6 @@ export default function Home() {
         </motion.div>
       </main>
 
-      {/* Bulk entry modal */}
       {showBulk && (
         <BulkEntryModal onConfirm={handleBulkMark} onClose={() => setShowBulk(false)} />
       )}

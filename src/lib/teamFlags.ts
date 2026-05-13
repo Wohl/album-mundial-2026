@@ -1,27 +1,27 @@
 // Maps album team codes → ISO 3166-1 alpha-2 codes used by flag-icons
 export const TEAM_ISO2: Record<string, string> = {
-  // Group A
-  MEX: 'mx', RSA: 'za', SLV: 'sv', NZL: 'nz',
-  // Group B
-  USA: 'us', UZB: 'uz', PAN: 'pa', CIV: 'ci',
-  // Group C
-  ARG: 'ar', SVN: 'si', CHI: 'cl', IRQ: 'iq',
-  // Group D
-  FRA: 'fr', MAR: 'ma', GTM: 'gt', AUS: 'au',
-  // Group E
-  ESP: 'es', BIH: 'ba', THA: 'th', ECU: 'ec',
-  // Group F
-  GER: 'de', COL: 'co', ALG: 'dz', JPN: 'jp',
-  // Group G
-  BRA: 'br', ISL: 'is', NGR: 'ng', KOR: 'kr',
-  // Group H
-  POR: 'pt', TAN: 'tz', QAT: 'qa', BEL: 'be',
-  // Group I
-  ENG: 'gb-eng', TUN: 'tn', IRN: 'ir', GRE: 'gr',
-  // Group J
-  NED: 'nl', POL: 'pl', IDN: 'id', UKR: 'ua',
-  // Group K
-  CRO: 'hr', SRB: 'rs', CAN: 'ca', PER: 'pe',
-  // Group L
-  ITA: 'it', VEN: 've', SEN: 'sn', MAL: 'ml',
+  // Grupo A
+  MEX: 'mx', RSA: 'za', KOR: 'kr', CZE: 'cz',
+  // Grupo B
+  CAN: 'ca', BIH: 'ba', QAT: 'qa', SUI: 'ch',
+  // Grupo C
+  BRA: 'br', MAR: 'ma', HAI: 'ht', SCO: 'gb-sct',
+  // Grupo D
+  USA: 'us', PAR: 'py', AUS: 'au',
+  // Grupo E
+  GER: 'de', CUW: 'cw', CIV: 'ci', ECU: 'ec',
+  // Grupo F
+  NED: 'nl', JPN: 'jp', SWE: 'se', TUN: 'tn',
+  // Grupo G
+  BEL: 'be', EGY: 'eg', IRN: 'ir', NZL: 'nz',
+  // Grupo H
+  ESP: 'es', CPV: 'cv', KSA: 'sa', URU: 'uy',
+  // Grupo I
+  FRA: 'fr', SEN: 'sn', IRQ: 'iq', NOR: 'no',
+  // Grupo J
+  ARG: 'ar', ALG: 'dz', AUT: 'at', JOR: 'jo',
+  // Grupo K
+  POR: 'pt', COD: 'cd', UZB: 'uz', COL: 'co',
+  // Grupo L
+  ENG: 'gb-eng', CRO: 'hr', GHA: 'gh', PAN: 'pa',
 }
