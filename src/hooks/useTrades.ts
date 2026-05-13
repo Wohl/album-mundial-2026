@@ -192,6 +192,7 @@ export const useTrades = (
   return {
     trades,
     othersRepeated,
+    othersOwned,
     matches,
     loading,
     pendingIncoming,

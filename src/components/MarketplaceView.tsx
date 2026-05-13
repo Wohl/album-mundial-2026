@@ -16,6 +16,7 @@ interface MarketplaceViewProps {
   myStickers: StickerState[]
   trades: TradeRequest[]
   othersRepeated: OtherUserSticker[]
+  othersOwned: Map<string, Set<string>>
   matches: TradeMatch[]
   loading: boolean
   onCreateTrade: (ownerId: string, requestedKeys: string[], offeredKeys: string[]) => Promise<unknown>
@@ -24,21 +25,11 @@ interface MarketplaceViewProps {
   onCancelTrade: (tradeId: string) => Promise<void>
 }
 
-type InnerTab = 'trades' | 'explore' | 'matches'
+type InnerTab = 'trades' | 'explore' | 'matches' | 'solicitar'
 type ExploreFilter = 'all' | 'need'
 type ToastMsg = { id: number; msg: string; type: 'success' | 'error' }
 type OfferPhase = 'select' | 'submitting' | 'success' | 'error'
 type CounterPhase = 'select' | 'submitting' | 'error'
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'ahora'
-  if (mins < 60) return `${mins}m`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h`
-  return `${Math.floor(hours / 24)}d`
-}
 
 function getTradeKeys(trade: TradeRequest) {
   const req = trade.requested_sticker_keys?.length
@@ -50,35 +41,12 @@ function getTradeKeys(trade: TradeRequest) {
   return { req, off }
 }
 
-function notifLabel(trade: TradeRequest, isIncoming: boolean, other: string) {
-  const { req, off } = getTradeKeys(trade)
-  const stickersLabel = (keys: string[]) =>
-    keys.length === 1 ? getStickerName(keys[0]) : `${keys.length} figuritas`
-
-  if (trade.status === 'pending') {
-    return isIncoming
-      ? { icon: '📬', label: `${other} te pidió un intercambio`, cls: 'bg-amber-500/10 border-amber-500/30', sub: `${stickersLabel(off)} ⇄ ${stickersLabel(req)}` }
-      : { icon: '📤', label: `Solicitud enviada a ${other}`, cls: 'bg-blue-500/10 border-blue-500/30', sub: `${stickersLabel(off)} ⇄ ${stickersLabel(req)}` }
-  }
-  if (trade.status === 'countered') {
-    return { icon: '↩', label: `Contraoferta con ${other}`, cls: 'bg-purple-500/10 border-purple-500/30', sub: '' }
-  }
-  if (trade.status === 'accepted') {
-    return { icon: '✅', label: `Intercambio completado con ${other}`, cls: 'bg-green-500/10 border-green-500/30', sub: `${stickersLabel(off)} ⇄ ${stickersLabel(req)}` }
-  }
-  if (trade.status === 'rejected') {
-    return isIncoming
-      ? { icon: '🚫', label: `Rechazaste la solicitud de ${other}`, cls: 'bg-red-500/10 border-red-500/30', sub: '' }
-      : { icon: '🚫', label: `${other} rechazó tu solicitud`, cls: 'bg-red-500/10 border-red-500/30', sub: '' }
-  }
-  return { icon: '↩️', label: `Solicitud cancelada con ${other}`, cls: 'bg-gray-500/10 border-gray-500/30', sub: '' }
-}
-
 export const MarketplaceView = ({
   userId,
   myStickers,
   trades,
   othersRepeated,
+  othersOwned,
   matches,
   loading,
   onCreateTrade,
@@ -104,8 +72,11 @@ export const MarketplaceView = ({
   const [exploreFilter, setExploreFilter] = useState<ExploreFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [toasts, setToasts] = useState<ToastMsg[]>([])
-  const [showNotifications, setShowNotifications] = useState(false)
   const toastId = useRef(0)
+  // Solicitar tab state
+  const [wantSearch, setWantSearch] = useState('')
+  const [wantKey, setWantKey] = useState<string | null>(null)
+  const [requestOfferKey, setRequestOfferKey] = useState<string | null>(null)
 
   const pushToast = useCallback((msg: string, type: ToastMsg['type'] = 'success') => {
     const id = ++toastId.current
@@ -210,15 +181,36 @@ export const MarketplaceView = ({
     [selectedUserStickers, myOwnedOrRepeatedKeys]
   )
 
-  const activityFeed = useMemo(
-    () =>
-      [...trades].sort(
-        (a, b) =>
-          new Date(b.updated_at ?? b.created_at).getTime() -
-          new Date(a.updated_at ?? a.created_at).getTime()
-      ),
-    [trades]
-  )
+  // Solicitar tab: unique available stickers from others that I don't own, sorted by availability count
+  const availableWantStickers = useMemo(() => {
+    const counts = new Map<string, number>()
+    othersRepeated.forEach((s) => {
+      if (!myOwnedOrRepeatedKeys.has(s.sticker_key)) {
+        counts.set(s.sticker_key, (counts.get(s.sticker_key) ?? 0) + 1)
+      }
+    })
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([key, count]) => ({ key, count }))
+  }, [othersRepeated, myOwnedOrRepeatedKeys])
+
+  const filteredWantStickers = useMemo(() => {
+    if (!wantSearch.trim()) return availableWantStickers.slice(0, 12)
+    const q = wantSearch.toLowerCase()
+    return availableWantStickers
+      .filter(({ key }) => key.toLowerCase().includes(q) || getStickerName(key).toLowerCase().includes(q))
+      .slice(0, 20)
+  }, [availableWantStickers, wantSearch])
+
+  const usersWithWant = useMemo(() => {
+    if (!wantKey) return []
+    const seen = new Set<string>()
+    return othersRepeated.filter((s) => {
+      if (s.sticker_key !== wantKey || seen.has(s.user_id)) return false
+      seen.add(s.user_id)
+      return true
+    })
+  }, [wantKey, othersRepeated])
 
   // ── Action handlers ────────────────────────────────────────────────────────
 
@@ -407,115 +399,40 @@ export const MarketplaceView = ({
         </AnimatePresence>
       </div>
 
-      {/* ── Notifications panel ─────────────────────────────────────────────── */}
-      <AnimatePresence>
-        {showNotifications && (
-          <>
-            <motion.div
-              key="notif-bg"
-              className="fixed inset-0 z-40 bg-black/60"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowNotifications(false)}
-            />
-            <motion.div
-              key="notif-panel"
-              className="fixed right-0 top-0 z-50 h-full w-full max-w-sm bg-surface2 border-l border-surface3 shadow-2xl flex flex-col"
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            >
-              <div className="p-5 border-b border-surface3 flex items-center justify-between shrink-0">
-                <h2 className="font-display text-gold2 uppercase text-lg tracking-wide">Actividad</h2>
-                <button
-                  onClick={() => setShowNotifications(false)}
-                  className="text-gray-500 hover:text-white transition text-xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface3"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {activityFeed.length === 0 ? (
-                  <div className="text-center py-12 text-gray-600 text-sm">
-                    <div className="text-4xl mb-3">🔔</div>
-                    <p>Sin actividad registrada</p>
-                  </div>
-                ) : (
-                  activityFeed.map((trade) => {
-                    const isIncoming = trade.owner_id === userId
-                    const other = isIncoming ? trade.requester_name : trade.owner_name
-                    const { icon, label, cls, sub } = notifLabel(trade, isIncoming, other)
-                    return (
-                      <div key={trade.id} className={`rounded-xl p-3 border ${cls}`}>
-                        <div className="flex gap-2.5">
-                          <span className="text-xl shrink-0 leading-none mt-0.5">{icon}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-white leading-snug">{label}</p>
-                            {sub && <p className="text-xs text-gray-500 mt-1">{sub}</p>}
-                            <p className="text-[10px] text-gray-600 mt-1.5">
-                              {timeAgo(trade.updated_at ?? trade.created_at)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })
-                )}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* ── Stats + bell ──────────────────────────────────────────────────────── */}
-      <div className="flex gap-3 items-stretch">
-        <div className="grid grid-cols-3 gap-3 flex-1">
-          <div
-            className={`rounded-xl p-4 text-center border transition ${
-              toRespondCount > 0 ? 'bg-amber-500/10 border-amber-500/40' : 'bg-surface2 border-surface3'
-            }`}
-          >
-            <div className={`text-2xl font-bold ${toRespondCount > 0 ? 'text-amber-400' : 'text-gray-500'}`}>
-              {toRespondCount}
-            </div>
-            <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">Por responder</div>
-          </div>
-          <div className="bg-surface2 border border-surface3 rounded-xl p-4 text-center">
-            <div className={`text-2xl font-bold ${pendingOutgoing.length > 0 ? 'text-blue-400' : 'text-gray-500'}`}>
-              {pendingOutgoing.length}
-            </div>
-            <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">Enviadas</div>
-          </div>
-          <div className="bg-surface2 border border-surface3 rounded-xl p-4 text-center">
-            <div className={`text-2xl font-bold ${completedCount > 0 ? 'text-green-400' : 'text-gray-500'}`}>
-              {completedCount}
-            </div>
-            <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">Completadas</div>
-          </div>
-        </div>
-        <button
-          onClick={() => setShowNotifications(true)}
-          className="relative flex flex-col items-center justify-center bg-surface2 border border-surface3 rounded-xl px-4 gap-1 hover:border-gold2/50 hover:bg-surface3/50 transition shrink-0"
+      {/* ── Stats ─────────────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-3 gap-3">
+        <div
+          className={`rounded-xl p-4 text-center border transition ${
+            toRespondCount > 0 ? 'bg-amber-500/10 border-amber-500/40' : 'bg-surface2 border-surface3'
+          }`}
         >
-          <span className="text-2xl">🔔</span>
-          <span className="text-[10px] text-gray-500 uppercase tracking-wider">Actividad</span>
-          {toRespondCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-bold rounded-full min-w-[1.2rem] h-[1.2rem] px-1 flex items-center justify-center">
-              {toRespondCount}
-            </span>
-          )}
-        </button>
+          <div className={`text-2xl font-bold ${toRespondCount > 0 ? 'text-amber-400' : 'text-gray-500'}`}>
+            {toRespondCount}
+          </div>
+          <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">Por responder</div>
+        </div>
+        <div className="bg-surface2 border border-surface3 rounded-xl p-4 text-center">
+          <div className={`text-2xl font-bold ${pendingOutgoing.length > 0 ? 'text-blue-400' : 'text-gray-500'}`}>
+            {pendingOutgoing.length}
+          </div>
+          <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">Enviadas</div>
+        </div>
+        <div className="bg-surface2 border border-surface3 rounded-xl p-4 text-center">
+          <div className={`text-2xl font-bold ${completedCount > 0 ? 'text-green-400' : 'text-gray-500'}`}>
+            {completedCount}
+          </div>
+          <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">Completadas</div>
+        </div>
       </div>
 
       {/* ── Inner tabs ────────────────────────────────────────────────────────── */}
-      <div className="flex gap-2 border-b border-surface3 pb-1">
+      <div className="flex gap-2 border-b border-surface3 pb-1 overflow-x-auto scrollbar-none">
         {(
           [
             { id: 'trades' as const, label: 'Intercambios', badge: toRespondCount },
             { id: 'explore' as const, label: 'Explorar', badge: totalNeedAvailable > 0 ? totalNeedAvailable : 0 },
             { id: 'matches' as const, label: 'Matches', badge: matches.length },
+            { id: 'solicitar' as const, label: 'Solicitar', badge: 0 },
           ] as { id: InnerTab; label: string; badge: number }[]
         ).map(({ id, label, badge }) => (
           <button
@@ -966,6 +883,187 @@ export const MarketplaceView = ({
                 )
               })}
             </div>
+          )}
+        </div>
+      )}
+
+      {/* ── SOLICITAR ─────────────────────────────────────────────────────────── */}
+      {innerTab === 'solicitar' && (
+        <div className="space-y-5">
+          <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+            <p className="text-blue-300 text-sm font-semibold">📋 Solicitud manual de intercambio</p>
+            <p className="text-gray-400 text-xs mt-1">
+              Especificá qué figurita querés y cuál ofrecés. El sistema te muestra quién la tiene disponible y si son compatibles.
+            </p>
+          </div>
+
+          {/* PASO 1: ¿Qué querés? */}
+          <section>
+            <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-2">
+              Paso 1 — ¿Qué figurita querés?
+            </div>
+            {wantKey ? (
+              <div className="flex items-center gap-3 p-3 bg-gold2/10 border border-gold2/30 rounded-xl mb-3">
+                <StickerFlag stickerKey={wantKey} className="text-3xl shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-gold2 text-xs font-mono font-bold">{wantKey}</div>
+                  <div className="text-white text-sm font-semibold">{getStickerName(wantKey)}</div>
+                </div>
+                <button
+                  onClick={() => { setWantKey(null); setRequestOfferKey(null) }}
+                  className="shrink-0 text-gray-500 hover:text-white text-sm w-7 h-7 flex items-center justify-center rounded-lg hover:bg-surface3 transition"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  value={wantSearch}
+                  onChange={(e) => setWantSearch(e.target.value)}
+                  placeholder="Buscar por nombre o código (ej: ARG, Messi, CC1...)"
+                  className="w-full bg-surface3/40 border border-surface3 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 outline-none focus:border-gold2/50 transition mb-3"
+                />
+                {filteredWantStickers.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500 text-sm border border-dashed border-surface3 rounded-xl">
+                    {wantSearch ? 'Sin resultados — probá otro nombre o código' : 'No hay figuritas disponibles en el mercado'}
+                  </div>
+                ) : (
+                  <>
+                    {!wantSearch && (
+                      <p className="text-[10px] text-gray-600 mb-2">Más disponibles en el mercado:</p>
+                    )}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                      {filteredWantStickers.map(({ key, count }) => (
+                        <button
+                          key={key}
+                          onClick={() => setWantKey(key)}
+                          className="text-left p-2.5 rounded-xl border border-surface3 bg-surface2 hover:border-green-500/60 hover:bg-green-500/10 transition"
+                        >
+                          <StickerFlag stickerKey={key} className="text-lg mb-1 block" />
+                          <div className="text-[10px] font-mono text-gold2 font-bold">{key}</div>
+                          <div className="text-xs text-white font-semibold line-clamp-2 leading-tight mt-0.5">
+                            {getStickerName(key)}
+                          </div>
+                          <div className="text-[10px] text-gray-500 mt-1">
+                            {count} coleccionista{count !== 1 ? 's' : ''}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </section>
+
+          {/* PASO 2: ¿Qué ofrecés? */}
+          {wantKey && (
+            <section>
+              <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-2">
+                Paso 2 — ¿Qué ofrecés a cambio?
+              </div>
+              {myRepeated.length === 0 ? (
+                <p className="text-amber-400 text-sm bg-amber-500/5 border border-amber-500/20 rounded-xl p-3">
+                  No tenés figuritas repetidas para ofrecer.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {myRepeated.map((s) => (
+                    <button
+                      key={s.sticker_key}
+                      onClick={() => setRequestOfferKey(requestOfferKey === s.sticker_key ? null : s.sticker_key)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition ${
+                        requestOfferKey === s.sticker_key
+                          ? 'border-gold2 bg-gold2/10 text-gold2 shadow-md shadow-gold2/10'
+                          : 'border-surface3 bg-surface2 text-gray-300 hover:border-gold2/50 hover:text-white'
+                      }`}
+                    >
+                      <StickerFlag stickerKey={s.sticker_key} className="text-sm shrink-0" />
+                      <span className="font-mono">{s.sticker_key}</span>
+                      <span className="text-gray-500">×{s.repeat_count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* PASO 3: Coleccionistas compatibles */}
+          {wantKey && (
+            <section>
+              <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-2">
+                Paso 3 — Quién tiene{' '}
+                <span className="text-green-400 font-mono">{wantKey}</span>{' '}
+                disponible ({usersWithWant.length})
+              </div>
+              {!requestOfferKey && myRepeated.length > 0 && (
+                <p className="text-[11px] text-amber-400 mb-2">
+                  ⚠ Seleccioná qué ofrecés (Paso 2) para ver compatibilidad y habilitar "Proponer".
+                </p>
+              )}
+              {usersWithWant.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 text-sm border border-dashed border-surface3 rounded-xl">
+                  Nadie tiene esta figurita disponible en este momento
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {usersWithWant.map((s) => {
+                    const theirOwned = othersOwned.get(s.user_id)
+                    const theyNeedMyOffer =
+                      requestOfferKey && theirOwned !== undefined
+                        ? !theirOwned.has(requestOfferKey)
+                        : null
+                    const alreadyRequested = trades.some(
+                      (t) =>
+                        t.requester_id === userId &&
+                        (t.requested_sticker_keys?.includes(wantKey) ||
+                          t.requested_sticker_key === wantKey) &&
+                        t.owner_id === s.user_id &&
+                        t.status === 'pending'
+                    )
+                    return (
+                      <div
+                        key={s.user_id}
+                        className={`flex items-center justify-between gap-3 p-3 rounded-xl border ${
+                          theyNeedMyOffer === true
+                            ? 'bg-green-500/8 border-green-500/30'
+                            : 'bg-surface2 border-surface3'
+                        }`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-white text-sm">{s.owner_name}</span>
+                            {theyNeedMyOffer === true && (
+                              <span className="text-[10px] font-bold bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded-full">
+                                ✨ Compatibles
+                              </span>
+                            )}
+                            {alreadyRequested && (
+                              <span className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full">
+                                Solicitada
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-0.5">×{s.repeat_count} extras disponibles</div>
+                        </div>
+                        <button
+                          disabled={!requestOfferKey || alreadyRequested || myRepeated.length === 0}
+                          onClick={() => {
+                            setTargetMissing(requestOfferKey ? [requestOfferKey] : [])
+                            handleOpenOffer([s], requestOfferKey ? [requestOfferKey] : [])
+                          }}
+                          className="shrink-0 px-3 py-1.5 bg-gradient-to-r from-gold to-gold2 text-dark text-xs font-bold rounded-lg uppercase transition disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
+                        >
+                          Proponer
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </section>
           )}
         </div>
       )}

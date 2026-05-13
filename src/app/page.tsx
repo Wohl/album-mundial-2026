@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/hooks/useAuth'
 import { useStickers } from '@/hooks/useStickers'
 import { useTrades } from '@/hooks/useTrades'
@@ -13,6 +13,7 @@ import { MarketplaceView } from '@/components/MarketplaceView'
 import { StatsPanel } from '@/components/StatsPanel'
 import { BulkEntryModal } from '@/components/BulkEntryModal'
 import { TeamFlag } from '@/components/TeamFlag'
+import { NotificationsPanel } from '@/components/NotificationsPanel'
 import {
   getAllStickers,
   getTotalStickers,
@@ -22,17 +23,24 @@ import type { Sticker } from '@/types'
 
 type Tab = 'intro' | 'equipos' | 'final' | 'cocacola' | 'repetidas' | 'stats' | 'market'
 
+type GlobalToast = { id: number; msg: string }
+
 export default function Home() {
   const { userId, profile, loading: authLoading, signIn, signUp, signOut } = useAuth()
   const [activeTab, setActiveTab] = useState<Tab>('equipos')
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null)
   const [showBulk, setShowBulk] = useState(false)
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [globalToasts, setGlobalToasts] = useState<GlobalToast[]>([])
+  const globalToastId = useRef(0)
+  const prevPendingRef = useRef(0)
 
   const totalStickers = getTotalStickers()
   const { stickers, progress, loading, updateSticker, refetch: refetchStickers } = useStickers(userId, totalStickers)
   const {
     trades,
     othersRepeated,
+    othersOwned,
     matches,
     loading: tradesLoading,
     pendingIncoming,
@@ -41,6 +49,19 @@ export default function Home() {
     counterTrade,
     cancelTrade,
   } = useTrades(userId, stickers, refetchStickers)
+
+  const pushGlobalToast = useCallback((msg: string) => {
+    const id = ++globalToastId.current
+    setGlobalToasts((prev) => [...prev, { id, msg }])
+    setTimeout(() => setGlobalToasts((prev) => prev.filter((t) => t.id !== id)), 5000)
+  }, [])
+
+  useEffect(() => {
+    if (pendingIncoming > prevPendingRef.current && activeTab !== 'market') {
+      pushGlobalToast('Nueva solicitud de intercambio recibida')
+    }
+    prevPendingRef.current = pendingIncoming
+  }, [pendingIncoming, activeTab, pushGlobalToast])
 
   const handleUpdateSticker = useCallback(
     (key: string, status: 'owned' | 'missing' | 'repeated', count: number = 0) => {
@@ -135,6 +156,18 @@ export default function Home() {
                 className="px-3 py-1.5 rounded-lg text-xs font-bold bg-surface3 hover:bg-gray-600 text-gray-300 border border-surface3 transition"
               >
                 + Entrada rápida
+              </button>
+              <button
+                onClick={() => setShowNotifications(true)}
+                className="relative p-2 rounded-lg bg-surface3 hover:bg-gray-600 text-gray-300 border border-surface3 transition"
+                title="Actividad de intercambios"
+              >
+                🔔
+                {pendingIncoming > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[1.1rem] h-[1.1rem] px-1 flex items-center justify-center">
+                    {pendingIncoming}
+                  </span>
+                )}
               </button>
               <div className="flex items-center gap-2">
                 <div className="text-right">
@@ -294,6 +327,7 @@ export default function Home() {
               myStickers={stickers}
               trades={trades}
               othersRepeated={othersRepeated}
+              othersOwned={othersOwned}
               matches={matches}
               loading={tradesLoading}
               onCreateTrade={createTrade}
@@ -315,6 +349,33 @@ export default function Home() {
       {showBulk && (
         <BulkEntryModal onConfirm={handleBulkMark} onClose={() => setShowBulk(false)} />
       )}
+
+      {/* Global notifications panel — accessible from any tab */}
+      <NotificationsPanel
+        show={showNotifications}
+        trades={trades}
+        userId={userId}
+        onClose={() => setShowNotifications(false)}
+      />
+
+      {/* Global toasts for trade events outside the Market tab */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[110] flex flex-col gap-2 items-center pointer-events-none">
+        <AnimatePresence mode="popLayout">
+          {globalToasts.map((t) => (
+            <motion.button
+              key={t.id}
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              onClick={() => { setActiveTab('market'); setShowNotifications(false) }}
+              className="px-5 py-3 rounded-xl font-bold text-sm shadow-2xl whitespace-nowrap pointer-events-auto bg-amber-600 hover:bg-amber-500 text-white transition flex items-center gap-2"
+            >
+              🔔 {t.msg}
+              <span className="text-amber-200 font-normal text-xs">→ Ver</span>
+            </motion.button>
+          ))}
+        </AnimatePresence>
+      </div>
     </div>
   )
 }
