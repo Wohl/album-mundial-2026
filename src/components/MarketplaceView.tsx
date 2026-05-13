@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { StickerState, TradeRequest, TradeMatch } from '@/types'
 import { OtherUserSticker, tradeService } from '@/services/tradeService'
 import { getStickerName, getAllStickers } from '@/lib/stickers'
+import { TEAMS } from '@/stickers'
 import { StickerFlag } from '@/components/TeamFlag'
 import { TradeCard } from './TradeCard'
 import { TradeOfferModal } from './TradeOfferModal'
@@ -221,18 +222,27 @@ export const MarketplaceView = ({
     () => availableWantStickers.some(({ key }) => key.startsWith('CC')),
     [availableWantStickers]
   )
+  const teamsWithMissing = useMemo(() => {
+    const codes = new Set(
+      availableWantStickers
+        .map(({ key }) => (key.includes('_') ? key.split('_')[0] : null))
+        .filter(Boolean) as string[]
+    )
+    return TEAMS.filter((t) => codes.has(t.code))
+  }, [availableWantStickers])
 
   const filteredWantStickers = useMemo(() => {
     let base = availableWantStickers
     if (wantTeamFilter === 'fwc') base = base.filter(({ key }) => !key.includes('_') && !key.startsWith('CC'))
     else if (wantTeamFilter === 'cocacola') base = base.filter(({ key }) => key.startsWith('CC'))
+    else if (wantTeamFilter) base = base.filter(({ key }) => key.startsWith(wantTeamFilter + '_'))
     if (wantSearch.trim()) {
       const q = wantSearch.toLowerCase()
       base = base.filter(
         ({ key }) => key.toLowerCase().includes(q) || getStickerName(key).toLowerCase().includes(q)
       )
     }
-    return base.slice(0, wantTeamFilter ? 20 : 20)
+    return base
   }, [availableWantStickers, wantSearch, wantTeamFilter])
 
   const usersWithWant = useMemo(() => {
@@ -1005,19 +1015,20 @@ export const MarketplaceView = ({
               </div>
             ) : (
               <>
-                {/* Category filter chips */}
-                <div className="flex gap-1.5 mb-2">
+                {/* Category + team filter chips */}
+                <div className="flex gap-1.5 overflow-x-auto scrollbar-none mb-2 pb-0.5">
                   {(
                     [
-                      { id: null,        label: 'Todos'     },
-                      ...(hasMissingFWC  ? [{ id: 'fwc'      as const, label: 'FWC'      }] : []),
-                      ...(hasMissingCC   ? [{ id: 'cocacola' as const, label: 'Coca-Cola' }] : []),
+                      { id: null,         label: 'Todos'     },
+                      ...(hasMissingFWC ? [{ id: 'fwc',      label: 'FWC'      }] : []),
+                      ...(hasMissingCC  ? [{ id: 'cocacola', label: 'Coca-Cola' }] : []),
+                      ...teamsWithMissing.map((t) => ({ id: t.code, label: t.code })),
                     ] as { id: string | null; label: string }[]
                   ).map(({ id, label }) => (
                     <button
                       key={id ?? 'all'}
                       onClick={() => setWantTeamFilter(id)}
-                      className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition border ${
+                      className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition border ${
                         wantTeamFilter === id
                           ? 'bg-gold2 text-dark border-gold2'
                           : 'bg-surface2 text-gray-400 border-surface3 hover:border-gold2/50'
