@@ -87,8 +87,8 @@ export const TradeOfferModal = ({
 
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => {
     if (preSelectedKeys && preSelectedKeys.length > 0) {
-      const valid = preSelectedKeys.filter((k) => myRepeated.some((s) => s.sticker_key === k))
-      if (valid.length > 0) return new Set(valid)
+      const valid = preSelectedKeys.find((k) => myRepeated.some((s) => s.sticker_key === k))
+      if (valid) return new Set([valid])
     }
     const first = recommended[0]?.sticker_key ?? others[0]?.sticker_key
     return first ? new Set([first]) : new Set()
@@ -102,10 +102,8 @@ export const TradeOfferModal = ({
   const toggleKey = (key: string) => {
     if (isLocked) return
     setSelectedKeys((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
+      if (prev.has(key)) return new Set()
+      return new Set([key])
     })
   }
 

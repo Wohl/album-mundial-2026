@@ -98,9 +98,6 @@ export const MarketplaceView = ({
   const [counterTarget, setCounterTarget] = useState<TradeRequest | null>(null)
   const [counterPhase, setCounterPhase] = useState<CounterPhase>('select')
   const [counterError, setCounterError] = useState<string | null>(null)
-  // Multi-select explore mode
-  const [multiSelectMode, setMultiSelectMode] = useState(false)
-  const [multiSelected, setMultiSelected] = useState<Set<string>>(new Set())
   // Other UI state
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [showHistory, setShowHistory] = useState(false)
@@ -167,8 +164,6 @@ export const MarketplaceView = ({
       setSelectedUserId(deselect ? null : uid)
       setExploreFilter('all')
       setSearchQuery('')
-      setMultiSelectMode(false)
-      setMultiSelected(new Set())
       if (deselect) { setTargetMissing([]); return }
       try {
         // Returns which of my repeated stickers the target user doesn't already own
@@ -239,30 +234,21 @@ export const MarketplaceView = ({
 
   const handleSuggestTrade = useCallback(
     (match: TradeMatch) => {
-      const topTheyHave = match.theyHave.slice(0, 3)
-      const targetStickers = othersRepeated.filter(
-        (s) => s.user_id === match.userId && topTheyHave.includes(s.sticker_key)
-      )
-      if (targetStickers.length === 0) {
+      const firstKey = match.theyHave[0]
+      const targetSticker = firstKey
+        ? othersRepeated.find((s) => s.user_id === match.userId && s.sticker_key === firstKey)
+        : undefined
+      if (!targetSticker) {
         setInnerTab('explore')
         handleSelectUser(match.userId)
         return
       }
-      // Pre-populate targetMissing so the offer modal shows recommended stickers correctly
       setTargetMissing(match.iHaveForThem)
-      handleOpenOffer(targetStickers, match.iHaveForThem.slice(0, 3))
+      handleOpenOffer([targetSticker], match.iHaveForThem.slice(0, 1))
     },
     [othersRepeated, handleOpenOffer, handleSelectUser]
   )
 
-  const openMultiSelectOffer = useCallback(() => {
-    if (multiSelected.size === 0 || !selectedUserId) return
-    const stickers = selectedUserStickers.filter((s) => multiSelected.has(s.sticker_key))
-    if (stickers.length === 0) return
-    handleOpenOffer(stickers)
-    setMultiSelected(new Set())
-    setMultiSelectMode(false)
-  }, [multiSelected, selectedUserId, selectedUserStickers, handleOpenOffer])
 
   const handleConfirmOffer = useCallback(
     async (offeredKeys: string[]) => {
@@ -764,19 +750,6 @@ export const MarketplaceView = ({
                       placeholder="Buscar figurita..."
                       className="flex-1 min-w-[8rem] bg-surface3/40 border border-surface3 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-600 outline-none focus:border-gold2/50 transition"
                     />
-                    <button
-                      onClick={() => {
-                        setMultiSelectMode((v) => !v)
-                        setMultiSelected(new Set())
-                      }}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition border ${
-                        multiSelectMode
-                          ? 'bg-gold2 text-dark border-gold2'
-                          : 'bg-surface3/40 text-gray-400 border-surface3 hover:border-gold2/50 hover:text-white'
-                      }`}
-                    >
-                      Multi-select
-                    </button>
                   </div>
 
                   {myRepeated.length === 0 && (
@@ -785,33 +758,6 @@ export const MarketplaceView = ({
                     </span>
                   )}
 
-                  {/* Multi-select toolbar */}
-                  {multiSelectMode && (
-                    <div className="flex items-center gap-3 p-3 bg-gold2/10 border border-gold2/30 rounded-xl">
-                      <span className="text-xs font-semibold text-gold2 flex-1">
-                        {multiSelected.size === 0
-                          ? 'Tocá figuritas para seleccionarlas'
-                          : `${multiSelected.size} figurita${multiSelected.size !== 1 ? 's' : ''} seleccionada${multiSelected.size !== 1 ? 's' : ''}`}
-                      </span>
-                      {multiSelected.size > 0 && (
-                        <>
-                          <button
-                            onClick={() => setMultiSelected(new Set())}
-                            className="text-xs text-gray-500 hover:text-gray-300 transition"
-                          >
-                            Limpiar
-                          </button>
-                          <button
-                            onClick={openMultiSelectOffer}
-                            disabled={myRepeated.length === 0}
-                            className="px-3 py-1.5 bg-gradient-to-r from-gold to-gold2 text-dark text-xs font-bold rounded-lg uppercase transition disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            Pedir {multiSelected.size} →
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
 
                   {filteredSelectedStickers.length === 0 ? (
                     <div className="text-center py-10 text-gray-600 text-sm border border-dashed border-surface3 rounded-xl">
@@ -831,45 +777,24 @@ export const MarketplaceView = ({
                             t.owner_id === sticker.user_id &&
                             t.status === 'pending'
                         )
-                        const isMultiSel = multiSelected.has(sticker.sticker_key)
                         const canRequest = !alreadyRequested && myRepeated.length > 0
-
-                        const handleClick = () => {
-                          if (multiSelectMode) {
-                            setMultiSelected((prev) => {
-                              const next = new Set(prev)
-                              if (next.has(sticker.sticker_key)) next.delete(sticker.sticker_key)
-                              else next.add(sticker.sticker_key)
-                              return next
-                            })
-                          } else {
-                            handleOpenOffer([sticker])
-                          }
-                        }
 
                         return (
                           <button
                             key={sticker.sticker_key}
-                            disabled={!multiSelectMode && !canRequest}
-                            onClick={handleClick}
+                            disabled={!canRequest}
+                            onClick={() => handleOpenOffer([sticker])}
                             className={`relative text-left p-3 rounded-xl border-2 transition group ${
-                              multiSelectMode && isMultiSel
-                                ? 'border-gold2 bg-gold2/15 scale-[1.02]'
-                                : alreadyRequested
+                              alreadyRequested
                                 ? 'border-amber-500/40 bg-amber-500/10 cursor-default'
                                 : iNeedIt && canRequest
                                 ? 'border-green-500/60 bg-green-500/10 hover:border-green-400 hover:scale-[1.02] cursor-pointer'
-                                : canRequest || multiSelectMode
+                                : canRequest
                                 ? 'border-surface3 bg-surface2 hover:border-gold2/50 hover:scale-[1.02] cursor-pointer'
                                 : 'border-surface3 bg-surface2 opacity-40 cursor-not-allowed'
                             }`}
                           >
-                            {multiSelectMode && isMultiSel && (
-                              <div className="absolute -top-2 -left-2 bg-gold2 text-dark text-[9px] font-bold w-5 h-5 rounded-full flex items-center justify-center z-10">
-                                ✓
-                              </div>
-                            )}
-                            {iNeedIt && !alreadyRequested && !isMultiSel && (
+                            {iNeedIt && !alreadyRequested && (
                               <div className="absolute -top-2 -right-2 bg-green-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap z-10">
                                 La necesitás
                               </div>
@@ -885,7 +810,7 @@ export const MarketplaceView = ({
                               {getStickerName(sticker.sticker_key)}
                             </div>
                             <div className="text-[11px] text-gray-500 mt-2">×{sticker.repeat_count} extras</div>
-                            {!multiSelectMode && canRequest && (
+                            {canRequest && (
                               <div className={`mt-2 text-center text-[10px] font-bold py-1 rounded transition ${
                                 iNeedIt
                                   ? 'bg-green-500/20 text-green-400 group-hover:bg-green-500/30'
