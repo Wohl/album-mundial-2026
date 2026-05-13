@@ -7,7 +7,7 @@ export const TEAM_ISO2: Record<string, string> = {
   // Grupo C
   BRA: 'br', MAR: 'ma', HAI: 'ht', SCO: 'gb-sct',
   // Grupo D
-  USA: 'us', PAR: 'py', AUS: 'au',
+  USA: 'us', PAR: 'py', AUS: 'au', TUR: 'tr',
   // Grupo E
   GER: 'de', CUW: 'cw', CIV: 'ci', ECU: 'ec',
   // Grupo F

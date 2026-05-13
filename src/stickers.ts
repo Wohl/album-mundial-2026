@@ -137,6 +137,10 @@ export const TEAMS: Team[] = [
     code: 'AUS', name: 'Australia', group: 'D',
     players: ['Escudo Australia','Mathew Ryan','Harry Souttar','Kye Rowles','Milos Degenek','Nathaniel Atkinson','Jackson Irvine','Riley McGree','Aziz Behich','Craig Goodwin','Mathew Leckie','Foto Equipo','Mitchell Duke','Martin Boyle','Garang Kuol','Cameron Burgess','Jordan Bos','Daniel Arzani','Joel King','Marco Tilio'],
   },
+  {
+    code: 'TUR', name: 'Turquía', group: 'D',
+    players: ['Escudo Turquía','Mert Günok','Zeki Çelik','Merih Demiral','Çağlar Söyüncü','Ferdi Kadıoğlu','Hakan Çalhanoğlu','Salih Özcan','Arda Güler ✦','Kerem Aktürkoğlu','Barış Alper Yılmaz','Foto Equipo','Yusuf Yazıcı','Samet Akaydın','Abdülkerim Bardakcı','Uğurcan Çakır','Cenk Tosun','İsmail Yüksek','Kaan Ayhan','Okay Yokuşlu'],
+  },
   // ── GRUPO E ──
   {
     code: 'GER', name: 'Alemania', group: 'E',
