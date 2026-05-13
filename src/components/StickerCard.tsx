@@ -1,6 +1,7 @@
 'use client'
 
 import { StickerState } from '@/types'
+import { displayKey } from '@/lib/stickers'
 import { StickerFlag } from '@/components/TeamFlag'
 
 interface StickerCardProps {
@@ -69,7 +70,7 @@ export const StickerCard = ({
       <div className="p-3 flex-1">
         <div className="flex items-start gap-1 mb-1">
           {foil && <span className="text-xs leading-none">✨</span>}
-          <span className="text-[10px] font-mono text-gold2 font-bold leading-none">{id}</span>
+          <span className="text-[10px] font-mono text-gold2 font-bold leading-none">{displayKey(id)}</span>
         </div>
         <div className="text-xs font-semibold text-white line-clamp-2 leading-snug min-h-[2.4rem]">
           {name}

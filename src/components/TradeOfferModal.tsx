@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { StickerState } from '@/types'
-import { getStickerName } from '@/lib/stickers'
+import { getStickerName, displayKey } from '@/lib/stickers'
 import { isOfflineMode } from '@/lib/supabase'
 import { OtherUserSticker } from '@/services/tradeService'
 import { StickerFlag } from '@/components/TeamFlag'
@@ -60,7 +60,7 @@ const StickerOption = ({
     )}
     <StickerFlag stickerKey={sticker.sticker_key} className="text-lg mb-1 leading-none block" />
     <div className="font-semibold text-white line-clamp-2 leading-tight">{getStickerName(sticker.sticker_key)}</div>
-    <div className="text-gold2 mt-1 font-mono">{sticker.sticker_key}</div>
+    <div className="text-gold2 mt-1 font-mono">{displayKey(sticker.sticker_key)}</div>
     <div className="text-gray-500 mt-1">×{sticker.repeat_count} extras</div>
   </button>
 )
@@ -190,7 +190,7 @@ export const TradeOfferModal = ({
                   <div key={s.sticker_key} className="flex items-center gap-1.5 bg-surface3/40 border border-surface3 rounded-lg px-2.5 py-1.5">
                     <StickerFlag stickerKey={s.sticker_key} className="text-base leading-none shrink-0" />
                     <div>
-                      <div className="text-gold2 text-[10px] font-mono font-bold">{s.sticker_key}</div>
+                      <div className="text-gold2 text-[10px] font-mono font-bold">{displayKey(s.sticker_key)}</div>
                       <div className="text-white text-xs font-semibold leading-tight max-w-[8rem] truncate">{getStickerName(s.sticker_key)}</div>
                     </div>
                   </div>
@@ -201,7 +201,7 @@ export const TradeOfferModal = ({
                 <StickerFlag stickerKey={targetStickers[0].sticker_key} className="text-4xl leading-none shrink-0" />
                 <div className="min-w-0">
                   <div className="font-bold text-white leading-tight">{getStickerName(targetStickers[0].sticker_key)}</div>
-                  <div className="text-gold2 text-xs font-mono mt-0.5">{targetStickers[0].sticker_key}</div>
+                  <div className="text-gold2 text-xs font-mono mt-0.5">{displayKey(targetStickers[0].sticker_key)}</div>
                   <div className="text-gray-500 text-xs mt-0.5">×{targetStickers[0].repeat_count} disponibles</div>
                 </div>
               </div>
@@ -279,7 +279,7 @@ export const TradeOfferModal = ({
                     {selectedOffered.map((key) => (
                       <div key={key} className="flex items-center gap-0.5">
                         <StickerFlag stickerKey={key} className="text-sm shrink-0" />
-                        <span className="font-mono text-gold2 text-[10px]">{key}</span>
+                        <span className="font-mono text-gold2 text-[10px]">{displayKey(key)}</span>
                       </div>
                     ))}
                   </div>
@@ -291,7 +291,7 @@ export const TradeOfferModal = ({
                     {targetStickers.map((s) => (
                       <div key={s.sticker_key} className="flex items-center gap-0.5">
                         <StickerFlag stickerKey={s.sticker_key} className="text-sm shrink-0" />
-                        <span className="font-mono text-gold2 text-[10px]">{s.sticker_key}</span>
+                        <span className="font-mono text-gold2 text-[10px]">{displayKey(s.sticker_key)}</span>
                       </div>
                     ))}
                   </div>

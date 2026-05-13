@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { TradeRequest, StickerState } from '@/types'
-import { getStickerName } from '@/lib/stickers'
+import { getStickerName, displayKey } from '@/lib/stickers'
 import { StickerFlag } from '@/components/TeamFlag'
 
 type Phase = 'select' | 'submitting' | 'error'
@@ -50,7 +50,7 @@ const StickerOption = ({
     )}
     <StickerFlag stickerKey={stickerKey} className="text-lg mb-1 leading-none block" />
     <div className="font-semibold text-white line-clamp-2 leading-tight">{getStickerName(stickerKey)}</div>
-    <div className="text-purple-300 mt-1 font-mono">{stickerKey}</div>
+    <div className="text-purple-300 mt-1 font-mono">{displayKey(stickerKey)}</div>
     <div className="text-gray-500 mt-1">×{repeatCount} extras</div>
   </button>
 )
@@ -180,7 +180,7 @@ export const CounterOfferModal = ({
                 {theyOffer.map((key) => (
                   <div key={key} className="flex items-center gap-1.5 mb-1">
                     <StickerFlag stickerKey={key} className="text-sm shrink-0" />
-                    <span className="text-[10px] font-mono text-gold2">{key}</span>
+                    <span className="text-[10px] font-mono text-gold2">{displayKey(key)}</span>
                   </div>
                 ))}
               </div>
@@ -192,7 +192,7 @@ export const CounterOfferModal = ({
                 {theyWant.map((key) => (
                   <div key={key} className="flex items-center gap-1.5 mb-1">
                     <StickerFlag stickerKey={key} className="text-sm shrink-0" />
-                    <span className="text-[10px] font-mono text-gold2">{key}</span>
+                    <span className="text-[10px] font-mono text-gold2">{displayKey(key)}</span>
                   </div>
                 ))}
               </div>

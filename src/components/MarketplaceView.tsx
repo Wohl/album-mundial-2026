@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { StickerState, TradeRequest, TradeMatch } from '@/types'
 import { OtherUserSticker, tradeService } from '@/services/tradeService'
-import { getStickerName, getAllStickers } from '@/lib/stickers'
+import { getStickerName, getAllStickers, displayKey } from '@/lib/stickers'
 import { TEAMS } from '@/stickers'
 import { StickerFlag } from '@/components/TeamFlag'
 import { TradeCard } from './TradeCard'
@@ -765,7 +765,7 @@ export const MarketplaceView = ({
                               </div>
                             )}
                             <StickerFlag stickerKey={sticker.sticker_key} className="text-xl mb-1 leading-none block" />
-                            <div className="text-[11px] text-gold2 font-mono font-bold">{sticker.sticker_key}</div>
+                            <div className="text-[11px] text-gold2 font-mono font-bold">{displayKey(sticker.sticker_key)}</div>
                             <div className="text-xs font-semibold text-white mt-0.5 line-clamp-2 leading-tight">
                               {getStickerName(sticker.sticker_key)}
                             </div>
@@ -886,7 +886,7 @@ export const MarketplaceView = ({
                         {match.theyHave.slice(0, 10).map((key) => (
                           <div key={key} className="flex items-center gap-1 bg-green-500/10 border border-green-500/30 rounded-lg px-2 py-1">
                             <StickerFlag stickerKey={key} className="text-sm shrink-0" />
-                            <span className="text-[10px] font-mono text-green-400 font-bold">{key}</span>
+                            <span className="text-[10px] font-mono text-green-400 font-bold">{displayKey(key)}</span>
                           </div>
                         ))}
                         {match.theyHave.length > 10 && (
@@ -905,7 +905,7 @@ export const MarketplaceView = ({
                           {match.iHaveForThem.slice(0, 10).map((key) => (
                             <div key={key} className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/30 rounded-lg px-2 py-1">
                               <StickerFlag stickerKey={key} className="text-sm shrink-0" />
-                              <span className="text-[10px] font-mono text-amber-400 font-bold">{key}</span>
+                              <span className="text-[10px] font-mono text-amber-400 font-bold">{displayKey(key)}</span>
                             </div>
                           ))}
                           {match.iHaveForThem.length > 10 && (
@@ -962,10 +962,10 @@ export const MarketplaceView = ({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap text-xs">
                           <span className="text-gray-500">Quiero</span>
-                          <span className="font-mono font-bold text-green-400">{w.wantKey}</span>
+                          <span className="font-mono font-bold text-green-400">{displayKey(w.wantKey)}</span>
                           <span className="text-gray-600">⇄</span>
                           <span className="text-gray-500">Ofrezco</span>
-                          <span className="font-mono font-bold text-gold2">{w.offerKey}</span>
+                          <span className="font-mono font-bold text-gold2">{displayKey(w.offerKey)}</span>
                         </div>
                         <div className="text-[10px] text-gray-600 mt-0.5">
                           {availableCount > 0
@@ -1003,7 +1003,7 @@ export const MarketplaceView = ({
               <div className="flex items-center gap-3 p-3 bg-gold2/10 border border-gold2/30 rounded-xl">
                 <StickerFlag stickerKey={wantKey} className="text-3xl shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <div className="text-gold2 text-xs font-mono font-bold">{wantKey}</div>
+                  <div className="text-gold2 text-xs font-mono font-bold">{displayKey(wantKey)}</div>
                   <div className="text-white text-sm font-semibold">{getStickerName(wantKey)}</div>
                 </div>
                 <button
@@ -1070,7 +1070,7 @@ export const MarketplaceView = ({
                           }`}
                         >
                           <StickerFlag stickerKey={key} className="text-lg mb-1 block" />
-                          <div className="text-[10px] font-mono text-gold2 font-bold">{key}</div>
+                          <div className="text-[10px] font-mono text-gold2 font-bold">{displayKey(key)}</div>
                           <div className="text-xs text-white font-semibold line-clamp-2 leading-tight mt-0.5">
                             {getStickerName(key)}
                           </div>
@@ -1112,7 +1112,7 @@ export const MarketplaceView = ({
                     >
                       <StickerFlag stickerKey={s.sticker_key} className="text-sm shrink-0" />
                       <div className="text-left min-w-0">
-                        <div className="font-mono leading-tight">{s.sticker_key}</div>
+                        <div className="font-mono leading-tight">{displayKey(s.sticker_key)}</div>
                         <div className="text-[10px] font-normal text-gray-400 truncate max-w-[8rem] leading-tight">
                           {getStickerName(s.sticker_key)}
                         </div>
@@ -1141,7 +1141,7 @@ export const MarketplaceView = ({
             <section>
               <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-2">
                 Paso 3 — Quién tiene{' '}
-                <span className="text-green-400 font-mono">{wantKey}</span>{' '}
+                <span className="text-green-400 font-mono">{displayKey(wantKey)}</span>{' '}
                 disponible ({usersWithWant.length})
               </div>
               {!requestOfferKey && myRepeated.length > 0 && (

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { getAllStickers } from '@/lib/stickers'
+import { getAllStickers, displayKey, parseInputKey } from '@/lib/stickers'
 
 interface BulkEntryModalProps {
   onConfirm: (ids: string[]) => void
@@ -23,8 +23,9 @@ export const BulkEntryModal = ({ onConfirm, onClose }: BulkEntryModalProps) => {
     const invalid: string[] = []
     const seen = new Set<string>()
     parts.forEach((p) => {
-      if (allIds.has(p)) {
-        if (!seen.has(p)) { valid.push(p); seen.add(p) }
+      const internalKey = parseInputKey(p)
+      if (allIds.has(internalKey)) {
+        if (!seen.has(internalKey)) { valid.push(internalKey); seen.add(internalKey) }
       } else {
         invalid.push(p)
       }
@@ -67,7 +68,7 @@ export const BulkEntryModal = ({ onConfirm, onClose }: BulkEntryModalProps) => {
               autoFocus
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={'Ejemplos:\nMEX_1, MEX_3, MEX_5\nARG_0 BRA_7 FWC1\nFWC2'}
+              placeholder={'Ejemplos:\nMEX_1, MEX_3, MEX_5\nARG_1 BRA_7 FWC1\nFWC2'}
               rows={5}
               className="w-full bg-surface3 border border-surface3/80 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-gold2/40 transition resize-none font-mono"
             />
@@ -85,7 +86,7 @@ export const BulkEntryModal = ({ onConfirm, onClose }: BulkEntryModalProps) => {
                           key={id}
                           className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded font-mono"
                         >
-                          {id}
+                          {displayKey(id)}
                         </span>
                       ))}
                     </div>
@@ -115,7 +116,7 @@ export const BulkEntryModal = ({ onConfirm, onClose }: BulkEntryModalProps) => {
             )}
 
             <div className="text-xs text-gray-600">
-              Formato: <span className="font-mono text-gray-500">CÓDIGO_EQUIPO_NÚMERO</span> · Ej: <span className="font-mono text-gray-400">MEX_1, ARG_0, FWC3</span>
+              Formato: <span className="font-mono text-gray-500">CÓDIGO_EQUIPO_NÚMERO</span> · Ej: <span className="font-mono text-gray-400">MEX_1, ARG_1, FWC3</span>
             </div>
           </div>
 

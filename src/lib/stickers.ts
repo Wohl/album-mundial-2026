@@ -57,3 +57,20 @@ export const getStickerName = (key: string): string => {
   }
   return stickerNameCache.get(key) ?? key
 }
+
+// Visual display: convert internal 0-based team key to 1-based (MEX_0 → MEX_1, MEX_19 → MEX_20).
+// Non-team keys (FWC1, CC3, P00, etc.) are returned unchanged.
+export function displayKey(key: string): string {
+  const m = key.match(/^([A-Z]+)_(\d+)$/)
+  if (!m) return key
+  return `${m[1]}_${parseInt(m[2], 10) + 1}`
+}
+
+// Input parsing: convert user-typed 1-based team key to internal 0-based (MEX_1 → MEX_0, MEX_20 → MEX_19).
+// Returns the key unchanged for non-team keys or if n < 1 (prevents negative index).
+export function parseInputKey(key: string): string {
+  const m = key.match(/^([A-Z]+)_(\d+)$/)
+  if (!m) return key
+  const n = parseInt(m[2], 10)
+  return n >= 1 ? `${m[1]}_${n - 1}` : key
+}

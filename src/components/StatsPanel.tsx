@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { StickerState, UserProgress } from '@/types'
 import { TEAMS } from '@/stickers'
-import { getStickerName } from '@/lib/stickers'
+import { getStickerName, displayKey } from '@/lib/stickers'
 import { TeamFlag } from '@/components/TeamFlag'
 
 interface StatsPanelProps {
@@ -159,7 +159,7 @@ export const StatsPanel = ({ progress, stickers }: StatsPanelProps) => {
                 key={s.sticker_key}
                 className="flex items-center gap-3 bg-surface2 rounded-lg px-4 py-2.5 border border-surface3"
               >
-                <span className="font-mono text-xs text-gold2 w-16 shrink-0">{s.sticker_key}</span>
+                <span className="font-mono text-xs text-gold2 w-16 shrink-0">{displayKey(s.sticker_key)}</span>
                 <span className="flex-1 text-sm text-white truncate">
                   {getStickerName(s.sticker_key)}
                 </span>
