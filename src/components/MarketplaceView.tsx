@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { StickerState, TradeRequest, TradeMatch } from '@/types'
 import { OtherUserSticker, tradeService } from '@/services/tradeService'
-import { getStickerName } from '@/lib/stickers'
+import { getStickerName, getAllStickers } from '@/lib/stickers'
 import { TEAMS } from '@/stickers'
 import { StickerFlag } from '@/components/TeamFlag'
 import { TradeCard } from './TradeCard'
@@ -202,17 +202,16 @@ export const MarketplaceView = ({
     [selectedUserStickers, myOwnedOrRepeatedKeys]
   )
 
-  // Solicitar tab: unique available stickers from others that I don't own, sorted by availability count
+  // Solicitar tab: ALL stickers I don't own, annotated with how many people have them available
   const availableWantStickers = useMemo(() => {
-    const counts = new Map<string, number>()
+    const marketCounts = new Map<string, number>()
     othersRepeated.forEach((s) => {
-      if (!myOwnedOrRepeatedKeys.has(s.sticker_key)) {
-        counts.set(s.sticker_key, (counts.get(s.sticker_key) ?? 0) + 1)
-      }
+      marketCounts.set(s.sticker_key, (marketCounts.get(s.sticker_key) ?? 0) + 1)
     })
-    return Array.from(counts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .map(([key, count]) => ({ key, count }))
+    return getAllStickers()
+      .filter((s) => !myOwnedOrRepeatedKeys.has(s.id))
+      .map((s) => ({ key: s.id, count: marketCounts.get(s.id) ?? 0 }))
+      .sort((a, b) => b.count - a.count) // stickers with available traders first
   }, [othersRepeated, myOwnedOrRepeatedKeys])
 
   const teamsWithStickers = useMemo(() => {
@@ -227,11 +226,13 @@ export const MarketplaceView = ({
   const filteredWantStickers = useMemo(() => {
     let base = availableWantStickers
     if (wantTeamFilter) base = base.filter(({ key }) => key.startsWith(wantTeamFilter + '_'))
-    if (!wantSearch.trim()) return base.slice(0, wantTeamFilter ? 20 : 12)
-    const q = wantSearch.toLowerCase()
-    return base
-      .filter(({ key }) => key.toLowerCase().includes(q) || getStickerName(key).toLowerCase().includes(q))
-      .slice(0, 20)
+    if (wantSearch.trim()) {
+      const q = wantSearch.toLowerCase()
+      base = base.filter(
+        ({ key }) => key.toLowerCase().includes(q) || getStickerName(key).toLowerCase().includes(q)
+      )
+    }
+    return base.slice(0, wantTeamFilter ? 20 : 20)
   }, [availableWantStickers, wantSearch, wantTeamFilter])
 
   const usersWithWant = useMemo(() => {
@@ -1043,27 +1044,35 @@ export const MarketplaceView = ({
                   <div className="text-center py-8 text-gray-500 text-sm border border-dashed border-surface3 rounded-xl">
                     {wantSearch || wantTeamFilter
                       ? 'Sin resultados — probá otro nombre o seleccioná otro equipo'
-                      : 'No hay figuritas disponibles en el mercado'}
+                      : 'Ya completaste tu álbum — no te falta ninguna figurita'}
                   </div>
                 ) : (
                   <>
                     {!wantSearch && !wantTeamFilter && (
-                      <p className="text-[10px] text-gray-600 mb-2">Más disponibles en el mercado:</p>
+                      <p className="text-[10px] text-gray-600 mb-2">
+                        Tus figuritas faltantes — primero las que alguien tiene disponible:
+                      </p>
                     )}
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                       {filteredWantStickers.map(({ key, count }) => (
                         <button
                           key={key}
                           onClick={() => setWantKey(key)}
-                          className="text-left p-2.5 rounded-xl border border-surface3 bg-surface2 hover:border-green-500/60 hover:bg-green-500/10 transition"
+                          className={`text-left p-2.5 rounded-xl border transition ${
+                            count > 0
+                              ? 'border-green-500/40 bg-green-500/5 hover:border-green-400 hover:bg-green-500/10'
+                              : 'border-surface3 bg-surface2 hover:border-gold2/40 hover:bg-surface3/50'
+                          }`}
                         >
                           <StickerFlag stickerKey={key} className="text-lg mb-1 block" />
                           <div className="text-[10px] font-mono text-gold2 font-bold">{key}</div>
                           <div className="text-xs text-white font-semibold line-clamp-2 leading-tight mt-0.5">
                             {getStickerName(key)}
                           </div>
-                          <div className="text-[10px] text-gray-500 mt-1">
-                            {count} coleccionista{count !== 1 ? 's' : ''}
+                          <div className={`text-[10px] mt-1 font-semibold ${count > 0 ? 'text-green-400' : 'text-gray-600'}`}>
+                            {count > 0
+                              ? `${count} disponible${count !== 1 ? 's' : ''}`
+                              : 'Sin disponibles'}
                           </div>
                         </button>
                       ))}
