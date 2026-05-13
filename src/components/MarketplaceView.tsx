@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { StickerState, TradeRequest } from '@/types'
+import { StickerState, TradeRequest, TradeMatch } from '@/types'
 import { OtherUserSticker, tradeService } from '@/services/tradeService'
 import { getStickerName } from '@/lib/stickers'
 import { StickerFlag } from '@/components/TeamFlag'
 import { TradeCard } from './TradeCard'
 import { TradeOfferModal } from './TradeOfferModal'
+import { CounterOfferModal } from './CounterOfferModal'
 import { isOfflineMode } from '@/lib/supabase'
 
 interface MarketplaceViewProps {
@@ -15,15 +16,19 @@ interface MarketplaceViewProps {
   myStickers: StickerState[]
   trades: TradeRequest[]
   othersRepeated: OtherUserSticker[]
+  matches: TradeMatch[]
   loading: boolean
-  onCreateTrade: (ownerId: string, requestedKey: string, offeredKey: string) => Promise<unknown>
+  onCreateTrade: (ownerId: string, requestedKeys: string[], offeredKeys: string[]) => Promise<unknown>
   onRespondToTrade: (trade: TradeRequest, response: 'accepted' | 'rejected') => Promise<void>
+  onCounterTrade: (tradeId: string, counterRequestedKeys: string[], counterOfferedKeys: string[]) => Promise<void>
   onCancelTrade: (tradeId: string) => Promise<void>
 }
 
-type InnerTab = 'trades' | 'explore'
+type InnerTab = 'trades' | 'explore' | 'matches'
 type ExploreFilter = 'all' | 'need'
 type ToastMsg = { id: number; msg: string; type: 'success' | 'error' }
+type OfferPhase = 'select' | 'submitting' | 'success' | 'error'
+type CounterPhase = 'select' | 'submitting' | 'error'
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -35,25 +40,38 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hours / 24)}d`
 }
 
-function notifStyle(
-  trade: TradeRequest,
-  isIncoming: boolean,
-  other: string
-): { icon: string; label: string; cls: string } {
+function getTradeKeys(trade: TradeRequest) {
+  const req = trade.requested_sticker_keys?.length
+    ? trade.requested_sticker_keys
+    : [trade.requested_sticker_key].filter(Boolean)
+  const off = trade.offered_sticker_keys?.length
+    ? trade.offered_sticker_keys
+    : [trade.offered_sticker_key].filter(Boolean)
+  return { req, off }
+}
+
+function notifLabel(trade: TradeRequest, isIncoming: boolean, other: string) {
+  const { req, off } = getTradeKeys(trade)
+  const stickersLabel = (keys: string[]) =>
+    keys.length === 1 ? getStickerName(keys[0]) : `${keys.length} figuritas`
+
   if (trade.status === 'pending') {
     return isIncoming
-      ? { icon: '📬', label: `${other} te pidió un intercambio`, cls: 'bg-amber-500/10 border-amber-500/30' }
-      : { icon: '📤', label: `Solicitud enviada a ${other}`, cls: 'bg-blue-500/10 border-blue-500/30' }
+      ? { icon: '📬', label: `${other} te pidió un intercambio`, cls: 'bg-amber-500/10 border-amber-500/30', sub: `${stickersLabel(off)} ⇄ ${stickersLabel(req)}` }
+      : { icon: '📤', label: `Solicitud enviada a ${other}`, cls: 'bg-blue-500/10 border-blue-500/30', sub: `${stickersLabel(off)} ⇄ ${stickersLabel(req)}` }
+  }
+  if (trade.status === 'countered') {
+    return { icon: '↩', label: `Contraoferta con ${other}`, cls: 'bg-purple-500/10 border-purple-500/30', sub: '' }
   }
   if (trade.status === 'accepted') {
-    return { icon: '✅', label: `Intercambio completado con ${other}`, cls: 'bg-green-500/10 border-green-500/30' }
+    return { icon: '✅', label: `Intercambio completado con ${other}`, cls: 'bg-green-500/10 border-green-500/30', sub: `${stickersLabel(off)} ⇄ ${stickersLabel(req)}` }
   }
   if (trade.status === 'rejected') {
     return isIncoming
-      ? { icon: '🚫', label: `Rechazaste la solicitud de ${other}`, cls: 'bg-red-500/10 border-red-500/30' }
-      : { icon: '🚫', label: `${other} rechazó tu solicitud`, cls: 'bg-red-500/10 border-red-500/30' }
+      ? { icon: '🚫', label: `Rechazaste la solicitud de ${other}`, cls: 'bg-red-500/10 border-red-500/30', sub: '' }
+      : { icon: '🚫', label: `${other} rechazó tu solicitud`, cls: 'bg-red-500/10 border-red-500/30', sub: '' }
   }
-  return { icon: '↩️', label: `Solicitud cancelada con ${other}`, cls: 'bg-gray-500/10 border-gray-500/30' }
+  return { icon: '↩️', label: `Solicitud cancelada con ${other}`, cls: 'bg-gray-500/10 border-gray-500/30', sub: '' }
 }
 
 export const MarketplaceView = ({
@@ -61,23 +79,35 @@ export const MarketplaceView = ({
   myStickers,
   trades,
   othersRepeated,
+  matches,
   loading,
   onCreateTrade,
   onRespondToTrade,
+  onCounterTrade,
   onCancelTrade,
 }: MarketplaceViewProps) => {
   const [innerTab, setInnerTab] = useState<InnerTab>('trades')
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [targetMissing, setTargetMissing] = useState<string[]>([])
-  const [offerTarget, setOfferTarget] = useState<OtherUserSticker | null>(null)
-  const [offerPhase, setOfferPhase] = useState<'select' | 'submitting' | 'success' | 'error'>('select')
+  // Offer modal state
+  const [offerTargets, setOfferTargets] = useState<OtherUserSticker[] | null>(null)
+  const [offerPreSelect, setOfferPreSelect] = useState<string[]>([])
+  const [offerPhase, setOfferPhase] = useState<OfferPhase>('select')
+  const [offerError, setOfferError] = useState<string | null>(null)
+  // Counter-offer modal state
+  const [counterTarget, setCounterTarget] = useState<TradeRequest | null>(null)
+  const [counterPhase, setCounterPhase] = useState<CounterPhase>('select')
+  const [counterError, setCounterError] = useState<string | null>(null)
+  // Multi-select explore mode
+  const [multiSelectMode, setMultiSelectMode] = useState(false)
+  const [multiSelected, setMultiSelected] = useState<Set<string>>(new Set())
+  // Other UI state
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [showHistory, setShowHistory] = useState(false)
   const [exploreFilter, setExploreFilter] = useState<ExploreFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [toasts, setToasts] = useState<ToastMsg[]>([])
   const [showNotifications, setShowNotifications] = useState(false)
-  const [offerError, setOfferError] = useState<string | null>(null)
   const toastId = useRef(0)
 
   const pushToast = useCallback((msg: string, type: ToastMsg['type'] = 'success') => {
@@ -90,8 +120,9 @@ export const MarketplaceView = ({
     () => myStickers.filter((s) => s.status === 'repeated'),
     [myStickers]
   )
-  const myMissingKeys = useMemo(
-    () => new Set(myStickers.filter((s) => s.status === 'missing').map((s) => s.sticker_key)),
+  // A sticker is "one I need" if I don't already own or repeat it (no explicit 'missing' row required)
+  const myOwnedOrRepeatedKeys = useMemo(
+    () => new Set(myStickers.filter((s) => s.status === 'owned' || s.status === 'repeated').map((s) => s.sticker_key)),
     [myStickers]
   )
 
@@ -102,10 +133,10 @@ export const MarketplaceView = ({
         map.set(s.user_id, { ownerName: s.owner_name, ownerId: s.user_id, count: 0, iNeedCount: 0 })
       const e = map.get(s.user_id)!
       e.count++
-      if (myMissingKeys.has(s.sticker_key)) e.iNeedCount++
+      if (!myOwnedOrRepeatedKeys.has(s.sticker_key)) e.iNeedCount++
     })
     return Array.from(map.values()).sort((a, b) => b.iNeedCount - a.iNeedCount)
-  }, [othersRepeated, myMissingKeys])
+  }, [othersRepeated, myOwnedOrRepeatedKeys])
 
   const selectedUserStickers = useMemo(
     () => othersRepeated.filter((s) => s.user_id === selectedUserId),
@@ -114,7 +145,7 @@ export const MarketplaceView = ({
 
   const filteredSelectedStickers = useMemo(() => {
     let list = selectedUserStickers
-    if (exploreFilter === 'need') list = list.filter((s) => myMissingKeys.has(s.sticker_key))
+    if (exploreFilter === 'need') list = list.filter((s) => !myOwnedOrRepeatedKeys.has(s.sticker_key))
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
       list = list.filter(
@@ -124,48 +155,64 @@ export const MarketplaceView = ({
       )
     }
     return [...list].sort((a, b) => {
-      const aNeed = myMissingKeys.has(a.sticker_key) ? 0 : 1
-      const bNeed = myMissingKeys.has(b.sticker_key) ? 0 : 1
+      const aNeed = !myOwnedOrRepeatedKeys.has(a.sticker_key) ? 0 : 1
+      const bNeed = !myOwnedOrRepeatedKeys.has(b.sticker_key) ? 0 : 1
       return aNeed - bNeed
     })
-  }, [selectedUserStickers, exploreFilter, searchQuery, myMissingKeys])
+  }, [selectedUserStickers, exploreFilter, searchQuery, myOwnedOrRepeatedKeys])
 
   const handleSelectUser = useCallback(
-    async (userId: string) => {
-      const deselect = selectedUserId === userId
-      setSelectedUserId(deselect ? null : userId)
+    async (uid: string) => {
+      const deselect = selectedUserId === uid
+      setSelectedUserId(deselect ? null : uid)
       setExploreFilter('all')
       setSearchQuery('')
+      setMultiSelectMode(false)
+      setMultiSelected(new Set())
       if (deselect) { setTargetMissing([]); return }
       try {
-        const missing = await tradeService.getUserMissingStickers(userId)
+        // Returns which of my repeated stickers the target user doesn't already own
+        const myRepeatedKeys = myRepeated.map((s) => s.sticker_key)
+        const missing = await tradeService.getUserMissingFromList(uid, myRepeatedKeys)
         setTargetMissing(missing)
       } catch {
         setTargetMissing([])
       }
     },
-    [selectedUserId]
+    [selectedUserId, myRepeated]
   )
 
   // Trade buckets
-  const pendingIncoming = useMemo(
-    () => trades.filter((t) => t.owner_id === userId && t.status === 'pending'),
+  const toRespond = useMemo(
+    () => trades.filter(
+      (t) =>
+        (t.owner_id === userId && t.status === 'pending') ||
+        (t.status === 'countered' && t.counter_by !== userId &&
+          (t.owner_id === userId || t.requester_id === userId))
+    ),
     [trades, userId]
   )
   const pendingOutgoing = useMemo(
     () => trades.filter((t) => t.requester_id === userId && t.status === 'pending'),
     [trades, userId]
   )
-  const historyTrades = useMemo(() => trades.filter((t) => t.status !== 'pending'), [trades])
+  const iCountered = useMemo(
+    () => trades.filter((t) => t.status === 'countered' && t.counter_by === userId),
+    [trades, userId]
+  )
+  const historyTrades = useMemo(
+    () => trades.filter((t) => ['accepted', 'rejected', 'cancelled'].includes(t.status)),
+    [trades]
+  )
   const completedCount = useMemo(() => trades.filter((t) => t.status === 'accepted').length, [trades])
 
   const totalNeedAvailable = useMemo(
-    () => othersRepeated.filter((s) => myMissingKeys.has(s.sticker_key)).length,
-    [othersRepeated, myMissingKeys]
+    () => othersRepeated.filter((s) => !myOwnedOrRepeatedKeys.has(s.sticker_key)).length,
+    [othersRepeated, myOwnedOrRepeatedKeys]
   )
   const needInSelected = useMemo(
-    () => selectedUserStickers.filter((s) => myMissingKeys.has(s.sticker_key)).length,
-    [selectedUserStickers, myMissingKeys]
+    () => selectedUserStickers.filter((s) => !myOwnedOrRepeatedKeys.has(s.sticker_key)).length,
+    [selectedUserStickers, myOwnedOrRepeatedKeys]
   )
 
   const activityFeed = useMemo(
@@ -178,33 +225,70 @@ export const MarketplaceView = ({
     [trades]
   )
 
-  // ── Action handlers ──────────────────────────────────────────────────────────
+  // ── Action handlers ────────────────────────────────────────────────────────
+
+  const handleOpenOffer = useCallback(
+    (stickers: OtherUserSticker[], preSelect: string[] = []) => {
+      setOfferTargets(stickers)
+      setOfferPreSelect(preSelect)
+      setOfferPhase('select')
+      setOfferError(null)
+    },
+    []
+  )
+
+  const handleSuggestTrade = useCallback(
+    (match: TradeMatch) => {
+      const topTheyHave = match.theyHave.slice(0, 3)
+      const targetStickers = othersRepeated.filter(
+        (s) => s.user_id === match.userId && topTheyHave.includes(s.sticker_key)
+      )
+      if (targetStickers.length === 0) {
+        setInnerTab('explore')
+        handleSelectUser(match.userId)
+        return
+      }
+      // Pre-populate targetMissing so the offer modal shows recommended stickers correctly
+      setTargetMissing(match.iHaveForThem)
+      handleOpenOffer(targetStickers, match.iHaveForThem.slice(0, 3))
+    },
+    [othersRepeated, handleOpenOffer, handleSelectUser]
+  )
+
+  const openMultiSelectOffer = useCallback(() => {
+    if (multiSelected.size === 0 || !selectedUserId) return
+    const stickers = selectedUserStickers.filter((s) => multiSelected.has(s.sticker_key))
+    if (stickers.length === 0) return
+    handleOpenOffer(stickers)
+    setMultiSelected(new Set())
+    setMultiSelectMode(false)
+  }, [multiSelected, selectedUserId, selectedUserStickers, handleOpenOffer])
 
   const handleConfirmOffer = useCallback(
-    async (offeredKey: string) => {
-      if (!offerTarget) return
+    async (offeredKeys: string[]) => {
+      if (!offerTargets || offerTargets.length === 0) return
       setOfferPhase('submitting')
       setOfferError(null)
       try {
-        await onCreateTrade(offerTarget.user_id, offerTarget.sticker_key, offeredKey)
+        await onCreateTrade(
+          offerTargets[0].user_id,
+          offerTargets.map((s) => s.sticker_key),
+          offeredKeys
+        )
         setOfferPhase('success')
         pushToast('Solicitud enviada correctamente')
         setTimeout(() => {
-          setOfferTarget(null)
+          setOfferTargets(null)
           setOfferPhase('select')
           setOfferError(null)
         }, 2000)
       } catch (err) {
-        console.error('createTrade error:', err)
-        const msg =
-          err instanceof Error
-            ? err.message
-            : (err as { message?: string })?.message ?? null
+        const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? null
         setOfferError(msg)
         setOfferPhase('error')
       }
     },
-    [offerTarget, onCreateTrade, pushToast]
+    [offerTargets, onCreateTrade, pushToast]
   )
 
   const handleAccept = useCallback(
@@ -258,16 +342,50 @@ export const MarketplaceView = ({
     [actionLoading, onCancelTrade, pushToast]
   )
 
-  // ────────────────────────────────────────────────────────────────────────────
+  const handleCounter = useCallback(
+    (trade: TradeRequest) => {
+      setCounterTarget(trade)
+      setCounterPhase('select')
+      setCounterError(null)
+    },
+    []
+  )
+
+  const handleConfirmCounter = useCallback(
+    async (counterRequestedKeys: string[], counterOfferedKeys: string[]) => {
+      if (!counterTarget) return
+      setCounterPhase('submitting')
+      setCounterError(null)
+      try {
+        await onCounterTrade(counterTarget.id, counterRequestedKeys, counterOfferedKeys)
+        pushToast('Contraoferta enviada')
+        setCounterTarget(null)
+        setCounterPhase('select')
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? null
+        setCounterError(msg)
+        setCounterPhase('error')
+      }
+    },
+    [counterTarget, onCounterTrade, pushToast]
+  )
+
+  const navigateToExplore = useCallback(
+    (uid: string) => {
+      setInnerTab('explore')
+      handleSelectUser(uid)
+    },
+    [handleSelectUser]
+  )
+
+  // ──────────────────────────────────────────────────────────────────────────
 
   if (isOfflineMode) {
     return (
       <div className="text-center py-20 text-gray-400">
         <div className="text-4xl mb-4">🔌</div>
         <div className="text-xl font-display uppercase text-gold2">Sin conexión</div>
-        <p className="mt-2 text-sm">
-          El mercado requiere conexión a Supabase. Verificá las variables de entorno y tu red.
-        </p>
+        <p className="mt-2 text-sm">El mercado requiere conexión a Supabase.</p>
       </div>
     )
   }
@@ -280,9 +398,11 @@ export const MarketplaceView = ({
     )
   }
 
+  const toRespondCount = toRespond.length
+
   return (
     <div className="space-y-5">
-      {/* ── Toasts ────────────────────────────────────────────────────────────── */}
+      {/* ── Toasts ──────────────────────────────────────────────────────────── */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 items-center pointer-events-none">
         <AnimatePresence mode="popLayout">
           {toasts.map((t) => (
@@ -301,7 +421,7 @@ export const MarketplaceView = ({
         </AnimatePresence>
       </div>
 
-      {/* ── Notifications panel ───────────────────────────────────────────────── */}
+      {/* ── Notifications panel ─────────────────────────────────────────────── */}
       <AnimatePresence>
         {showNotifications && (
           <>
@@ -335,26 +455,19 @@ export const MarketplaceView = ({
                   <div className="text-center py-12 text-gray-600 text-sm">
                     <div className="text-4xl mb-3">🔔</div>
                     <p>Sin actividad registrada</p>
-                    <p className="text-xs mt-1 text-gray-700">Los intercambios aparecerán aquí</p>
                   </div>
                 ) : (
                   activityFeed.map((trade) => {
                     const isIncoming = trade.owner_id === userId
                     const other = isIncoming ? trade.requester_name : trade.owner_name
-                    const { icon, label, cls } = notifStyle(trade, isIncoming, other)
+                    const { icon, label, cls, sub } = notifLabel(trade, isIncoming, other)
                     return (
                       <div key={trade.id} className={`rounded-xl p-3 border ${cls}`}>
                         <div className="flex gap-2.5">
                           <span className="text-xl shrink-0 leading-none mt-0.5">{icon}</span>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-white leading-snug">{label}</p>
-                            <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                              <StickerFlag stickerKey={trade.offered_sticker_key} className="text-sm align-middle mr-0.5" />
-                              {getStickerName(trade.offered_sticker_key)}
-                              <span className="mx-1.5 text-gray-600">⇄</span>
-                              <StickerFlag stickerKey={trade.requested_sticker_key} className="text-sm align-middle mr-0.5" />
-                              {getStickerName(trade.requested_sticker_key)}
-                            </p>
+                            {sub && <p className="text-xs text-gray-500 mt-1">{sub}</p>}
                             <p className="text-[10px] text-gray-600 mt-1.5">
                               {timeAgo(trade.updated_at ?? trade.created_at)}
                             </p>
@@ -375,34 +488,22 @@ export const MarketplaceView = ({
         <div className="grid grid-cols-3 gap-3 flex-1">
           <div
             className={`rounded-xl p-4 text-center border transition ${
-              pendingIncoming.length > 0
-                ? 'bg-amber-500/10 border-amber-500/40'
-                : 'bg-surface2 border-surface3'
+              toRespondCount > 0 ? 'bg-amber-500/10 border-amber-500/40' : 'bg-surface2 border-surface3'
             }`}
           >
-            <div
-              className={`text-2xl font-bold ${
-                pendingIncoming.length > 0 ? 'text-amber-400' : 'text-gray-500'
-              }`}
-            >
-              {pendingIncoming.length}
+            <div className={`text-2xl font-bold ${toRespondCount > 0 ? 'text-amber-400' : 'text-gray-500'}`}>
+              {toRespondCount}
             </div>
             <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">Por responder</div>
           </div>
           <div className="bg-surface2 border border-surface3 rounded-xl p-4 text-center">
-            <div
-              className={`text-2xl font-bold ${
-                pendingOutgoing.length > 0 ? 'text-blue-400' : 'text-gray-500'
-              }`}
-            >
+            <div className={`text-2xl font-bold ${pendingOutgoing.length > 0 ? 'text-blue-400' : 'text-gray-500'}`}>
               {pendingOutgoing.length}
             </div>
             <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">Enviadas</div>
           </div>
           <div className="bg-surface2 border border-surface3 rounded-xl p-4 text-center">
-            <div
-              className={`text-2xl font-bold ${completedCount > 0 ? 'text-green-400' : 'text-gray-500'}`}
-            >
+            <div className={`text-2xl font-bold ${completedCount > 0 ? 'text-green-400' : 'text-gray-500'}`}>
               {completedCount}
             </div>
             <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">Completadas</div>
@@ -414,9 +515,9 @@ export const MarketplaceView = ({
         >
           <span className="text-2xl">🔔</span>
           <span className="text-[10px] text-gray-500 uppercase tracking-wider">Actividad</span>
-          {pendingIncoming.length > 0 && (
+          {toRespondCount > 0 && (
             <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-bold rounded-full min-w-[1.2rem] h-[1.2rem] px-1 flex items-center justify-center">
-              {pendingIncoming.length}
+              {toRespondCount}
             </span>
           )}
         </button>
@@ -424,61 +525,85 @@ export const MarketplaceView = ({
 
       {/* ── Inner tabs ────────────────────────────────────────────────────────── */}
       <div className="flex gap-2 border-b border-surface3 pb-1">
-        <button
-          onClick={() => setInnerTab('trades')}
-          className={`relative px-5 py-2.5 rounded-t-lg font-semibold text-sm uppercase transition ${
-            innerTab === 'trades'
-              ? 'bg-surface2 text-gold2 border border-surface3 border-b-surface2 -mb-px'
-              : 'text-gray-500 hover:text-gray-300'
-          }`}
-        >
-          Intercambios
-          {pendingIncoming.length > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-bold rounded-full min-w-[1.1rem] h-[1.1rem] px-1 flex items-center justify-center">
-              {pendingIncoming.length}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setInnerTab('explore')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-t-lg font-semibold text-sm uppercase transition ${
-            innerTab === 'explore'
-              ? 'bg-surface2 text-gold2 border border-surface3 border-b-surface2 -mb-px'
-              : 'text-gray-500 hover:text-gray-300'
-          }`}
-        >
-          Explorar
-          {totalNeedAvailable > 0 && (
-            <span className="text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded-full font-bold">
-              {totalNeedAvailable}
-            </span>
-          )}
-        </button>
+        {(
+          [
+            { id: 'trades' as const, label: 'Intercambios', badge: toRespondCount },
+            { id: 'explore' as const, label: 'Explorar', badge: totalNeedAvailable > 0 ? totalNeedAvailable : 0 },
+            { id: 'matches' as const, label: 'Matches', badge: matches.length },
+          ] as { id: InnerTab; label: string; badge: number }[]
+        ).map(({ id, label, badge }) => (
+          <button
+            key={id}
+            onClick={() => setInnerTab(id)}
+            className={`relative flex items-center gap-2 px-5 py-2.5 rounded-t-lg font-semibold text-sm uppercase transition ${
+              innerTab === id
+                ? 'bg-surface2 text-gold2 border border-surface3 border-b-surface2 -mb-px'
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            {label}
+            {badge > 0 && (
+              <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
+                id === 'trades'
+                  ? 'bg-red-500 text-white'
+                  : id === 'matches'
+                  ? 'bg-purple-500/20 text-purple-400'
+                  : 'bg-green-500/20 text-green-400'
+              }`}>
+                {badge}
+              </span>
+            )}
+          </button>
+        ))}
       </div>
 
       {/* ── INTERCAMBIOS ──────────────────────────────────────────────────────── */}
       {innerTab === 'trades' && (
         <div className="space-y-6">
+          {/* Por responder */}
           <section>
             <div className="flex items-center gap-2 mb-3">
               <h2 className="text-sm font-display text-gold2 uppercase tracking-wide">Por responder</h2>
-              {pendingIncoming.length > 0 && (
+              {toRespondCount > 0 && (
                 <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  {pendingIncoming.length}
+                  {toRespondCount}
                 </span>
               )}
             </div>
-            {pendingIncoming.length === 0 ? (
+            {toRespondCount === 0 ? (
               <div className="text-gray-600 text-sm py-4 text-center border border-dashed border-surface3 rounded-xl">
                 No hay solicitudes esperando tu respuesta
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {pendingIncoming.map((trade) => (
+                {toRespond.map((trade) => (
                   <TradeCard
                     key={trade.id}
                     trade={trade}
-                    mySessionId={userId}
+                    myUserId={userId}
+                    loading={actionLoading === trade.id}
+                    onAccept={() => handleAccept(trade)}
+                    onReject={() => handleReject(trade)}
+                    onCancel={() => handleCancel(trade.id)}
+                    onCounter={() => handleCounter(trade)}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Mis contraofertas en espera */}
+          {iCountered.length > 0 && (
+            <section>
+              <h2 className="text-sm font-display text-purple-400 uppercase tracking-wide mb-3">
+                Contraofertas enviadas
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {iCountered.map((trade) => (
+                  <TradeCard
+                    key={trade.id}
+                    trade={trade}
+                    myUserId={userId}
                     loading={actionLoading === trade.id}
                     onAccept={() => handleAccept(trade)}
                     onReject={() => handleReject(trade)}
@@ -486,13 +611,12 @@ export const MarketplaceView = ({
                   />
                 ))}
               </div>
-            )}
-          </section>
+            </section>
+          )}
 
+          {/* Solicitudes enviadas */}
           <section>
-            <h2 className="text-sm font-display text-gold2 uppercase tracking-wide mb-3">
-              Solicitudes enviadas
-            </h2>
+            <h2 className="text-sm font-display text-gold2 uppercase tracking-wide mb-3">Solicitudes enviadas</h2>
             {pendingOutgoing.length === 0 ? (
               <div className="text-gray-600 text-sm py-4 text-center border border-dashed border-surface3 rounded-xl">
                 No tenés solicitudes activas enviadas
@@ -503,7 +627,7 @@ export const MarketplaceView = ({
                   <TradeCard
                     key={trade.id}
                     trade={trade}
-                    mySessionId={userId}
+                    myUserId={userId}
                     loading={actionLoading === trade.id}
                     onAccept={() => handleAccept(trade)}
                     onReject={() => handleReject(trade)}
@@ -514,23 +638,16 @@ export const MarketplaceView = ({
             )}
           </section>
 
+          {/* Historial */}
           {historyTrades.length > 0 && (
             <section>
               <button
                 onClick={() => setShowHistory(!showHistory)}
                 className="flex items-center gap-2 text-gray-500 hover:text-gray-300 text-sm font-semibold uppercase tracking-wide transition"
               >
-                <span
-                  className={`transition-transform duration-200 inline-block ${
-                    showHistory ? 'rotate-90' : ''
-                  }`}
-                >
-                  ›
-                </span>
+                <span className={`transition-transform duration-200 inline-block ${showHistory ? 'rotate-90' : ''}`}>›</span>
                 Historial
-                <span className="text-xs bg-surface3 text-gray-500 px-1.5 py-0.5 rounded-full">
-                  {historyTrades.length}
-                </span>
+                <span className="text-xs bg-surface3 text-gray-500 px-1.5 py-0.5 rounded-full">{historyTrades.length}</span>
               </button>
               {showHistory && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
@@ -538,7 +655,7 @@ export const MarketplaceView = ({
                     <TradeCard
                       key={trade.id}
                       trade={trade}
-                      mySessionId={userId}
+                      myUserId={userId}
                       loading={actionLoading === trade.id}
                       onAccept={() => handleAccept(trade)}
                       onReject={() => handleReject(trade)}
@@ -554,7 +671,7 @@ export const MarketplaceView = ({
             <div className="text-center py-12 text-gray-600 text-sm">
               <div className="text-4xl mb-3">🤝</div>
               <p className="font-semibold text-gray-500">Aún no tenés intercambios</p>
-              <p className="mt-1">Explorá las figuritas disponibles para proponer uno.</p>
+              <p className="mt-1">Explorá las figuritas disponibles o revisá los Matches automáticos.</p>
             </div>
           )}
         </div>
@@ -579,9 +696,7 @@ export const MarketplaceView = ({
                 {totalNeedAvailable > 0 && (
                   <>
                     <span className="text-gray-700">·</span>
-                    <span className="text-green-400 font-semibold">
-                      {totalNeedAvailable} figuritas que te faltan disponibles
-                    </span>
+                    <span className="text-green-400 font-semibold">{totalNeedAvailable} figuritas que te faltan disponibles</span>
                   </>
                 )}
               </div>
@@ -601,23 +716,15 @@ export const MarketplaceView = ({
                   >
                     <span>{u.ownerName}</span>
                     {u.iNeedCount > 0 && (
-                      <span
-                        className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
-                          selectedUserId === u.ownerId
-                            ? 'bg-green-800 text-green-200'
-                            : 'bg-green-500/20 text-green-400'
-                        }`}
-                      >
+                      <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
+                        selectedUserId === u.ownerId ? 'bg-green-800 text-green-200' : 'bg-green-500/20 text-green-400'
+                      }`}>
                         {u.iNeedCount} ★
                       </span>
                     )}
-                    <span
-                      className={`text-xs px-1.5 py-0.5 rounded-full ${
-                        selectedUserId === u.ownerId
-                          ? 'bg-dark/20 text-dark/70'
-                          : 'bg-surface3 text-gray-500'
-                      }`}
-                    >
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                      selectedUserId === u.ownerId ? 'bg-dark/20 text-dark/70' : 'bg-surface3 text-gray-500'
+                    }`}>
                       {u.count}
                     </span>
                   </button>
@@ -630,14 +737,13 @@ export const MarketplaceView = ({
                 </div>
               ) : (
                 <div className="space-y-4">
+                  {/* Explore controls */}
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="flex gap-1 bg-surface3/40 p-1 rounded-lg">
                       <button
                         onClick={() => setExploreFilter('all')}
                         className={`px-3 py-1 rounded text-xs font-bold uppercase transition ${
-                          exploreFilter === 'all'
-                            ? 'bg-surface2 text-white shadow-sm'
-                            : 'text-gray-500 hover:text-gray-300'
+                          exploreFilter === 'all' ? 'bg-surface2 text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'
                         }`}
                       >
                         Todas ({selectedUserStickers.length})
@@ -645,9 +751,7 @@ export const MarketplaceView = ({
                       <button
                         onClick={() => setExploreFilter('need')}
                         className={`px-3 py-1 rounded text-xs font-bold uppercase transition ${
-                          exploreFilter === 'need'
-                            ? 'bg-green-600 text-white shadow-sm'
-                            : 'text-gray-500 hover:text-gray-300'
+                          exploreFilter === 'need' ? 'bg-green-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'
                         }`}
                       >
                         Te faltan ({needInSelected})
@@ -660,12 +764,54 @@ export const MarketplaceView = ({
                       placeholder="Buscar figurita..."
                       className="flex-1 min-w-[8rem] bg-surface3/40 border border-surface3 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-600 outline-none focus:border-gold2/50 transition"
                     />
-                    {myRepeated.length === 0 && (
-                      <span className="text-amber-400 text-xs font-semibold">
-                        ⚠ Necesitás repetidas propias para ofertar
-                      </span>
-                    )}
+                    <button
+                      onClick={() => {
+                        setMultiSelectMode((v) => !v)
+                        setMultiSelected(new Set())
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition border ${
+                        multiSelectMode
+                          ? 'bg-gold2 text-dark border-gold2'
+                          : 'bg-surface3/40 text-gray-400 border-surface3 hover:border-gold2/50 hover:text-white'
+                      }`}
+                    >
+                      Multi-select
+                    </button>
                   </div>
+
+                  {myRepeated.length === 0 && (
+                    <span className="text-amber-400 text-xs font-semibold">
+                      ⚠ Necesitás repetidas propias para ofertar
+                    </span>
+                  )}
+
+                  {/* Multi-select toolbar */}
+                  {multiSelectMode && (
+                    <div className="flex items-center gap-3 p-3 bg-gold2/10 border border-gold2/30 rounded-xl">
+                      <span className="text-xs font-semibold text-gold2 flex-1">
+                        {multiSelected.size === 0
+                          ? 'Tocá figuritas para seleccionarlas'
+                          : `${multiSelected.size} figurita${multiSelected.size !== 1 ? 's' : ''} seleccionada${multiSelected.size !== 1 ? 's' : ''}`}
+                      </span>
+                      {multiSelected.size > 0 && (
+                        <>
+                          <button
+                            onClick={() => setMultiSelected(new Set())}
+                            className="text-xs text-gray-500 hover:text-gray-300 transition"
+                          >
+                            Limpiar
+                          </button>
+                          <button
+                            onClick={openMultiSelectOffer}
+                            disabled={myRepeated.length === 0}
+                            className="px-3 py-1.5 bg-gradient-to-r from-gold to-gold2 text-dark text-xs font-bold rounded-lg uppercase transition disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            Pedir {multiSelected.size} →
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
 
                   {filteredSelectedStickers.length === 0 ? (
                     <div className="text-center py-10 text-gray-600 text-sm border border-dashed border-surface3 rounded-xl">
@@ -676,31 +822,54 @@ export const MarketplaceView = ({
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                       {filteredSelectedStickers.map((sticker) => {
-                        const iNeedIt = myMissingKeys.has(sticker.sticker_key)
+                        const iNeedIt = !myOwnedOrRepeatedKeys.has(sticker.sticker_key)
                         const alreadyRequested = trades.some(
                           (t) =>
                             t.requester_id === userId &&
-                            t.requested_sticker_key === sticker.sticker_key &&
+                            (t.requested_sticker_keys?.includes(sticker.sticker_key) ||
+                              t.requested_sticker_key === sticker.sticker_key) &&
                             t.owner_id === sticker.user_id &&
                             t.status === 'pending'
                         )
+                        const isMultiSel = multiSelected.has(sticker.sticker_key)
                         const canRequest = !alreadyRequested && myRepeated.length > 0
+
+                        const handleClick = () => {
+                          if (multiSelectMode) {
+                            setMultiSelected((prev) => {
+                              const next = new Set(prev)
+                              if (next.has(sticker.sticker_key)) next.delete(sticker.sticker_key)
+                              else next.add(sticker.sticker_key)
+                              return next
+                            })
+                          } else {
+                            handleOpenOffer([sticker])
+                          }
+                        }
+
                         return (
                           <button
                             key={sticker.sticker_key}
-                            disabled={!canRequest}
-                            onClick={() => { setOfferTarget(sticker); setOfferPhase('select') }}
+                            disabled={!multiSelectMode && !canRequest}
+                            onClick={handleClick}
                             className={`relative text-left p-3 rounded-xl border-2 transition group ${
-                              alreadyRequested
+                              multiSelectMode && isMultiSel
+                                ? 'border-gold2 bg-gold2/15 scale-[1.02]'
+                                : alreadyRequested
                                 ? 'border-amber-500/40 bg-amber-500/10 cursor-default'
                                 : iNeedIt && canRequest
                                 ? 'border-green-500/60 bg-green-500/10 hover:border-green-400 hover:scale-[1.02] cursor-pointer'
-                                : canRequest
+                                : canRequest || multiSelectMode
                                 ? 'border-surface3 bg-surface2 hover:border-gold2/50 hover:scale-[1.02] cursor-pointer'
                                 : 'border-surface3 bg-surface2 opacity-40 cursor-not-allowed'
                             }`}
                           >
-                            {iNeedIt && !alreadyRequested && (
+                            {multiSelectMode && isMultiSel && (
+                              <div className="absolute -top-2 -left-2 bg-gold2 text-dark text-[9px] font-bold w-5 h-5 rounded-full flex items-center justify-center z-10">
+                                ✓
+                              </div>
+                            )}
+                            {iNeedIt && !alreadyRequested && !isMultiSel && (
                               <div className="absolute -top-2 -right-2 bg-green-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap z-10">
                                 La necesitás
                               </div>
@@ -711,23 +880,17 @@ export const MarketplaceView = ({
                               </div>
                             )}
                             <StickerFlag stickerKey={sticker.sticker_key} className="text-xl mb-1 leading-none block" />
-                            <div className="text-[11px] text-gold2 font-mono font-bold">
-                              {sticker.sticker_key}
-                            </div>
+                            <div className="text-[11px] text-gold2 font-mono font-bold">{sticker.sticker_key}</div>
                             <div className="text-xs font-semibold text-white mt-0.5 line-clamp-2 leading-tight">
                               {getStickerName(sticker.sticker_key)}
                             </div>
-                            <div className="text-[11px] text-gray-500 mt-2">
-                              ×{sticker.repeat_count} extras
-                            </div>
-                            {canRequest && (
-                              <div
-                                className={`mt-2 text-center text-[10px] font-bold py-1 rounded transition ${
-                                  iNeedIt
-                                    ? 'bg-green-500/20 text-green-400 group-hover:bg-green-500/30'
-                                    : 'bg-surface3 text-gray-400 group-hover:text-gray-300'
-                                }`}
-                              >
+                            <div className="text-[11px] text-gray-500 mt-2">×{sticker.repeat_count} extras</div>
+                            {!multiSelectMode && canRequest && (
+                              <div className={`mt-2 text-center text-[10px] font-bold py-1 rounded transition ${
+                                iNeedIt
+                                  ? 'bg-green-500/20 text-green-400 group-hover:bg-green-500/30'
+                                  : 'bg-surface3 text-gray-400 group-hover:text-gray-300'
+                              }`}>
                                 Pedir
                               </div>
                             )}
@@ -749,21 +912,175 @@ export const MarketplaceView = ({
         </div>
       )}
 
-      {/* ── Offer modal (siempre montado mientras offerTarget != null) ─────────── */}
-      {offerTarget && (
+      {/* ── MATCHES ───────────────────────────────────────────────────────────── */}
+      {innerTab === 'matches' && (
+        <div className="space-y-5">
+          <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-xl">
+            <p className="text-purple-300 text-sm font-semibold">✨ Motor de matching automático</p>
+            <p className="text-gray-400 text-xs mt-1">
+              Coleccionistas con compatibilidad bidireccional: ellos tienen lo que te falta, y vos tenés lo que a ellos les falta.
+              Los <span className="text-green-400 font-semibold">Match mutuo</span> son los más convenientes — usá "Proponer" para generar un intercambio sugerido al instante.
+            </p>
+          </div>
+
+          {matches.length === 0 ? (
+            <div className="text-center py-16 text-gray-500">
+              <div className="text-5xl mb-4">🔍</div>
+              <p className="text-lg font-semibold">
+                {myRepeated.length === 0 ? 'Necesitás repetidas para hacer matches' : 'Sin matches por ahora'}
+              </p>
+              <p className="text-sm mt-2">
+                {myRepeated.length === 0
+                  ? 'Cuando marques figuritas como repetidas, buscaremos coleccionistas compatibles.'
+                  : 'Cuando otros usuarios tengan figuritas que te faltan y vos tengas para ofrecer, aparecerán aquí.'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {matches.map((match) => {
+                const isMutual = match.iHaveForThem.length > 0
+                return (
+                  <div
+                    key={match.userId}
+                    className={`bg-surface2 border rounded-xl overflow-hidden ${
+                      isMutual ? 'border-green-500/40' : 'border-purple-500/30'
+                    }`}
+                  >
+                    {/* Header */}
+                    <div className={`px-4 py-3 flex items-center justify-between ${
+                      isMutual ? 'bg-green-500/8' : 'bg-purple-500/8'
+                    }`}>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-white">{match.userName}</span>
+                            {isMutual && (
+                              <span className="text-[10px] font-bold bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-0.5 rounded-full uppercase tracking-wide">
+                                ✨ Match mutuo
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            <span className="text-green-400 font-semibold">{match.theyHave.length} te dan</span>
+                            {isMutual && (
+                              <>
+                                <span className="mx-1 text-gray-600">·</span>
+                                <span className="text-amber-400 font-semibold">{match.iHaveForThem.length} vos das</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => navigateToExplore(match.userId)}
+                          className="px-2.5 py-1.5 bg-surface3 hover:bg-gray-600 text-gray-300 hover:text-white text-xs font-bold rounded-lg uppercase transition"
+                        >
+                          Ver →
+                        </button>
+                        <button
+                          onClick={() => handleSuggestTrade(match)}
+                          disabled={myRepeated.length === 0}
+                          className={`px-2.5 py-1.5 text-white text-xs font-bold rounded-lg uppercase transition disabled:opacity-40 disabled:cursor-not-allowed ${
+                            isMutual
+                              ? 'bg-green-600 hover:bg-green-500'
+                              : 'bg-purple-600 hover:bg-purple-500'
+                          }`}
+                        >
+                          {isMutual ? '⇄ Proponer' : 'Pedir →'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* They have (I need) */}
+                    <div className="px-4 pt-3 pb-2">
+                      <div className="text-[10px] text-green-400 uppercase tracking-wider mb-1.5 font-semibold">
+                        Ellos tienen y vos necesitás ({match.theyHave.length})
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {match.theyHave.slice(0, 10).map((key) => (
+                          <div key={key} className="flex items-center gap-1 bg-green-500/10 border border-green-500/30 rounded-lg px-2 py-1">
+                            <StickerFlag stickerKey={key} className="text-sm shrink-0" />
+                            <span className="text-[10px] font-mono text-green-400 font-bold">{key}</span>
+                          </div>
+                        ))}
+                        {match.theyHave.length > 10 && (
+                          <span className="text-[10px] text-gray-500 self-center">+{match.theyHave.length - 10} más</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* I have for them (mutual) */}
+                    {isMutual && (
+                      <div className="px-4 pb-3">
+                        <div className="text-[10px] text-amber-400 uppercase tracking-wider mb-1.5 font-semibold">
+                          Vos tenés y ellos necesitan ({match.iHaveForThem.length})
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {match.iHaveForThem.slice(0, 10).map((key) => (
+                            <div key={key} className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/30 rounded-lg px-2 py-1">
+                              <StickerFlag stickerKey={key} className="text-sm shrink-0" />
+                              <span className="text-[10px] font-mono text-amber-400 font-bold">{key}</span>
+                            </div>
+                          ))}
+                          {match.iHaveForThem.length > 10 && (
+                            <span className="text-[10px] text-gray-500 self-center">+{match.iHaveForThem.length - 10} más</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {!isMutual && (
+                      <div className="px-4 pb-3">
+                        <p className="text-[10px] text-gray-600 italic">
+                          Ellos no necesitan tus repetidas actuales — podés pedirles igualmente o esperar a tener más.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Offer modal ────────────────────────────────────────────────────────── */}
+      {offerTargets && offerTargets.length > 0 && (
         <TradeOfferModal
-          targetSticker={offerTarget}
+          targetStickers={offerTargets}
           myRepeated={myRepeated}
           targetMissing={targetMissing}
+          preSelectedKeys={offerPreSelect}
           phase={offerPhase}
           errorMessage={offerError}
           onConfirm={handleConfirmOffer}
           onRetry={() => { setOfferPhase('select'); setOfferError(null) }}
           onClose={() => {
             if (offerPhase === 'submitting' || offerPhase === 'success') return
-            setOfferTarget(null)
+            setOfferTargets(null)
+            setOfferPreSelect([])
             setOfferPhase('select')
             setOfferError(null)
+          }}
+        />
+      )}
+
+      {/* ── Counter-offer modal ────────────────────────────────────────────────── */}
+      {counterTarget && (
+        <CounterOfferModal
+          trade={counterTarget}
+          myUserId={userId}
+          myRepeated={myRepeated}
+          phase={counterPhase}
+          errorMessage={counterError}
+          onConfirm={handleConfirmCounter}
+          onRetry={() => { setCounterPhase('select'); setCounterError(null) }}
+          onClose={() => {
+            if (counterPhase === 'submitting') return
+            setCounterTarget(null)
+            setCounterPhase('select')
+            setCounterError(null)
           }}
         />
       )}

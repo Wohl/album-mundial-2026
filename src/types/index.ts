@@ -41,9 +41,26 @@ export interface TradeRequest {
   requester_name: string
   owner_id: string
   owner_name: string
+  // Legacy single-key fields (backward compat with existing rows)
   requested_sticker_key: string
   offered_sticker_key: string
-  status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
+  // N:N arrays (all new trades use these)
+  requested_sticker_keys: string[]
+  offered_sticker_keys: string[]
+  // Counter-offer
+  counter_requested_keys?: string[] | null
+  counter_offered_keys?: string[] | null
+  counter_by?: string | null
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled' | 'countered'
   created_at: string
   updated_at: string
+}
+
+export interface TradeMatch {
+  userId: string
+  userName: string
+  theyHave: string[]       // their repeated stickers I'm missing (they give me)
+  iHave: string[]          // all my repeated sticker keys
+  iHaveForThem: string[]   // my repeated stickers they actually need (mutual)
+  score: number            // theyHave.length * 2 + iHaveForThem.length
 }

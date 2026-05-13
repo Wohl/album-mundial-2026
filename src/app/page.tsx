@@ -33,10 +33,12 @@ export default function Home() {
   const {
     trades,
     othersRepeated,
+    matches,
     loading: tradesLoading,
     pendingIncoming,
     createTrade,
     respondToTrade,
+    counterTrade,
     cancelTrade,
   } = useTrades(userId, stickers, refetchStickers)
 
@@ -292,9 +294,11 @@ export default function Home() {
               myStickers={stickers}
               trades={trades}
               othersRepeated={othersRepeated}
+              matches={matches}
               loading={tradesLoading}
               onCreateTrade={createTrade}
               onRespondToTrade={respondToTrade}
+              onCounterTrade={counterTrade}
               onCancelTrade={cancelTrade}
             />
           )}
