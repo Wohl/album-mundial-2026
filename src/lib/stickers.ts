@@ -23,13 +23,21 @@ const CC_LIST: Sticker[] = COCA_COLA_STICKERS.map((s) => ({
 }))
 
 const TEAM_STICKERS: Sticker[] = TEAMS.flatMap((team) =>
-  Array.from({ length: 20 }, (_, i) => ({
-    id: `${team.code}_${i}`,
-    name: `${team.name} - ${team.players[i]}`,
-    team: team.name,
-    type: 'regular' as const,
-    foil: i === 0,
-  }))
+  Array.from({ length: 20 }, (_, i) => {
+    const id = `${team.code}_${i}`
+    const isBadge = i === 0
+    const isTeamPhoto = i === 12
+    return {
+      id,
+      name: `${team.name} - ${team.players[i]}`,
+      team: team.name,
+      type: 'regular' as const,
+      foil: isBadge,
+      imagenCromo: !isBadge && !isTeamPhoto
+        ? `/players/${team.code}/${displayKey(id)}.png`
+        : undefined,
+    }
+  })
 )
 
 export const getIntroFWCStickers = (): Sticker[] => INTRO_LIST

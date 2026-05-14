@@ -10,6 +10,7 @@ export interface Sticker {
   team?: string
   type: 'regular' | 'intro' | 'final' | 'cocacola'
   foil: boolean
+  imagenCromo?: string
 }
 
 export interface Profile {

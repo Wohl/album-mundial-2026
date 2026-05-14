@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { StickerState } from '@/types'
 import { displayKey } from '@/lib/stickers'
 import { StickerFlag } from '@/components/TeamFlag'
@@ -29,6 +30,13 @@ export const StickerCard = ({
   const playerName = team ? name.replace(`${team} - `, '') : name
   // Star players carry the ✦ symbol in their name; foil shields keep their own border
   const isStar = playerName.includes('✦') && !foil
+
+  // Player portrait — only for player stickers (not badge idx 0 or team photo idx 12)
+  const [imgStatus, setImgStatus] = useState<'loading' | 'loaded' | 'error'>('loading')
+  const isPlayerSticker = !foil && playerName !== 'Foto Equipo'
+  const imgSrc = isPlayerSticker
+    ? `/players/${id.split('_')[0]}/${displayKey(id)}.png`
+    : null
 
   const handleDecrement = () => {
     if (status === 'owned') {
@@ -81,6 +89,23 @@ export const StickerCard = ({
           }`}
         >
           {totalCount}
+        </div>
+      )}
+
+      {/* Player portrait — hidden until loaded, removed if 404 */}
+      {imgSrc && imgStatus !== 'error' && (
+        <div
+          className={`w-full overflow-hidden transition-[height] duration-200 ${
+            imgStatus === 'loaded' ? 'h-24' : 'h-0'
+          }`}
+        >
+          <img
+            src={imgSrc}
+            alt={playerName}
+            className="w-full h-full object-cover object-top"
+            onLoad={() => setImgStatus('loaded')}
+            onError={() => setImgStatus('error')}
+          />
         </div>
       )}
 
