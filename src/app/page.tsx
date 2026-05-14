@@ -14,6 +14,7 @@ import { StatsPanel } from '@/components/StatsPanel'
 import { BulkEntryModal } from '@/components/BulkEntryModal'
 import { TeamFlag } from '@/components/TeamFlag'
 import { NotificationsPanel } from '@/components/NotificationsPanel'
+import { StickerSearch } from '@/components/StickerSearch'
 import {
   getAllStickers,
   getTotalStickers,
@@ -31,6 +32,7 @@ export default function Home() {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null)
   const [showBulk, setShowBulk] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
+  const [showSearch, setShowSearch] = useState(false)
   const [globalToasts, setGlobalToasts] = useState<GlobalToast[]>([])
   const globalToastId = useRef(0)
   const prevPendingRef = useRef(0)
@@ -50,6 +52,26 @@ export default function Home() {
     counterTrade,
     cancelTrade,
   } = useTrades(userId, stickers, refetchStickers)
+
+  // Ctrl+K / Cmd+K opens sticker search
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setShowSearch(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const handleSearchNavigate = useCallback(
+    (tab: 'intro' | 'equipos' | 'final' | 'cocacola', teamCode?: string) => {
+      setActiveTab(tab)
+      if (tab === 'equipos' && teamCode) setSelectedTeam(teamCode)
+    },
+    []
+  )
 
   const pushGlobalToast = useCallback((msg: string) => {
     const id = ++globalToastId.current
@@ -159,6 +181,17 @@ export default function Home() {
               <p className="text-gray-500 text-xs">Mundial 2026</p>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowSearch(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-surface3 hover:bg-gray-600 text-gray-300 border border-surface3 transition"
+                title="Buscar figurita (Ctrl+K)"
+              >
+                🔍
+                <span className="hidden sm:inline">Buscar</span>
+                <kbd className="hidden md:flex items-center text-[9px] text-gray-500 border border-gray-600 rounded px-1">
+                  ⌘K
+                </kbd>
+              </button>
               <button
                 onClick={() => setShowBulk(true)}
                 className="px-3 py-1.5 rounded-lg text-xs font-bold bg-surface3 hover:bg-gray-600 text-gray-300 border border-surface3 transition"
@@ -353,6 +386,16 @@ export default function Home() {
           )}
         </motion.div>
       </main>
+
+      <AnimatePresence>
+        {showSearch && (
+          <StickerSearch
+            userStickers={stickers}
+            onNavigate={handleSearchNavigate}
+            onClose={() => setShowSearch(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {showBulk && (
         <BulkEntryModal onConfirm={handleBulkMark} onClose={() => setShowBulk(false)} />
