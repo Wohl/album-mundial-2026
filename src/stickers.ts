@@ -8,7 +8,7 @@ export interface Team {
   code: string
   name: string
   group: string
-  players: string[] // 20 items: idx 0 = escudo FOIL, idx 11 = foto equipo
+  players: string[] // 20 items: idx 0 = escudo FOIL, idx 12 = foto equipo
 }
 
 export interface IntroSticker {
@@ -71,211 +71,211 @@ export const COCA_COLA_STICKERS: CCSticker[] = [
 ]
 
 // ── 47 SELECCIONES × 20 cromos cada una ─────────────────────
-// idx 0 = escudo FOIL | idx 11 = foto equipo | resto = jugadores
+// idx 0 = escudo FOIL | idx 12 = foto equipo | resto = jugadores
 export const TEAMS: Team[] = [
   // ── GRUPO A ──
   {
     code: 'MEX', name: 'México', group: 'A',
-    players: ['Escudo México','Luis Malagón','Johan Vásquez','Jorge Sánchez','Cesar Montes','Jesús Gallardo','Israel Reyes','Diego Lainez','Carlos Rodríguez','Edson Álvarez','Orbelin Pineda','Foto Equipo','Érick Sánchez','Hirving Lozano','Santiago Giménez','Raúl Jiménez','Alexis Vega','Roberto Alvarado','Cesar Huerta','Marcel Ruiz'],
+    players: ['Escudo México','Luis Malagón','Johan Vásquez','Jorge Sánchez','Cesar Montes','Jesús Gallardo','Israel Reyes','Diego Lainez','Carlos Rodríguez','Edson Álvarez','Orbelin Pineda','Érick Sánchez','Foto Equipo','Hirving Lozano','Santiago Giménez','Raúl Jiménez','Alexis Vega','Roberto Alvarado','Cesar Huerta','Marcel Ruiz'],
   },
   {
     code: 'RSA', name: 'Sudáfrica', group: 'A',
-    players: ['Escudo Sudáfrica','Ronwen Williams','Sipho Chaine','Aubrey Modiba','Fawaaz Basadien','Siyanda Xulu','Mothobi Mvala','Teboho Mokoena','Themba Zwane','Nkosinathi Sibisi','Lyle Foster','Foto Equipo','Bongani Zungu','Percy Tau','Relebohile Mofokeng','Evidence Makgopa','Thapelo Morena','Elias Mokwana','Lebo Mothiba','Samukele Kamsoso'],
+    players: ['Escudo Sudáfrica','Ronwen Williams','Sipho Chaine','Aubrey Modiba','Fawaaz Basadien','Siyanda Xulu','Mothobi Mvala','Teboho Mokoena','Themba Zwane','Nkosinathi Sibisi','Lyle Foster','Bongani Zungu','Foto Equipo','Percy Tau','Relebohile Mofokeng','Evidence Makgopa','Thapelo Morena','Elias Mokwana','Lebo Mothiba','Samukele Kamsoso'],
   },
   {
     code: 'KOR', name: 'Rep. de Corea', group: 'A',
-    players: ['Escudo Rep. de Corea','Kim Seung-gyu','Kim Jin-su','Kim Min-jae','Jung Seung-hyun','Lee Yong','Jung Woo-young','Lee Jae-sung','Son Heung-min ✦','Lee Kang-in','Hwang Hee-chan','Foto Equipo','Cho Gue-sung','Kim Young-gwon','Kwon Chang-hoon','Na Sang-ho','Oh Hyeon-gyu','Hwang In-beom','Jeong Woo-yeong','Song Min-kyu'],
+    players: ['Escudo Rep. de Corea','Kim Seung-gyu','Kim Jin-su','Kim Min-jae','Jung Seung-hyun','Lee Yong','Jung Woo-young','Lee Jae-sung','Son Heung-min ✦','Lee Kang-in','Hwang Hee-chan','Cho Gue-sung','Foto Equipo','Kim Young-gwon','Kwon Chang-hoon','Na Sang-ho','Oh Hyeon-gyu','Hwang In-beom','Jeong Woo-yeong','Song Min-kyu'],
   },
   {
     code: 'CZE', name: 'Czechia', group: 'A',
-    players: ['Escudo Czechia','Jiří Staněk','Vladimír Coufal','Tomáš Holeš','David Jurásek','Adam Hložek','Tomáš Souček','Lukáš Provod','Ondřej Lingr','Patrik Schick','Jan Kuchta','Foto Equipo','Pavel Šulc','Antonín Barák','Marek Ondráček','Jan Bořil','Tomáš Čvančara','Mojmír Chytil','Alex Král','Martin Vitík'],
+    players: ['Escudo Czechia','Jiří Staněk','Vladimír Coufal','Tomáš Holeš','David Jurásek','Adam Hložek','Tomáš Souček','Lukáš Provod','Ondřej Lingr','Patrik Schick','Jan Kuchta','Pavel Šulc','Foto Equipo','Antonín Barák','Marek Ondráček','Jan Bořil','Tomáš Čvančara','Mojmír Chytil','Alex Král','Martin Vitík'],
   },
   // ── GRUPO B ──
   {
     code: 'CAN', name: 'Canadá', group: 'B',
-    players: ['Escudo Canadá','Maxime Crépeau','Alistair Johnston','Steven Vitória','Derek Cornelius','Richie Laryea','Samuel Piette','Stephen Eustáquio','Jonathan David','Tajon Buchanan','Cyle Larin','Foto Equipo','Alphonso Davies ✦','Liam Fraser','Junior Hoilett','Dénis Bouanga','Atiba Hutchinson','Marcus Godinho','David Wotherspoon','Charles-Andreas Brym'],
+    players: ['Escudo Canadá','Maxime Crépeau','Alistair Johnston','Steven Vitória','Derek Cornelius','Richie Laryea','Samuel Piette','Stephen Eustáquio','Jonathan David','Tajon Buchanan','Cyle Larin','Alphonso Davies ✦','Foto Equipo','Liam Fraser','Junior Hoilett','Dénis Bouanga','Atiba Hutchinson','Marcus Godinho','David Wotherspoon','Charles-Andreas Brym'],
   },
   {
     code: 'BIH', name: 'Bosnia-Herzegovina', group: 'B',
-    players: ['Escudo Bosnia','Ibrahim Šehić','Sadin Šušić','Ognjen Vranješ','Ermin Bičakčić','Toni Šunjić','Armin Hodžić','Alen Halilović','Haris Duljevic','Edin Džeko','Miralem Pjanić','Foto Equipo','Ermedin Demirović','Amer Gojak','Saša Bilbija','Rade Krunic','Muhamed Bešić','Tarik Ramović','Asmir Begovic','Senad Lulić'],
+    players: ['Escudo Bosnia','Ibrahim Šehić','Sadin Šušić','Ognjen Vranješ','Ermin Bičakčić','Toni Šunjić','Armin Hodžić','Alen Halilović','Haris Duljevic','Edin Džeko','Miralem Pjanić','Ermedin Demirović','Foto Equipo','Amer Gojak','Saša Bilbija','Rade Krunic','Muhamed Bešić','Tarik Ramović','Asmir Begovic','Senad Lulić'],
   },
   {
     code: 'QAT', name: 'Qatar', group: 'B',
-    players: ['Escudo Qatar','Meshaal Barsham','Pedro Miguel','Bassam Al-Rawi','Abdelkarim Hassan','Boualem Khoukhi','Karimi Boudiaf','Assim Madibo','Hassan Al-Haydos','Ismaël Mohamad','Almoez Ali','Foto Equipo','Akram Afif ✦','Homam Ahmed','Abdulaziz Hatem','Ahmed Alaaeldin','Yusuf Abdurisag','Salem Al-Hajri','Khalid Muneer','Mohammed Waad'],
+    players: ['Escudo Qatar','Meshaal Barsham','Pedro Miguel','Bassam Al-Rawi','Abdelkarim Hassan','Boualem Khoukhi','Karimi Boudiaf','Assim Madibo','Hassan Al-Haydos','Ismaël Mohamad','Almoez Ali','Akram Afif ✦','Foto Equipo','Homam Ahmed','Abdulaziz Hatem','Ahmed Alaaeldin','Yusuf Abdurisag','Salem Al-Hajri','Khalid Muneer','Mohammed Waad'],
   },
   {
     code: 'SUI', name: 'Suiza', group: 'B',
-    players: ['Escudo Suiza','Yann Sommer','Silvan Widmer','Fabian Schär','Manuel Akanji','Ricardo Rodríguez','Granit Xhaka','Remo Freuler','Xherdan Shaqiri','Ruben Vargas','Breel Embolo','Foto Equipo','Haris Seferović','Michel Aebischer','Denis Zakaria','Noah Okafor','Zeki Amdouni','Nico Elvedi','Dan Ndoye','Edimilson Fernandes'],
+    players: ['Escudo Suiza','Yann Sommer','Silvan Widmer','Fabian Schär','Manuel Akanji','Ricardo Rodríguez','Granit Xhaka','Remo Freuler','Xherdan Shaqiri','Ruben Vargas','Breel Embolo','Haris Seferović','Foto Equipo','Michel Aebischer','Denis Zakaria','Noah Okafor','Zeki Amdouni','Nico Elvedi','Dan Ndoye','Edimilson Fernandes'],
   },
   // ── GRUPO C ──
   {
     code: 'BRA', name: 'Brasil', group: 'C',
-    players: ['Escudo Brasil','Alisson Becker','Danilo','Marquinhos','Éder Militão','Alex Telles','Casemiro','Lucas Paquetá','Rodrygo','Raphinha','Vinícius Jr ✦','Foto Equipo','Neymar Jr ✦','Gabriel Martinelli','Endrick','Savinho','Gabriel Magalhães','Bremer','Matheus Cunha','Antony'],
+    players: ['Escudo Brasil','Alisson Becker','Danilo','Marquinhos','Éder Militão','Alex Telles','Casemiro','Lucas Paquetá','Rodrygo','Raphinha','Vinícius Jr ✦','Neymar Jr ✦','Foto Equipo','Gabriel Martinelli','Endrick','Savinho','Gabriel Magalhães','Bremer','Matheus Cunha','Antony'],
   },
   {
     code: 'MAR', name: 'Marruecos', group: 'C',
-    players: ['Escudo Marruecos','Yassine Bounou','Noussair Mazraoui','Achraf Hakimi','Romain Saïss','Nayef Aguerd','Azzedine Ounahi','Sofyan Amrabat','Ilias Chair','Hakim Ziyech','Youssef En-Nesyri','Foto Equipo','Abde Ezzalzouli','Selim Amallah','Ayoub El Kaabi','Soufiane Rahimi','Bilal El Khannous','Ibrahim Salah','Amine Harit','Yahya Jabrane'],
+    players: ['Escudo Marruecos','Yassine Bounou','Noussair Mazraoui','Achraf Hakimi','Romain Saïss','Nayef Aguerd','Azzedine Ounahi','Sofyan Amrabat','Ilias Chair','Hakim Ziyech','Youssef En-Nesyri','Abde Ezzalzouli','Foto Equipo','Selim Amallah','Ayoub El Kaabi','Soufiane Rahimi','Bilal El Khannous','Ibrahim Salah','Amine Harit','Yahya Jabrane'],
   },
   {
     code: 'HAI', name: 'Haití', group: 'C',
-    players: ['Escudo Haití','Josué Duverger','Shaquell Moore','Mechack Jérôme','Andrew Jean-Baptiste','Florent Ménard','Frantz Gilles','Duckens Nazon','Derrick Etienne','Djimy Alexis','Frantzdy Pierrot','Foto Equipo','Jeff Louis','Kevin Lafrance','Stéphane Alix','Wilde-Donald Guerrier','Louis Félix','Rony Jean','Jean-Marc Alexandre','Samson Hilaire'],
+    players: ['Escudo Haití','Josué Duverger','Shaquell Moore','Mechack Jérôme','Andrew Jean-Baptiste','Florent Ménard','Frantz Gilles','Duckens Nazon','Derrick Etienne','Djimy Alexis','Frantzdy Pierrot','Jeff Louis','Foto Equipo','Kevin Lafrance','Stéphane Alix','Wilde-Donald Guerrier','Louis Félix','Rony Jean','Jean-Marc Alexandre','Samson Hilaire'],
   },
   {
     code: 'SCO', name: 'Escocia', group: 'C',
-    players: ['Escudo Escocia','Angus Gunn','Anthony Ralston','Grant Hanley','Jack Hendry','Andrew Robertson','Scott McTominay','Callum McGregor','John McGinn','Ryan Christie','Che Adams','Foto Equipo','Stuart Armstrong','Kenny McLean','Ryan Jack','Billy Gilmour','Lyndon Dykes','Lawrence Shankland','Ryan Gauld','Kevin Nisbet'],
+    players: ['Escudo Escocia','Angus Gunn','Anthony Ralston','Grant Hanley','Jack Hendry','Andrew Robertson','Scott McTominay','Callum McGregor','John McGinn','Ryan Christie','Che Adams','Stuart Armstrong','Foto Equipo','Kenny McLean','Ryan Jack','Billy Gilmour','Lyndon Dykes','Lawrence Shankland','Ryan Gauld','Kevin Nisbet'],
   },
   // ── GRUPO D ──
   {
     code: 'USA', name: 'Estados Unidos', group: 'D',
-    players: ['Escudo USA','Matt Freese','Chris Richards','Tim Ream','Mark McKenzie','Alex Freeman','Antonee Robinson','Tyler Adams','Tanner Tessmann','Weston McKennie','Christian Roldan','Foto Equipo','Timothy Weah','Diego Luna','Malik Tillman','Christian Pulisic','Brenden Aaronson','Ricardo Pepi','Haji Wright','Folarin Balogun'],
+    players: ['Escudo USA','Matt Freese','Chris Richards','Tim Ream','Mark McKenzie','Alex Freeman','Antonee Robinson','Tyler Adams','Tanner Tessmann','Weston McKennie','Christian Roldan','Timothy Weah','Foto Equipo','Diego Luna','Malik Tillman','Christian Pulisic','Brenden Aaronson','Ricardo Pepi','Haji Wright','Folarin Balogun'],
   },
   {
     code: 'PAR', name: 'Paraguay', group: 'D',
-    players: ['Escudo Paraguay','Antony Silva','Omar Alderete','Junior Alonso','Gustavo Gómez','Héctor Martínez','Mathías Villasanti','Rodrigo Rojas','Miguel Almirón','Carlos González','Antonio Sanabria','Foto Equipo','Robert Morales','Alberto Espínola','Richard Sánchez','Cecilio Domínguez','Iván Ramírez','Alejandro Romero','Abel Hernández','Salvador Ferreira'],
+    players: ['Escudo Paraguay','Antony Silva','Omar Alderete','Junior Alonso','Gustavo Gómez','Héctor Martínez','Mathías Villasanti','Rodrigo Rojas','Miguel Almirón','Carlos González','Antonio Sanabria','Robert Morales','Foto Equipo','Alberto Espínola','Richard Sánchez','Cecilio Domínguez','Iván Ramírez','Alejandro Romero','Abel Hernández','Salvador Ferreira'],
   },
   {
     code: 'AUS', name: 'Australia', group: 'D',
-    players: ['Escudo Australia','Mathew Ryan','Harry Souttar','Kye Rowles','Milos Degenek','Nathaniel Atkinson','Jackson Irvine','Riley McGree','Aziz Behich','Craig Goodwin','Mathew Leckie','Foto Equipo','Mitchell Duke','Martin Boyle','Garang Kuol','Cameron Burgess','Jordan Bos','Daniel Arzani','Joel King','Marco Tilio'],
+    players: ['Escudo Australia','Mathew Ryan','Harry Souttar','Kye Rowles','Milos Degenek','Nathaniel Atkinson','Jackson Irvine','Riley McGree','Aziz Behich','Craig Goodwin','Mathew Leckie','Mitchell Duke','Foto Equipo','Martin Boyle','Garang Kuol','Cameron Burgess','Jordan Bos','Daniel Arzani','Joel King','Marco Tilio'],
   },
   {
     code: 'TUR', name: 'Turquía', group: 'D',
-    players: ['Escudo Turquía','Mert Günok','Zeki Çelik','Merih Demiral','Çağlar Söyüncü','Ferdi Kadıoğlu','Hakan Çalhanoğlu','Salih Özcan','Arda Güler ✦','Kerem Aktürkoğlu','Barış Alper Yılmaz','Foto Equipo','Yusuf Yazıcı','Samet Akaydın','Abdülkerim Bardakcı','Uğurcan Çakır','Cenk Tosun','İsmail Yüksek','Kaan Ayhan','Okay Yokuşlu'],
+    players: ['Escudo Turquía','Mert Günok','Zeki Çelik','Merih Demiral','Çağlar Söyüncü','Ferdi Kadıoğlu','Hakan Çalhanoğlu','Salih Özcan','Arda Güler ✦','Kerem Aktürkoğlu','Barış Alper Yılmaz','Yusuf Yazıcı','Foto Equipo','Samet Akaydın','Abdülkerim Bardakcı','Uğurcan Çakır','Cenk Tosun','İsmail Yüksek','Kaan Ayhan','Okay Yokuşlu'],
   },
   // ── GRUPO E ──
   {
     code: 'GER', name: 'Alemania', group: 'E',
-    players: ['Escudo Alemania','Manuel Neuer','Benjamin Pavard','Antonio Rüdiger','Jonathan Tah','Maximilian Mittelstädt','Toni Kroos','Joshua Kimmich','Jamal Musiala','Thomas Müller','Kai Havertz','Foto Equipo','Florian Wirtz ✦','Leon Goretzka','İlkay Gündoğan','Niclas Füllkrug','Leroy Sané','Serge Gnabry','Nico Schlotterbeck','Deniz Undav'],
+    players: ['Escudo Alemania','Manuel Neuer','Benjamin Pavard','Antonio Rüdiger','Jonathan Tah','Maximilian Mittelstädt','Toni Kroos','Joshua Kimmich','Jamal Musiala','Thomas Müller','Kai Havertz','Florian Wirtz ✦','Foto Equipo','Leon Goretzka','İlkay Gündoğan','Niclas Füllkrug','Leroy Sané','Serge Gnabry','Nico Schlotterbeck','Deniz Undav'],
   },
   {
     code: 'CUW', name: 'Curazao', group: 'E',
-    players: ['Escudo Curazao','Eloy Room','Cuco Martina','Darryl Lachman','Rangelo Janga','Leandro Bacuna','Quentin Thurston','Gilson Tavares','Gevaro Nepomuceno','Gino van Kessel','Elson Hooi','Foto Equipo','Jurjën Goeloe','Karsten Laçen','Renzo Riquelme','Stijn Spierings','Lorenzo Lucassen','Jafar Arias','Nigel Thomas','Denzell Dumfries Jr'],
+    players: ['Escudo Curazao','Eloy Room','Cuco Martina','Darryl Lachman','Rangelo Janga','Leandro Bacuna','Quentin Thurston','Gilson Tavares','Gevaro Nepomuceno','Gino van Kessel','Elson Hooi','Jurjën Goeloe','Foto Equipo','Karsten Laçen','Renzo Riquelme','Stijn Spierings','Lorenzo Lucassen','Jafar Arias','Nigel Thomas','Denzell Dumfries Jr'],
   },
   {
     code: 'CIV', name: 'Costa de Marfil', group: 'E',
-    players: ['Escudo Costa de Marfil','Yahia Fofana','Wilfried Singo','Odilon Kossounou','Simon Deli','Ghislain Konan','Jean Michaël Seri','Franck Kessié','Ibrahim Sangaré','Sébastien Haller','Nicolas Pépé','Foto Equipo','Jonathan Kodjia','Maxwel Cornet','Amad Diallo','Jean-Philippe Krasso','Serge Aurier','Karim Konaté','Oumar Diakité','Ahmed Touré'],
+    players: ['Escudo Costa de Marfil','Yahia Fofana','Wilfried Singo','Odilon Kossounou','Simon Deli','Ghislain Konan','Jean Michaël Seri','Franck Kessié','Ibrahim Sangaré','Sébastien Haller','Nicolas Pépé','Jonathan Kodjia','Foto Equipo','Maxwel Cornet','Amad Diallo','Jean-Philippe Krasso','Serge Aurier','Karim Konaté','Oumar Diakité','Ahmed Touré'],
   },
   {
     code: 'ECU', name: 'Ecuador', group: 'E',
-    players: ['Escudo Ecuador','Hernán Galíndez','Piero Hincapié','Robert Arboleda','Diego Palacios','Ángelo Preciado','Carlos Gruezo','José Cifuentes','Moisés Caicedo','Gonzalo Plata','Enner Valencia','Foto Equipo','Djorkaeff Reasco','Jhegson Méndez','Michael Estrada','Ángel Mena','Kevin Rodríguez','Jeremy Sarmiento','Pervis Estupiñán','Romario Ibarra'],
+    players: ['Escudo Ecuador','Hernán Galíndez','Piero Hincapié','Robert Arboleda','Diego Palacios','Ángelo Preciado','Carlos Gruezo','José Cifuentes','Moisés Caicedo','Gonzalo Plata','Enner Valencia','Djorkaeff Reasco','Foto Equipo','Jhegson Méndez','Michael Estrada','Ángel Mena','Kevin Rodríguez','Jeremy Sarmiento','Pervis Estupiñán','Romario Ibarra'],
   },
   // ── GRUPO F ──
   {
     code: 'NED', name: 'Países Bajos', group: 'F',
-    players: ['Escudo Países Bajos','Remko Pasveer','Denzel Dumfries','Matthijs de Ligt','Stefan de Vrij','Nathan Aké','Frenkie de Jong','Davy Klaassen','Teun Koopmeiners','Cody Gakpo','Memphis Depay','Foto Equipo','Virgil van Dijk ✦','Tijjani Reijnders','Donyell Malen','Wout Weghorst','Quinten Timber','Marten de Roon','Brian Brobbey','Steven Bergwijn'],
+    players: ['Escudo Países Bajos','Remko Pasveer','Denzel Dumfries','Matthijs de Ligt','Stefan de Vrij','Nathan Aké','Frenkie de Jong','Davy Klaassen','Teun Koopmeiners','Cody Gakpo','Memphis Depay','Virgil van Dijk ✦','Foto Equipo','Tijjani Reijnders','Donyell Malen','Wout Weghorst','Quinten Timber','Marten de Roon','Brian Brobbey','Steven Bergwijn'],
   },
   {
     code: 'JPN', name: 'Japón', group: 'F',
-    players: ['Escudo Japón','Shuichi Gonda','Yuto Nagatomo','Maya Yoshida','Ko Itakura','Hiroki Sakai','Hidemasa Morita','Wataru Endo','Kaoru Mitoma','Junya Ito','Takumi Minamino','Foto Equipo','Ayase Ueda','Ritsu Doan','Takefusa Kubo ✦','Yukinari Sugawara','Daichi Kamada','Hioki Machino','Seiya Maikuma','Jota'],
+    players: ['Escudo Japón','Shuichi Gonda','Yuto Nagatomo','Maya Yoshida','Ko Itakura','Hiroki Sakai','Hidemasa Morita','Wataru Endo','Kaoru Mitoma','Junya Ito','Takumi Minamino','Ayase Ueda','Foto Equipo','Ritsu Doan','Takefusa Kubo ✦','Yukinari Sugawara','Daichi Kamada','Hioki Machino','Seiya Maikuma','Jota'],
   },
   {
     code: 'SWE', name: 'Suecia', group: 'F',
-    players: ['Escudo Suecia','Robin Olsen','Emil Krafth','Victor Lindelöf','Filip Helander','Ludwig Augustinsson','Jens Cajuste','Mattias Svanberg','Dejan Kulusevski','Emil Forsberg','Alexander Isak','Foto Equipo','Viktor Gyökeres ✦','Anthony Elanga','Jesper Karlsson','Jordan Larsson','Pontus Jansson','Marcus Danielson','Patrik Walemark','Benjamin Kamara'],
+    players: ['Escudo Suecia','Robin Olsen','Emil Krafth','Victor Lindelöf','Filip Helander','Ludwig Augustinsson','Jens Cajuste','Mattias Svanberg','Dejan Kulusevski','Emil Forsberg','Alexander Isak','Viktor Gyökeres ✦','Foto Equipo','Anthony Elanga','Jesper Karlsson','Jordan Larsson','Pontus Jansson','Marcus Danielson','Patrik Walemark','Benjamin Kamara'],
   },
   {
     code: 'TUN', name: 'Túnez', group: 'F',
-    players: ['Escudo Túnez','Aymen Dahmen','Mohamed Draeger','Dylan Bronn','Montassar Talbi','Ali Maaloul','Ellyes Skhiri','Hannibal Mejbri','Aïssa Laïdouni','Naïm Sliti','Wahbi Khazri','Foto Equipo','Youssef Msakni','Mohamed Ben Romdhane','Seifeddine Jaziri','Ghailene Chaalali','Ferjani Sassi','Issam Jebali','Taha Yassine Khenissi','Saif-Eddine Khaoui'],
+    players: ['Escudo Túnez','Aymen Dahmen','Mohamed Draeger','Dylan Bronn','Montassar Talbi','Ali Maaloul','Ellyes Skhiri','Hannibal Mejbri','Aïssa Laïdouni','Naïm Sliti','Wahbi Khazri','Youssef Msakni','Foto Equipo','Mohamed Ben Romdhane','Seifeddine Jaziri','Ghailene Chaalali','Ferjani Sassi','Issam Jebali','Taha Yassine Khenissi','Saif-Eddine Khaoui'],
   },
   // ── GRUPO G ──
   {
     code: 'BEL', name: 'Bélgica', group: 'G',
-    players: ['Escudo Bélgica','Thibaut Courtois','Timothy Castagne','Toby Alderweireld','Jan Vertonghen','Alexis Saelemaekers','Axel Witsel','Kevin De Bruyne ✦','Youri Tielemans','Jeremy Doku','Romelu Lukaku','Foto Equipo','Lois Openda','Eden Hazard','Leandro Trossard','Arthur Theate','Amadou Onana','Thomas Meunier','Johan Bakayoko','Zeno Debast'],
+    players: ['Escudo Bélgica','Thibaut Courtois','Timothy Castagne','Toby Alderweireld','Jan Vertonghen','Alexis Saelemaekers','Axel Witsel','Kevin De Bruyne ✦','Youri Tielemans','Jeremy Doku','Romelu Lukaku','Lois Openda','Foto Equipo','Eden Hazard','Leandro Trossard','Arthur Theate','Amadou Onana','Thomas Meunier','Johan Bakayoko','Zeno Debast'],
   },
   {
     code: 'EGY', name: 'Egipto', group: 'G',
-    players: ['Escudo Egipto','Mohamed El-Shenawy','Ahmed Hegazy','Mohamed Abdelmonem','Ayman Ashraf','Omar Gaber','Tarek Hamed','Hamdi Fathi','Trézéguet','Marwan Hamdi','Mohamed Salah ✦','Foto Equipo','Omar Marmoush','Mostafa Mohamed','Amr El-Sulaya','Ahmed El-Sheikh','Ramadan Sobhi','Emam Ashour','Zizo','Mohamed El-Nenny'],
+    players: ['Escudo Egipto','Mohamed El-Shenawy','Ahmed Hegazy','Mohamed Abdelmonem','Ayman Ashraf','Omar Gaber','Tarek Hamed','Hamdi Fathi','Trézéguet','Marwan Hamdi','Mohamed Salah ✦','Omar Marmoush','Foto Equipo','Mostafa Mohamed','Amr El-Sulaya','Ahmed El-Sheikh','Ramadan Sobhi','Emam Ashour','Zizo','Mohamed El-Nenny'],
   },
   {
     code: 'IRN', name: 'Irán', group: 'G',
-    players: ['Escudo Irán','Alireza Beiranvand','Shoja Khalilzadeh','Morteza Pouraliganji','Majid Hosseini','Ehsan Hajsafi','Said Ezatolahi','Alireza Jahanbakhsh','Mehdi Taremi','Sardar Azmoun','Karim Ansarifard','Foto Equipo','Ali Gholizadeh','Ramin Rezaeian','Saman Ghoddos','Vahid Amiri','Ahmad Noorollahi','Milad Mohammadi','Omid Ebrahimi','Kaveh Rezaei'],
+    players: ['Escudo Irán','Alireza Beiranvand','Shoja Khalilzadeh','Morteza Pouraliganji','Majid Hosseini','Ehsan Hajsafi','Said Ezatolahi','Alireza Jahanbakhsh','Mehdi Taremi','Sardar Azmoun','Karim Ansarifard','Ali Gholizadeh','Foto Equipo','Ramin Rezaeian','Saman Ghoddos','Vahid Amiri','Ahmad Noorollahi','Milad Mohammadi','Omid Ebrahimi','Kaveh Rezaei'],
   },
   {
     code: 'NZL', name: 'Nueva Zelanda', group: 'G',
-    players: ['Escudo Nueva Zelanda','Max Crocombe','Liberato Cacace','Niko Kirwan','Michael Boxall','Bill Tuiloma','Winston Reid','Joe Bell','Clayton Lewis','Marko Šarić','Elijah Just','Foto Equipo','Matthew Garbett','Louis Fenton','Callum McCowatt','Myer Bevan','Dane Ingham','Chris Wood','Ben Waine','Oli Sail'],
+    players: ['Escudo Nueva Zelanda','Max Crocombe','Liberato Cacace','Niko Kirwan','Michael Boxall','Bill Tuiloma','Winston Reid','Joe Bell','Clayton Lewis','Marko Šarić','Elijah Just','Matthew Garbett','Foto Equipo','Louis Fenton','Callum McCowatt','Myer Bevan','Dane Ingham','Chris Wood','Ben Waine','Oli Sail'],
   },
   // ── GRUPO H ──
   {
     code: 'ESP', name: 'España', group: 'H',
-    players: ['Escudo España','Unai Simón','Daniel Carvajal','Aymeric Laporte','Pau Cubarsí','Marc Cucurella','Rodri','Mikel Merino','Pedri','Fabián Ruiz','Lamine Yamal ✦','Foto Equipo','Álvaro Morata','Dani Olmo','Ferran Torres','Joselu','Alejandro Grimaldo','Gavi','David Raya','Nico Williams'],
+    players: ['Escudo España','Unai Simón','Daniel Carvajal','Aymeric Laporte','Pau Cubarsí','Marc Cucurella','Rodri','Mikel Merino','Pedri','Fabián Ruiz','Lamine Yamal ✦','Álvaro Morata','Foto Equipo','Dani Olmo','Ferran Torres','Joselu','Alejandro Grimaldo','Gavi','David Raya','Nico Williams'],
   },
   {
     code: 'CPV', name: 'Cabo Verde', group: 'H',
-    players: ['Escudo Cabo Verde','Vozinha','Stopira','Steven Fortes','Jeffry Fortes','Patrick Andrade','Dylan Tavares','Jamiro Monteiro','Ryan Mendes','Garry Rodrigues','Julio Tavares','Foto Equipo','Deroy Duarte','Willy Semedo','Willie Fortes','Marco Soares','Bruno Varela','Emilio Cardozo','Sandro','Lisandro Semedo'],
+    players: ['Escudo Cabo Verde','Vozinha','Stopira','Steven Fortes','Jeffry Fortes','Patrick Andrade','Dylan Tavares','Jamiro Monteiro','Ryan Mendes','Garry Rodrigues','Julio Tavares','Deroy Duarte','Foto Equipo','Willy Semedo','Willie Fortes','Marco Soares','Bruno Varela','Emilio Cardozo','Sandro','Lisandro Semedo'],
   },
   {
     code: 'KSA', name: 'Arabia Saudí', group: 'H',
-    players: ['Escudo Arabia Saudí','Mohammed Al-Owais','Saud Abdulhamid','Ali Al-Bulayhi','Abdulelah Al-Amri','Yasser Al-Shahrani','Salman Al-Faraj','Abdullah Otayf','Salem Al-Dawsari ✦','Mohammed Al-Burayk','Firas Al-Buraikan','Foto Equipo','Hattan Bahebri','Nasser Al-Dawsari','Turki Al-Ammar','Yasir Al-Shahrani','Sami Al-Najei','Mohammed Al-Qasem','Sultan Al-Ghannam','Riyadh Sharahili'],
+    players: ['Escudo Arabia Saudí','Mohammed Al-Owais','Saud Abdulhamid','Ali Al-Bulayhi','Abdulelah Al-Amri','Yasser Al-Shahrani','Salman Al-Faraj','Abdullah Otayf','Salem Al-Dawsari ✦','Mohammed Al-Burayk','Firas Al-Buraikan','Hattan Bahebri','Foto Equipo','Nasser Al-Dawsari','Turki Al-Ammar','Yasir Al-Shahrani','Sami Al-Najei','Mohammed Al-Qasem','Sultan Al-Ghannam','Riyadh Sharahili'],
   },
   {
     code: 'URU', name: 'Uruguay', group: 'H',
-    players: ['Escudo Uruguay','Sergio Rochet','Nahitan Nández','Diego Godín','Ronald Araújo','Mathías Olivera','Federico Valverde ✦','Manuel Ugarte','Rodrigo Bentancur','Facundo Torres','Darwin Núñez','Foto Equipo','Luis Suárez','Edinson Cavani','Maxi Gómez','Nicolás De La Cruz','Brian Rodríguez','Sebastián Coates','Giorgian De Arrascaeta','Martín Cáceres'],
+    players: ['Escudo Uruguay','Sergio Rochet','Nahitan Nández','Diego Godín','Ronald Araújo','Mathías Olivera','Federico Valverde ✦','Manuel Ugarte','Rodrigo Bentancur','Facundo Torres','Darwin Núñez','Luis Suárez','Foto Equipo','Edinson Cavani','Maxi Gómez','Nicolás De La Cruz','Brian Rodríguez','Sebastián Coates','Giorgian De Arrascaeta','Martín Cáceres'],
   },
   // ── GRUPO I ──
   {
     code: 'FRA', name: 'Francia', group: 'I',
-    players: ['Escudo Francia','Mike Maignan','Jonathan Clauss','Dayot Upamecano','Ibrahima Konaté','Theo Hernández','Aurélien Tchouaméni','Adrien Rabiot','Antoine Griezmann','Ousmane Dembélé','Marcus Thuram','Foto Equipo','Kylian Mbappé ✦','Eduardo Camavinga','William Saliba','Randal Kolo Muani','Christopher Nkunku','Jules Koundé','Mattéo Guendouzi','Bradley Barcola'],
+    players: ['Escudo Francia','Mike Maignan','Jonathan Clauss','Dayot Upamecano','Ibrahima Konaté','Theo Hernández','Aurélien Tchouaméni','Adrien Rabiot','Antoine Griezmann','Ousmane Dembélé','Marcus Thuram','Kylian Mbappé ✦','Foto Equipo','Eduardo Camavinga','William Saliba','Randal Kolo Muani','Christopher Nkunku','Jules Koundé','Mattéo Guendouzi','Bradley Barcola'],
   },
   {
     code: 'SEN', name: 'Senegal', group: 'I',
-    players: ['Escudo Senegal','Édouard Mendy','Bouna Sarr','Kalidou Koulibaly','Abdou Diallo','Saliou Ciss','Cheikhou Kouyaté','Idrissa Gana Gueye','Nampalys Mendy','Ismaïla Sarr','Sadio Mané ✦','Foto Equipo','Bamba Dieng','Krepin Diatta','Iliman Ndiaye','Habib Diallo','Nicolas Jackson','Lamine Camara','Pape Matar Sarr','Formose Mendy'],
+    players: ['Escudo Senegal','Édouard Mendy','Bouna Sarr','Kalidou Koulibaly','Abdou Diallo','Saliou Ciss','Cheikhou Kouyaté','Idrissa Gana Gueye','Nampalys Mendy','Ismaïla Sarr','Sadio Mané ✦','Bamba Dieng','Foto Equipo','Krepin Diatta','Iliman Ndiaye','Habib Diallo','Nicolas Jackson','Lamine Camara','Pape Matar Sarr','Formose Mendy'],
   },
   {
     code: 'IRQ', name: 'Iraq', group: 'I',
-    players: ['Escudo Iraq','Jalal Hassan','Ali Adnan','Rebin Sulaka','Saad Natiq','Ali Faez','Hussein Ali','Safaa Hadi','Amjad Attwan','Aymen Hussein','Manaf Yousif','Foto Equipo','Mohanad Ali','Osama Rashid','Ahmed Yasin','Ali Jabbar','Bashar Resan','Alaa Abdul-Zahra','Muhammad Dawood','Ibrahim Bayesh'],
+    players: ['Escudo Iraq','Jalal Hassan','Ali Adnan','Rebin Sulaka','Saad Natiq','Ali Faez','Hussein Ali','Safaa Hadi','Amjad Attwan','Aymen Hussein','Manaf Yousif','Mohanad Ali','Foto Equipo','Osama Rashid','Ahmed Yasin','Ali Jabbar','Bashar Resan','Alaa Abdul-Zahra','Muhammad Dawood','Ibrahim Bayesh'],
   },
   {
     code: 'NOR', name: 'Noruega', group: 'I',
-    players: ['Escudo Noruega','Ørjan Nyland','Kristoffer Ajer','Sander Berge','Stefan Strandberg','Birger Meling','Martin Ødegaard ✦','Mathias Normann','Fredrik Aursnes','Antonio Nusa','Erling Haaland ✦','Foto Equipo','Alexander Sørloth','Mohamed Elyounoussi','Julian Ryerson','Morten Thorsby','Ola Solbakken','Leo Östigård','Jens Petter Hauge','Kristian Thorstvedt'],
+    players: ['Escudo Noruega','Ørjan Nyland','Kristoffer Ajer','Sander Berge','Stefan Strandberg','Birger Meling','Martin Ødegaard ✦','Mathias Normann','Fredrik Aursnes','Antonio Nusa','Erling Haaland ✦','Alexander Sørloth','Foto Equipo','Mohamed Elyounoussi','Julian Ryerson','Morten Thorsby','Ola Solbakken','Leo Östigård','Jens Petter Hauge','Kristian Thorstvedt'],
   },
   // ── GRUPO J ──
   {
     code: 'ARG', name: 'Argentina', group: 'J',
-    players: ['Escudo Argentina','Emiliano Martínez','Nahuel Molina','Cristian Romero','Lisandro Martínez','Nicolás Tagliafico','Rodrigo De Paul','Leandro Paredes','Enzo Fernández','Alexis Mac Allister','Julián Álvarez','Foto Equipo','Lionel Messi ✦','Giovani Lo Celso','Nicolás González','Facundo Buonanotte','Valentín Carboni','Lautaro Martínez','Thiago Almada','Alejandro Garnacho'],
+    players: ['Escudo Argentina','Emiliano Martínez','Nahuel Molina','Cristian Romero','Lisandro Martínez','Nicolás Tagliafico','Rodrigo De Paul','Leandro Paredes','Enzo Fernández','Alexis Mac Allister','Julián Álvarez','Lionel Messi ✦','Foto Equipo','Giovani Lo Celso','Nicolás González','Facundo Buonanotte','Valentín Carboni','Lautaro Martínez','Thiago Almada','Alejandro Garnacho'],
   },
   {
     code: 'ALG', name: 'Argelia', group: 'J',
-    players: ['Escudo Argelia','Alexis Guendouz','Ramy Bensebaini','Youcef Atal','Rayan Aït-Nouri','Mohamed Amine Tougai','Aïssa Mandi','Said Benrahma','Hossam Aouar','Yacine Adli','Sofiane Feghouli','Foto Equipo','Islam Slimani','Ramiz Zerrouki','Baghdad Bounedjah','Farès Chaïbi','Nabil Bentaleb','Adlène Guedioura','Billal Brahimi','Ishak Belfodil'],
+    players: ['Escudo Argelia','Alexis Guendouz','Ramy Bensebaini','Youcef Atal','Rayan Aït-Nouri','Mohamed Amine Tougai','Aïssa Mandi','Said Benrahma','Hossam Aouar','Yacine Adli','Sofiane Feghouli','Islam Slimani','Foto Equipo','Ramiz Zerrouki','Baghdad Bounedjah','Farès Chaïbi','Nabil Bentaleb','Adlène Guedioura','Billal Brahimi','Ishak Belfodil'],
   },
   {
     code: 'AUT', name: 'Austria', group: 'J',
-    players: ['Escudo Austria','Patrick Pentz','Stefan Posch','Philipp Lienhart','Maximilian Wöber','Philipp Mwene','Florian Grillitsch','Konrad Laimer','Marko Arnautović','Christoph Baumgartner','Marcel Sabitzer','Foto Equipo','David Alaba ✦','Michael Gregoritsch','Sasa Kalajdzic','Louis Schaub','Patrick Wimmer','Andreas Weimann','Xaver Schlager','Nicolas Seiwald'],
+    players: ['Escudo Austria','Patrick Pentz','Stefan Posch','Philipp Lienhart','Maximilian Wöber','Philipp Mwene','Florian Grillitsch','Konrad Laimer','Marko Arnautović','Christoph Baumgartner','Marcel Sabitzer','David Alaba ✦','Foto Equipo','Michael Gregoritsch','Sasa Kalajdzic','Louis Schaub','Patrick Wimmer','Andreas Weimann','Xaver Schlager','Nicolas Seiwald'],
   },
   {
     code: 'JOR', name: 'Jordania', group: 'J',
-    players: ['Escudo Jordania','Amer Shafi','Yazan Al-Naimat','Khaldon Bakar','Mohammad Al-Dmeiri','Ahmad Alattal','Baha Faisal','Mousa Al-Tamari','Hatem Aqel','Mohammad Abu Zema','Ahmad Shqeerat','Foto Equipo','Musa Al-Taamari','Saif Al-Rawabdeh','Hasan Abdel-Fattah','Khalil Bani Attiah','Ahmad Al-Sarour','Fares Hasan','Ibrahim Zarour','Omar Khrisat'],
+    players: ['Escudo Jordania','Amer Shafi','Yazan Al-Naimat','Khaldon Bakar','Mohammad Al-Dmeiri','Ahmad Alattal','Baha Faisal','Mousa Al-Tamari','Hatem Aqel','Mohammad Abu Zema','Ahmad Shqeerat','Musa Al-Taamari','Foto Equipo','Saif Al-Rawabdeh','Hasan Abdel-Fattah','Khalil Bani Attiah','Ahmad Al-Sarour','Fares Hasan','Ibrahim Zarour','Omar Khrisat'],
   },
   // ── GRUPO K ──
   {
     code: 'POR', name: 'Portugal', group: 'K',
-    players: ['Escudo Portugal','Rui Patrício','João Cancelo','Pepe','Rúben Dias','Nuno Mendes','William Carvalho','Bernardo Silva','Bruno Fernandes','Rafael Leão','Cristiano Ronaldo ✦','Foto Equipo','João Félix','Diogo Jota','Vitinha','Francisco Conceição','Gonçalo Inácio','Gonçalo Ramos','Pedro Neto','Ricardo Horta'],
+    players: ['Escudo Portugal','Rui Patrício','João Cancelo','Pepe','Rúben Dias','Nuno Mendes','William Carvalho','Bernardo Silva','Bruno Fernandes','Rafael Leão','Cristiano Ronaldo ✦','João Félix','Foto Equipo','Diogo Jota','Vitinha','Francisco Conceição','Gonçalo Inácio','Gonçalo Ramos','Pedro Neto','Ricardo Horta'],
   },
   {
     code: 'COD', name: 'Congo DR', group: 'K',
-    players: ['Escudo Congo DR','Joël Kiassumbua','Chancel Mbemba','Arthur Masuaku','Marcel Tisserand','Pierre Kalulu','Aaron Tshibola','Marou Soumaré','Cédric Bakambu','Silas Wamangituka','Yannick Bolasie','Foto Equipo','Dodi Lukébakio','Neeskens Kebano','Théo Bongonda','Yoane Wissa','Fiston Mayele','Glody Ngonda','Christian Luyindama','Lionel Mpasi'],
+    players: ['Escudo Congo DR','Joël Kiassumbua','Chancel Mbemba','Arthur Masuaku','Marcel Tisserand','Pierre Kalulu','Aaron Tshibola','Marou Soumaré','Cédric Bakambu','Silas Wamangituka','Yannick Bolasie','Dodi Lukébakio','Foto Equipo','Neeskens Kebano','Théo Bongonda','Yoane Wissa','Fiston Mayele','Glody Ngonda','Christian Luyindama','Lionel Mpasi'],
   },
   {
     code: 'UZB', name: 'Uzbekistán', group: 'K',
-    players: ['Escudo Uzbekistán','Utkir Yusupov','Farrukh Sayfiev','Sherzod Nasrullaev','Umar Eshmurodov','Husniddin Aliqulov','Rustamjon Ashurmatov','Khojiakbar Alijonov','Abdukodir Khusanov','Odiljon Hamrobekov','Otabek Shukurov','Foto Equipo','Jamshid Iskanderov','Islom Tukhtashev','Eldor Shomurodov','Dostonbek Khamdamov','Ikromjon Alibaev','Jaloliddin Masharipov','Bobur Abdullayev','Jasur Yaxshiboyev'],
+    players: ['Escudo Uzbekistán','Utkir Yusupov','Farrukh Sayfiev','Sherzod Nasrullaev','Umar Eshmurodov','Husniddin Aliqulov','Rustamjon Ashurmatov','Khojiakbar Alijonov','Abdukodir Khusanov','Odiljon Hamrobekov','Otabek Shukurov','Jamshid Iskanderov','Foto Equipo','Islom Tukhtashev','Eldor Shomurodov','Dostonbek Khamdamov','Ikromjon Alibaev','Jaloliddin Masharipov','Bobur Abdullayev','Jasur Yaxshiboyev'],
   },
   {
     code: 'COL', name: 'Colombia', group: 'K',
-    players: ['Escudo Colombia','David Ospina','Santiago Arias','Dávinson Sánchez','Yerry Mina','Johan Mojica','Wilmar Barrios','Mateus Uribe','Juan Cuadrado','James Rodríguez','Radamel Falcao','Foto Equipo','Luis Díaz ✦','Jhon Córdoba','Rafael Santos Borré','Jorge Carrascal','Miguel Ángel Borja','Camilo Vargas','Eder Álvarez Balanta','Jefferson Lerma'],
+    players: ['Escudo Colombia','David Ospina','Santiago Arias','Dávinson Sánchez','Yerry Mina','Johan Mojica','Wilmar Barrios','Mateus Uribe','Juan Cuadrado','James Rodríguez','Radamel Falcao','Luis Díaz ✦','Foto Equipo','Jhon Córdoba','Rafael Santos Borré','Jorge Carrascal','Miguel Ángel Borja','Camilo Vargas','Eder Álvarez Balanta','Jefferson Lerma'],
   },
   // ── GRUPO L ──
   {
     code: 'ENG', name: 'Inglaterra', group: 'L',
-    players: ['Escudo Inglaterra','Jordan Pickford','Trent Alexander-Arnold','John Stones','Harry Maguire','Luke Shaw','Declan Rice','Jude Bellingham ✦','Phil Foden','Bukayo Saka','Marcus Rashford','Foto Equipo','Harry Kane','Jack Grealish','Mason Mount','James Maddison','Ollie Watkins','Conor Gallagher','Reece James','Cole Palmer'],
+    players: ['Escudo Inglaterra','Jordan Pickford','Trent Alexander-Arnold','John Stones','Harry Maguire','Luke Shaw','Declan Rice','Jude Bellingham ✦','Phil Foden','Bukayo Saka','Marcus Rashford','Harry Kane','Foto Equipo','Jack Grealish','Mason Mount','James Maddison','Ollie Watkins','Conor Gallagher','Reece James','Cole Palmer'],
   },
   {
     code: 'CRO', name: 'Croacia', group: 'L',
-    players: ['Escudo Croacia','Dominik Livaković','Josip Stanišić','Dejan Lovren','Joško Gvardiol','Borna Ćorić','Mateo Kovačić','Luka Modrić ✦','Marcelo Brozović','Ivan Perišić','Andrej Kramarić','Foto Equipo','Bruno Petković','Nikola Vlašić','Mario Pašalić','Borna Sosa','Josip Sutalo','Luka Ivanušec','Dario Šimić','Petar Sučić'],
+    players: ['Escudo Croacia','Dominik Livaković','Josip Stanišić','Dejan Lovren','Joško Gvardiol','Borna Ćorić','Mateo Kovačić','Luka Modrić ✦','Marcelo Brozović','Ivan Perišić','Andrej Kramarić','Bruno Petković','Foto Equipo','Nikola Vlašić','Mario Pašalić','Borna Sosa','Josip Sutalo','Luka Ivanušec','Dario Šimić','Petar Sučić'],
   },
   {
     code: 'GHA', name: 'Ghana', group: 'L',
-    players: ['Escudo Ghana','Lawrence Ati-Zigi','Daniel Amartey','Alexander Djiku','Jonathan Mensah','Gideon Mensah','Thomas Partey','Salis Abdul Samed','Mohammed Kudus','Jordan Ayew','André Ayew','Foto Equipo','Inaki Williams','Antoine Semenyo','Elisha Owusu','Ransford Königsdörffer','Tariq Lamptey','Abdul Fatawu Issahaku','Osman Bukari','Joseph Wollacott'],
+    players: ['Escudo Ghana','Lawrence Ati-Zigi','Daniel Amartey','Alexander Djiku','Jonathan Mensah','Gideon Mensah','Thomas Partey','Salis Abdul Samed','Mohammed Kudus','Jordan Ayew','André Ayew','Inaki Williams','Foto Equipo','Antoine Semenyo','Elisha Owusu','Ransford Königsdörffer','Tariq Lamptey','Abdul Fatawu Issahaku','Osman Bukari','Joseph Wollacott'],
   },
   {
     code: 'PAN', name: 'Panamá', group: 'L',
-    players: ['Escudo Panamá','Orlando Mosquera','Abdiel Ayarza','Eric Davis','Harold Cummings','César Yanis','Roderick Miller','Adalberto Carrasquilla','Édgar Bárcenas','Aníbal Godoy','Cristian Martínez','Foto Equipo','Luis Ovalle','Cecilio Waterman','José Fajardo','Rolando Blackburn','Freddy Góndola','Alberto Quintero','Gabriel Torres','Ismael Díaz'],
+    players: ['Escudo Panamá','Orlando Mosquera','Abdiel Ayarza','Eric Davis','Harold Cummings','César Yanis','Roderick Miller','Adalberto Carrasquilla','Édgar Bárcenas','Aníbal Godoy','Cristian Martínez','Luis Ovalle','Foto Equipo','Cecilio Waterman','José Fajardo','Rolando Blackburn','Freddy Góndola','Alberto Quintero','Gabriel Torres','Ismael Díaz'],
   },
 ]
 

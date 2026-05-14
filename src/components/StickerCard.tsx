@@ -25,6 +25,11 @@ export const StickerCard = ({
 }: StickerCardProps) => {
   const totalCount = status === 'owned' ? 1 : status === 'repeated' ? repeatCount + 1 : 0
 
+  // Strip "Team - " prefix so only the player name is shown
+  const playerName = team ? name.replace(`${team} - `, '') : name
+  // Star players carry the ✦ symbol in their name; foil shields keep their own border
+  const isStar = playerName.includes('✦') && !foil
+
   const handleDecrement = () => {
     if (status === 'owned') {
       onMark('missing')
@@ -43,16 +48,29 @@ export const StickerCard = ({
     }
   }
 
-  return (
+  // ── Inner card ───────────────────────────────────────────────
+  const innerCard = (
     <div
-      className={`relative rounded-xl border-2 transition-all duration-150 overflow-hidden flex flex-col ${
-        status === 'owned'
-          ? foil
-            ? 'border-gold2 bg-gradient-to-br from-gold/20 to-gold2/10 shadow-md shadow-gold/20'
-            : 'border-green-500/60 bg-green-500/10'
-          : status === 'repeated'
-          ? 'border-amber-500/60 bg-amber-500/10'
-          : 'border-surface3 bg-surface2 opacity-55'
+      className={`relative transition-all duration-150 overflow-hidden flex flex-col ${
+        isStar
+          ? // Holo wrapper provides the border; inner card just needs background
+            `rounded-[10px] border-0 ${
+              status === 'owned'
+                ? 'bg-green-500/10'
+                : status === 'repeated'
+                ? 'bg-amber-500/10'
+                : 'bg-surface2 opacity-55'
+            }`
+          : // Normal card with explicit border
+            `rounded-xl border-2 ${
+              status === 'owned'
+                ? foil
+                  ? 'border-gold2 bg-gradient-to-br from-gold/20 to-gold2/10 shadow-md shadow-gold/20'
+                  : 'border-green-500/60 bg-green-500/10'
+                : status === 'repeated'
+                ? 'border-amber-500/60 bg-amber-500/10'
+                : 'border-surface3 bg-surface2 opacity-55'
+            }`
       }`}
     >
       {/* Count badge — top-right corner */}
@@ -68,13 +86,23 @@ export const StickerCard = ({
 
       {/* Top: sticker info */}
       <div className="p-3 flex-1">
-        <div className="flex items-start gap-1 mb-1">
-          {foil && <span className="text-xs leading-none">✨</span>}
-          <span className="text-[10px] font-mono text-gold2 font-bold leading-none">{displayKey(id)}</span>
+        {/* Code + badges row */}
+        <div className="flex items-center gap-1 mb-1.5">
+          <span className="text-[10px] font-mono text-gold2 font-bold leading-none">
+            {displayKey(id)}
+          </span>
+          {foil && <span className="text-[10px] leading-none">✨</span>}
+          {isStar && (
+            <span className="text-[10px] leading-none text-amber-300">✦</span>
+          )}
         </div>
+
+        {/* Player / sticker name */}
         <div className="text-xs font-semibold text-white line-clamp-2 leading-snug min-h-[2.4rem]">
-          {name}
+          {playerName}
         </div>
+
+        {/* Team with flag */}
         {team && (
           <div className="text-[10px] text-gray-500 mt-1 truncate flex items-center gap-1">
             <StickerFlag stickerKey={id} className="text-sm leading-none" />
@@ -122,4 +150,15 @@ export const StickerCard = ({
       </div>
     </div>
   )
+
+  // Star players get the rotating holographic border wrapper
+  if (isStar) {
+    return (
+      <div className="holo-wrapper rounded-xl">
+        {innerCard}
+      </div>
+    )
+  }
+
+  return innerCard
 }
