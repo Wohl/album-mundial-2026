@@ -73,7 +73,7 @@ export const TeamOverview = ({ userStickers, selectedTeam, onSelectTeam }: TeamO
                         ? 'bg-green-500'
                         : team.pct >= 40
                         ? 'bg-blue-500'
-                        : 'bg-surface3'
+                        : 'bg-orange-500'
                     }`}
                     style={{ width: `${Math.max(team.pct, team.pct > 0 ? 8 : 0)}%` }}
                   />
