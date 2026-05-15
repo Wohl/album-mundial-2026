@@ -67,5 +67,18 @@ export const useAuth = () => {
     await supabase.auth.signOut()
   }
 
-  return { userId, profile, loading, signIn, signUp, signOut }
+  const changePassword = async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) throw error
+  }
+
+  const updateDisplayName = async (name: string) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('No autenticado')
+    const { error } = await supabase.from('profiles').update({ display_name: name }).eq('id', user.id)
+    if (error) throw error
+    setProfile((prev) => prev ? { ...prev, display_name: name } : prev)
+  }
+
+  return { userId, profile, loading, signIn, signUp, signOut, changePassword, updateDisplayName }
 }

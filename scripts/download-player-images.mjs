@@ -1,20 +1,29 @@
-// Album Mundial 2026 — Player image downloader
-// Source: Wikipedia REST API (thumbnails, open licenses)
-// Usage: node scripts/download-player-images.mjs [TEAM_CODE]
-// Example: node scripts/download-player-images.mjs MEX
-//          node scripts/download-player-images.mjs          (all 48 teams)
+// Album Mundial 2026 — Player image downloader (v2)
+// Source: Wikipedia + Wikimedia Commons (open licenses)
+// Usage: node scripts/download-player-images.mjs [TEAM_CODE] [--force]
+//   --force  re-download and re-crop even if file already exists
+// Example: node scripts/download-player-images.mjs MEX --force
 
 import fs from 'fs';
 import path from 'path';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const sharp = require('sharp');
 
 const ROOT = process.cwd();
-const TEAM_FILTER = process.argv[2]?.toUpperCase();
+const args = process.argv.slice(2);
+const FORCE = args.includes('--force');
+const TEAM_FILTER = args.find(a => !a.startsWith('--'))?.toUpperCase();
 const USER_AGENT = 'AlbumMundial2026/1.0 (personal/educational project)';
+
+// Output portrait: 240×320 (3:4) with attention-based crop (centers on face)
+const TARGET_W = 240;
+const TARGET_H = 320;
+const MIN_SRC_W = 100; // reject source images narrower than this (icons, tiny thumbs)
 
 // ── 48 Teams × 20 players ────────────────────────────────────────────────────
 // idx 0 = Escudo (badge/foil) — NO image
 // idx 12 = Foto Equipo (team photo) — NO image
-// Rest = player stickers → try to download
 const TEAMS = [
   { code: 'MEX', players: ['Escudo México','Luis Malagón','Johan Vásquez','Jorge Sánchez','Cesar Montes','Jesús Gallardo','Israel Reyes','Diego Lainez','Carlos Rodríguez','Edson Álvarez','Orbelin Pineda','Marcel Ruiz','Foto Equipo','Érick Sánchez','Hirving Lozano','Santiago Giménez','Raúl Jiménez','Alexis Vega','Roberto Alvarado','Cesar Huerta'] },
   { code: 'RSA', players: ['Escudo Sudáfrica','Ronwen Williams','Sipho Chaine','Aubrey Modiba','Samukele Kabini','Mbekezeli Mbokazi','Khulumani Ndamane','Siyabonga Ngezana','Khuliso Mudau','Nkosinathi Sibisi','Teboho Mokoena','Thalente Mbatha','Foto Equipo','Bathabile Aubaas','Yaya Sithole','Sipho Mbule','Lyle Foster','Iqraam Rayners','Mohau Nkota','Oswin Appollis'] },
@@ -76,7 +85,6 @@ async function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
-// Fetch with automatic retry on 429 (rate limit) — exponential backoff
 async function fetchRetry(url, options = {}, maxRetries = 5) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     const res = await fetch(url, options);
@@ -88,7 +96,27 @@ async function fetchRetry(url, options = {}, maxRetries = 5) {
   throw new Error(`Still rate-limited after ${maxRetries} retries: ${url}`);
 }
 
-// Try Wikipedia REST summary for a player name — returns the canonical thumbnail URL as-is
+// Get page image filename from Wikipedia, then fetch it from Commons at 400px
+async function tryWikiLarge(title, lang = 'en') {
+  const metaUrl = `https://${lang}.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=pageimages&format=json&formatversion=2`;
+  try {
+    const metaRes = await fetchRetry(metaUrl, { headers: { 'User-Agent': USER_AGENT } });
+    if (!metaRes.ok) return null;
+    const metaData = await metaRes.json();
+    const page = (metaData.query?.pages ?? [])[0];
+    const filename = page?.pageimage;
+    if (!filename) return null;
+
+    const commonsUrl = `https://commons.wikimedia.org/w/api.php?action=query&titles=File:${encodeURIComponent(filename)}&prop=imageinfo&iiprop=url&iiurlwidth=400&format=json&formatversion=2`;
+    const commonsRes = await fetchRetry(commonsUrl, { headers: { 'User-Agent': USER_AGENT } });
+    if (!commonsRes.ok) return null;
+    const commonsData = await commonsRes.json();
+    const filePage = (commonsData.query?.pages ?? [])[0];
+    return filePage?.imageinfo?.[0]?.thumburl ?? null;
+  } catch { return null; }
+}
+
+// Fallback: Wikipedia REST summary thumbnail (smaller but safe)
 async function tryWikiSummary(playerName, lang = 'en') {
   const slug = encodeURIComponent(playerName.replace(/ /g, '_'));
   const url = `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${slug}`;
@@ -96,73 +124,86 @@ async function tryWikiSummary(playerName, lang = 'en') {
     const res = await fetchRetry(url, { headers: { 'User-Agent': USER_AGENT } });
     if (!res.ok) return null;
     const data = await res.json();
-    // Use the URL exactly as Wikipedia returns it — it's already at the cached thumbnail size
     return data.thumbnail?.source ?? null;
-  } catch { /* network error */ }
-  return null;
+  } catch { return null; }
 }
 
-// Try Wikipedia action=query pageimages — pithumbsize=250 is a safe pre-cached size
-async function tryWikiPageImage(title, lang = 'en') {
-  const url = `https://${lang}.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=pageimages&pithumbsize=250&format=json&formatversion=2`;
-  try {
-    const res = await fetchRetry(url, { headers: { 'User-Agent': USER_AGENT } });
-    if (!res.ok) return null;
-    const data = await res.json();
-    const page = Object.values(data.query?.pages ?? {})[0];
-    return page?.thumbnail?.source ?? null;
-  } catch {}
-  return null;
-}
-
-// Search Wikipedia and return the top result's image
-async function tryWikiSearch(playerName, lang = 'en') {
+// Search Wikipedia → return first result title
+async function searchWiki(playerName, lang = 'en') {
   const q = encodeURIComponent(`${playerName} footballer`);
   const url = `https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${q}&format=json&formatversion=2&srlimit=1`;
   try {
     const res = await fetchRetry(url, { headers: { 'User-Agent': USER_AGENT } });
     if (!res.ok) return null;
     const data = await res.json();
-    const title = data.query?.search?.[0]?.title;
-    if (!title) return null;
-    return tryWikiPageImage(title, lang);
-  } catch {
-    return null;
-  }
+    return data.query?.search?.[0]?.title ?? null;
+  } catch { return null; }
 }
 
 async function getWikipediaImage(playerName) {
-  // 1. English Wikipedia direct lookup (fast path)
-  const en = await tryWikiSummary(playerName, 'en');
-  if (en) return en;
+  const slug = playerName.replace(/ /g, '_');
 
-  // 2. Spanish Wikipedia direct lookup (better for Latin American / Spanish players)
-  const es = await tryWikiSummary(playerName, 'es');
-  if (es) return es;
+  // 1. EN Wikipedia direct → Commons 400px
+  const enLarge = await tryWikiLarge(slug, 'en');
+  if (enLarge) return enLarge;
 
-  // 3. English Wikipedia search + pageimages
-  const enSearch = await tryWikiSearch(playerName, 'en');
-  if (enSearch) return enSearch;
+  // 2. ES Wikipedia direct → Commons 400px
+  const esLarge = await tryWikiLarge(slug, 'es');
+  if (esLarge) return esLarge;
 
-  // 4. Spanish Wikipedia search + pageimages
-  const esSearch = await tryWikiSearch(playerName, 'es');
-  if (esSearch) return esSearch;
+  // 3. EN search → large
+  const enTitle = await searchWiki(playerName, 'en');
+  if (enTitle) {
+    const enSearchLarge = await tryWikiLarge(enTitle, 'en');
+    if (enSearchLarge) return enSearchLarge;
+    // fallback to REST summary thumbnail for this title
+    const enSummary = await tryWikiSummary(enTitle, 'en');
+    if (enSummary) return enSummary;
+  }
+
+  // 4. ES search → large
+  const esTitle = await searchWiki(playerName, 'es');
+  if (esTitle) {
+    const esSearchLarge = await tryWikiLarge(esTitle, 'es');
+    if (esSearchLarge) return esSearchLarge;
+    const esSummary = await tryWikiSummary(esTitle, 'es');
+    if (esSummary) return esSummary;
+  }
 
   return null;
 }
 
-// Downloads a single image; does NOT modify the URL (must already be a valid cached size)
-async function downloadImage(url, filepath) {
+// Download raw bytes to disk
+async function downloadRaw(url, filepath) {
   const res = await fetchRetry(url, {
-    headers: {
-      'User-Agent': USER_AGENT,
-      'Referer': 'https://en.wikipedia.org/',
-    },
+    headers: { 'User-Agent': USER_AGENT, 'Referer': 'https://en.wikipedia.org/' },
     redirect: 'follow',
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const buffer = await res.arrayBuffer();
   fs.writeFileSync(filepath, Buffer.from(buffer));
+}
+
+// Post-process: validate dimensions then smart-crop to portrait 240×320
+async function processImage(filepath) {
+  const meta = await sharp(filepath).metadata();
+  if (!meta.width || meta.width < MIN_SRC_W) {
+    fs.unlinkSync(filepath);
+    throw new Error(`Source too small: ${meta.width ?? '?'}×${meta.height ?? '?'}px — discarded`);
+  }
+  const buf = await sharp(filepath)
+    .resize(TARGET_W, TARGET_H, {
+      fit: 'cover',
+      position: 'attention', // libvips attention: centres crop on face/salient region
+    })
+    .png({ compressionLevel: 8 })
+    .toBuffer();
+  fs.writeFileSync(filepath, buf);
+}
+
+async function downloadAndProcess(url, filepath, displayKey) {
+  await downloadRaw(url, filepath);
+  await processImage(filepath);
 }
 
 // Bounded concurrency worker pool
@@ -187,12 +228,10 @@ async function main() {
     : TEAMS;
 
   if (teamsToProcess.length === 0) {
-    console.error(`Unknown team code: ${TEAM_FILTER}`);
-    console.error(`Valid codes: ${TEAMS.map(t => t.code).join(', ')}`);
+    console.error(`Unknown team: ${TEAM_FILTER}. Valid: ${TEAMS.map(t => t.code).join(', ')}`);
     process.exit(1);
   }
 
-  // ── Phase 1: collect (player, filepath) pairs that need downloading ──────────
   const pending = [];
   let skipped = 0;
 
@@ -201,27 +240,26 @@ async function main() {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
     for (let i = 0; i < 20; i++) {
-      if (i === 0 || i === 12) continue; // badge (foil) and team photo — no player image
+      if (i === 0 || i === 12) continue;
       const playerName = cleanName(team.players[i]);
       const displayKey = `${team.code}_${i + 1}`;
       const filepath = path.join(dir, `${displayKey}.png`);
 
-      if (fs.existsSync(filepath)) { skipped++; continue; }
+      if (!FORCE && fs.existsSync(filepath)) { skipped++; continue; }
       pending.push({ playerName, displayKey, filepath });
     }
   }
 
-  console.log(`\nAlbum Mundial 2026 — Image downloader`);
-  console.log(`Teams: ${teamsToProcess.map(t => t.code).join(', ')}`);
-  console.log(`Players to look up: ${pending.length}  (${skipped} already exist)\n`);
+  console.log(`\nAlbum Mundial 2026 — Image downloader v2`);
+  console.log(`Teams : ${teamsToProcess.map(t => t.code).join(', ')}`);
+  console.log(`Mode  : ${FORCE ? 'FORCE (re-download all)' : 'incremental'}`);
+  console.log(`Crop  : ${TARGET_W}×${TARGET_H}px attention-based portrait`);
+  console.log(`Queue : ${pending.length} players  (${skipped} skipped)\n`);
 
-  if (pending.length === 0) {
-    console.log('Nothing to do.');
-    return;
-  }
+  if (pending.length === 0) { console.log('Nothing to do.'); return; }
 
-  // ── Phase 2: look up image URLs in parallel (4 concurrent) ───────────────
-  console.log('Looking up Wikipedia image URLs...');
+  // Phase 1: parallel URL lookup (4 concurrent)
+  console.log('Looking up image URLs (Wikipedia + Commons)...');
   const lookupTasks = pending.map(p => async () => {
     const imgUrl = await getWikipediaImage(p.playerName);
     if (!imgUrl) console.log(`  ✗  ${p.playerName.padEnd(30)} (no image found)`);
@@ -232,20 +270,20 @@ async function main() {
   const toDownload = resolved.filter(r => r.imgUrl);
   const notFound = resolved.filter(r => !r.imgUrl).length;
 
-  // ── Phase 3: download images serially with delay (avoid rate limiting) ───
-  console.log(`\nDownloading ${toDownload.length} images (serial, 300ms delay)...\n`);
+  // Phase 2: serial download + sharp processing (avoid rate limiting)
+  console.log(`\nDownloading & cropping ${toDownload.length} images...\n`);
   let downloaded = 0, errors = 0;
 
   for (const { playerName, displayKey, filepath, imgUrl } of toDownload) {
     try {
-      await downloadImage(imgUrl, filepath);
+      await downloadAndProcess(imgUrl, filepath, displayKey);
       console.log(`  ✓  ${playerName.padEnd(30)} → ${displayKey}.png`);
       downloaded++;
     } catch (e) {
       console.error(`  !  ${playerName.padEnd(30)} ${e.message}`);
       errors++;
     }
-    await sleep(300); // be respectful of Wikimedia rate limits
+    await sleep(300);
   }
 
   console.log(`\n═══════════════════════════`);
@@ -256,7 +294,4 @@ async function main() {
   console.log(`═══════════════════════════\n`);
 }
 
-main().catch(err => {
-  console.error(err);
-  process.exit(1);
-});
+main().catch(err => { console.error(err); process.exit(1); });

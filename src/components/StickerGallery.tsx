@@ -55,38 +55,44 @@ export const StickerGallery = ({
     })
   }, [stickers, stickerMap, filter, search])
 
-  const filterBtns: { id: StatusFilter; label: string; count: number }[] = [
-    { id: 'all',      label: 'Todas',      count: counts.all     },
-    { id: 'owned',    label: 'Tengo',      count: counts.owned   },
-    { id: 'repeated', label: 'Repetidas',  count: counts.repeated},
-    { id: 'missing',  label: 'Me faltan',  count: counts.missing },
+  const filterBtns: { id: StatusFilter; label: string; count: number; color: string; activeColor: string }[] = [
+    { id: 'all',      label: 'Todas',     count: counts.all,      color: 'text-gray-500',   activeColor: 'text-dark'       },
+    { id: 'owned',    label: 'Tengo',     count: counts.owned,    color: 'text-green-500',  activeColor: 'text-green-900'  },
+    { id: 'repeated', label: 'Repetidas', count: counts.repeated, color: 'text-amber-400',  activeColor: 'text-amber-900'  },
+    { id: 'missing',  label: 'Me faltan', count: counts.missing,  color: 'text-red-400',    activeColor: 'text-red-900'    },
   ]
 
-  const countColors: Record<StatusFilter, string> = {
-    all:      'text-gray-300',
-    owned:    'text-blue-400',
-    repeated: 'text-amber-400',
-    missing:  'text-red-400',
+  const activeBg: Record<StatusFilter, string> = {
+    all:      'bg-gradient-to-r from-gold to-gold2 border-gold2',
+    owned:    'bg-green-500 border-green-400',
+    repeated: 'bg-amber-500 border-amber-400',
+    missing:  'bg-red-500 border-red-400',
   }
 
   return (
     <div className="w-full space-y-4">
-      {title && <h2 className="text-xl font-display text-gold2 uppercase">{title}</h2>}
+      {title && (
+        <h2 className="text-xl font-display text-gold2 uppercase tracking-wide">{title}</h2>
+      )}
 
       {/* Filter pills */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
         {filterBtns.map((btn) => (
           <button
             key={btn.id}
             onClick={() => setFilter(btn.id)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition border shrink-0 ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border shrink-0 ${
               filter === btn.id
-                ? 'bg-gold2 text-dark border-gold2 shadow-sm shadow-gold2/30'
-                : 'bg-surface2 border-surface3 hover:border-gold2/40 text-gray-300'
+                ? `${activeBg[btn.id]} text-white shadow-md`
+                : 'bg-surface2 border-surface3 hover:border-surface4 hover:bg-surface3 text-gray-500 hover:text-gray-200'
             }`}
           >
             {btn.label}
-            <span className={`font-bold ${filter === btn.id ? 'text-dark/70' : countColors[btn.id]}`}>
+            <span className={`text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none ${
+              filter === btn.id
+                ? 'bg-black/20 text-white'
+                : `${btn.color} bg-surface3`
+            }`}>
               {btn.count}
             </span>
           </button>
@@ -95,18 +101,18 @@ export const StickerGallery = ({
 
       {/* Search */}
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">🔍</span>
+        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600 text-sm select-none">🔍</span>
         <input
           type="text"
-          placeholder="Buscar por nombre o código..."
+          placeholder="Buscar por nombre, código o equipo..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full bg-surface2 border border-surface3 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-gold2/50 transition"
+          className="w-full bg-surface2 border border-surface3 focus:border-gold2/40 rounded-xl pl-10 pr-10 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none transition-colors"
         />
         {search && (
           <button
             onClick={() => setSearch('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 text-lg leading-none"
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-300 text-xl leading-none transition-colors"
           >
             ×
           </button>
@@ -115,9 +121,9 @@ export const StickerGallery = ({
 
       {/* Results */}
       {displayed.length === 0 ? (
-        <div className="text-center py-16 text-gray-500">
-          <div className="text-4xl mb-3">🔍</div>
-          <p className="text-sm">No hay figuritas que coincidan</p>
+        <div className="text-center py-20 text-gray-600">
+          <div className="text-5xl mb-4 opacity-30">🔍</div>
+          <p className="text-sm font-display tracking-wide uppercase">No hay figuritas que coincidan</p>
         </div>
       ) : (
         <>
@@ -130,7 +136,6 @@ export const StickerGallery = ({
                   id={sticker.id}
                   name={sticker.name}
                   team={sticker.team}
-
                   foil={sticker.foil}
                   status={userState?.status ?? 'missing'}
                   repeatCount={userState?.repeat_count ?? 0}
@@ -140,8 +145,8 @@ export const StickerGallery = ({
             })}
           </div>
           {(search || filter !== 'all') && (
-            <p className="text-xs text-gray-600 text-center pt-2">
-              {displayed.length} de {stickers.length} figuritas
+            <p className="text-xs text-gray-700 text-center pt-2 font-mono">
+              {displayed.length} / {stickers.length} figuritas
             </p>
           )}
         </>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { motion } from 'framer-motion'
 import { StickerState } from '@/types'
 import { TEAMS } from '@/stickers'
 import { TeamFlag } from '@/components/TeamFlag'
@@ -40,60 +41,77 @@ export const TeamOverview = ({ userStickers, selectedTeam, onSelectTeam }: TeamO
     return Array.from(g.entries()).sort(([a], [b]) => a.localeCompare(b))
   }, [teamStats])
 
+  const barColor = (pct: number) =>
+    pct === 100  ? 'from-gold to-gold2'
+    : pct >= 75  ? 'from-green-600 to-green-400'
+    : pct >= 40  ? 'from-blue-700 to-blue-500'
+    : pct > 0    ? 'from-orange-700 to-orange-500'
+    :              'from-surface4 to-surface3'
+
   return (
     <div className="space-y-8">
       {groups.map(([group, teams]) => (
         <div key={group}>
-          <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">
-            Grupo {group}
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {teams.map((team) => (
-              <button
-                key={team.code}
-                onClick={() => onSelectTeam(team.code)}
-                className={`text-left p-3 rounded-xl border-2 transition active:scale-95 ${
-                  selectedTeam === team.code
-                    ? 'border-gold2 bg-gold2/10 shadow-md shadow-gold2/10'
-                    : 'border-surface3 bg-surface2 hover:border-gold2/40'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-2.5">
-                  <TeamFlag code={team.code} className="text-xl" />
-                  <span className="text-sm font-semibold text-white truncate leading-tight">
-                    {team.name}
-                  </span>
-                </div>
-                <div className="w-full bg-surface3 rounded-full h-1.5 mb-1.5">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      team.pct === 100
-                        ? 'bg-gold2'
-                        : team.pct >= 75
-                        ? 'bg-green-500'
-                        : team.pct >= 40
-                        ? 'bg-blue-500'
-                        : 'bg-orange-500'
-                    }`}
-                    style={{ width: `${Math.max(team.pct, team.pct > 0 ? 8 : 0)}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">{team.owned}/20</span>
-                  <span
-                    className={
-                      team.pct === 100
-                        ? 'text-gold2 font-bold'
-                        : team.pct > 0
-                        ? 'text-gray-300'
-                        : 'text-gray-600'
-                    }
-                  >
-                    {team.pct}%
-                  </span>
-                </div>
-              </button>
-            ))}
+          {/* Group header */}
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-[10px] font-display text-gray-600 uppercase tracking-[0.3em]">
+              Grupo {group}
+            </span>
+            <div className="flex-1 h-px bg-surface3" />
+          </div>
+
+          {/* Team cards grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+            {teams.map((team) => {
+              const isSelected = selectedTeam === team.code
+              const isComplete = team.pct === 100
+
+              return (
+                <motion.button
+                  key={team.code}
+                  onClick={() => onSelectTeam(team.code)}
+                  whileHover={{ y: -1, scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                  className={`text-left p-3 rounded-xl border transition-colors ${
+                    isSelected
+                      ? 'border-gold2/60 bg-gradient-to-b from-gold/10 to-surface2 shadow-gold-sm'
+                      : isComplete
+                      ? 'border-gold/30 bg-gradient-to-b from-gold/5 to-surface2 hover:border-gold/50'
+                      : 'border-surface3 bg-surface2 hover:border-surface4 hover:bg-surface3/60'
+                  }`}
+                >
+                  {/* Flag + name */}
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <TeamFlag code={team.code} className="text-xl shrink-0" />
+                    <span className="text-sm font-semibold text-white truncate leading-tight">
+                      {team.name}
+                    </span>
+                    {isComplete && (
+                      <span className="ml-auto text-gold2 text-sm shrink-0">✓</span>
+                    )}
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="w-full bg-surface3 rounded-full h-1.5 mb-2 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full bg-gradient-to-r transition-all duration-700 ${barColor(team.pct)}`}
+                      style={{ width: `${Math.max(team.pct, team.pct > 0 ? 6 : 0)}%` }}
+                    />
+                  </div>
+
+                  {/* Stats row */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] text-gray-600 font-mono">{team.owned}/20</span>
+                    <span className={`text-[11px] font-bold font-mono ${
+                      isComplete ? 'text-gold2' : team.pct > 0 ? 'text-gray-400' : 'text-gray-700'
+                    }`}>
+                      {team.pct}%
+                    </span>
+                  </div>
+                </motion.button>
+              )
+            })}
           </div>
         </div>
       ))}
