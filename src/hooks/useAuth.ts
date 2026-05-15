@@ -6,6 +6,7 @@ import { supabase, isOfflineMode } from '@/lib/supabase'
 
 export const useAuth = () => {
   const [userId, setUserId] = useState<string | null>(null)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -29,6 +30,7 @@ export const useAuth = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUserId(session.user.id)
+        setUserEmail(session.user.email ?? null)
         loadProfile(session.user.id)
       } else {
         setLoading(false)
@@ -38,9 +40,11 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUserId(session.user.id)
+        setUserEmail(session.user.email ?? null)
         loadProfile(session.user.id)
       } else {
         setUserId(null)
+        setUserEmail(null)
         setProfile(null)
         setLoading(false)
       }
@@ -67,7 +71,16 @@ export const useAuth = () => {
     await supabase.auth.signOut()
   }
 
-  const changePassword = async (newPassword: string) => {
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    if (!userEmail) throw new Error('No hay sesión activa')
+
+    // Verify current password before allowing change
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email: userEmail,
+      password: currentPassword,
+    })
+    if (verifyError) throw new Error('La contraseña actual es incorrecta')
+
     const { error } = await supabase.auth.updateUser({ password: newPassword })
     if (error) throw error
   }
@@ -80,5 +93,5 @@ export const useAuth = () => {
     setProfile((prev) => prev ? { ...prev, display_name: name } : prev)
   }
 
-  return { userId, profile, loading, signIn, signUp, signOut, changePassword, updateDisplayName }
+  return { userId, userEmail, profile, loading, signIn, signUp, signOut, changePassword, updateDisplayName }
 }
