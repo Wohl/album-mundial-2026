@@ -14,6 +14,7 @@ import { StickerGallery } from '@/components/StickerGallery'
 import { TeamOverview } from '@/components/TeamOverview'
 import { MarketplaceView } from '@/components/MarketplaceView'
 import { StatsPanel } from '@/components/StatsPanel'
+import { DashboardView } from '@/components/DashboardView'
 import { BulkEntryModal } from '@/components/BulkEntryModal'
 import { TeamFlag } from '@/components/TeamFlag'
 import { NotificationsPanel } from '@/components/NotificationsPanel'
@@ -27,7 +28,7 @@ import {
 import { INTRO_FWC_STICKERS, FINAL_FWC_STICKERS, COCA_COLA_STICKERS, TEAMS } from '@/stickers'
 import type { Sticker } from '@/types'
 
-type Tab = 'intro' | 'equipos' | 'final' | 'cocacola' | 'repetidas' | 'stats' | 'market'
+type Tab = 'intro' | 'equipos' | 'final' | 'cocacola' | 'repetidas' | 'stats' | 'dashboard' | 'market'
 type GlobalToast = { id: number; msg: string }
 
 // ── SVG Icons ──────────────────────────────────────────────────────
@@ -67,6 +68,7 @@ const TAB_ICONS: Record<string, JSX.Element> = {
   cocacola:  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="2" x2="12" y2="6"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M8.5 8a3.5 3.5 0 0 0 7 0"/><rect x="5" y="6" width="14" height="4" rx="1"/><path d="M7 18h10"/><path d="M5 10l2 8"/><path d="M19 10l-2 8"/></svg>,
   repetidas: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>,
   stats:     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+  dashboard: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
   market:    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>,
 }
 
@@ -211,6 +213,7 @@ export default function Home() {
     { id: 'cocacola',  label: 'Coca-Cola' },
     { id: 'repetidas', label: 'Extras'    },
     { id: 'stats',     label: 'Stats'     },
+    { id: 'dashboard', label: 'Dashboard' },
     { id: 'market',    label: 'Mercado',  badge: pendingIncoming },
   ]
 
@@ -427,7 +430,7 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 py-5 space-y-5">
 
         {/* Progress bar */}
-        {activeTab !== 'market' && activeTab !== 'stats' && (
+        {activeTab !== 'market' && activeTab !== 'stats' && activeTab !== 'dashboard' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
             <ProgressBar progress={progress} />
           </motion.div>
@@ -527,6 +530,15 @@ export default function Home() {
             <StatsPanel progress={progress} stickers={stickers} />
           )}
 
+          {activeTab === 'dashboard' && (
+            <DashboardView
+              userId={userId}
+              myProgress={progress}
+              myStickers={stickers}
+              myTrades={trades}
+            />
+          )}
+
           {activeTab === 'market' && (
             <MarketplaceView
               userId={userId} myStickers={stickers} trades={trades}
@@ -536,7 +548,7 @@ export default function Home() {
             />
           )}
 
-          {loading && activeTab !== 'market' && activeTab !== 'stats' && (
+          {loading && activeTab !== 'market' && activeTab !== 'stats' && activeTab !== 'dashboard' && (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <div className="relative w-10 h-10">
                 <div className="absolute inset-0 rounded-full border-2 border-gold/10" />
