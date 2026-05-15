@@ -30,15 +30,17 @@ export interface FeedItem {
   at: string
 }
 
-type RawState = { user_id: string; sticker_key: string; status: string; repeat_count: number | null }
+export interface UserCount {
+  user_id: string
+  owned_count: number
+  extra_count: number
+}
 
-export async function fetchAllStates(): Promise<RawState[]> {
+export async function fetchUserCounts(): Promise<UserCount[]> {
   try {
-    const { data, error } = await supabase
-      .from('sticker_states')
-      .select('user_id, sticker_key, status, repeat_count')
+    const { data, error } = await supabase.rpc('dashboard_user_counts')
     if (error) return []
-    return data ?? []
+    return (data ?? []) as UserCount[]
   } catch {
     return []
   }
@@ -112,5 +114,31 @@ export async function fetchTradesPerUser(): Promise<Record<string, number>> {
     return m
   } catch {
     return {}
+  }
+}
+
+export async function fetchMostWanted(limit = 6): Promise<StickerHeat[]> {
+  try {
+    const { data, error } = await supabase.rpc('dashboard_wanted_stickers', { lmt: limit })
+    if (error) return []
+    return (data ?? []).map((d: { sticker_key: string; cnt: number }) => ({
+      key: d.sticker_key,
+      count: d.cnt,
+    }))
+  } catch {
+    return []
+  }
+}
+
+export async function fetchMostAvailable(limit = 6): Promise<StickerHeat[]> {
+  try {
+    const { data, error } = await supabase.rpc('dashboard_available_stickers', { lmt: limit })
+    if (error) return []
+    return (data ?? []).map((d: { sticker_key: string; cnt: number }) => ({
+      key: d.sticker_key,
+      count: d.cnt,
+    }))
+  } catch {
+    return []
   }
 }
