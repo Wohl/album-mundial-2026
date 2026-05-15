@@ -300,7 +300,8 @@ export default function Home() {
                   borderColor: 'rgba(245,197,66,0.45)',
                   color: '#F3F4F6',
                   boxShadow: '0 0 18px rgba(245,197,66,0.18), 0 2px 14px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
-                } as object}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} as any}
                 whileTap={{ scale: 0.96 }}
                 transition={{ duration: 0.18 }}
               >
@@ -331,7 +332,8 @@ export default function Home() {
                   borderColor: 'rgba(14,90,54,0.65)',
                   color: '#E2F5EC',
                   boxShadow: '0 0 18px rgba(14,90,54,0.28), 0 2px 14px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
-                } as object}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} as any}
                 whileTap={{ scale: 0.96 }}
                 transition={{ duration: 0.18 }}
               >
@@ -363,7 +365,8 @@ export default function Home() {
                   borderColor: 'rgba(245,197,66,0.5)',
                   color: '#F5C542',
                   boxShadow: '0 0 22px rgba(245,197,66,0.28), 0 2px 14px rgba(0,0,0,0.4)',
-                } as object}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} as any}
                 whileTap={{ scale: 0.94 }}
                 transition={{ duration: 0.18 }}
                 animate={pendingIncoming > 0 ? { scale: [1, 1.06, 1] } : {}}
