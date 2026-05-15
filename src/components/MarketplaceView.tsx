@@ -222,15 +222,6 @@ export const MarketplaceView = ({
     () => availableWantStickers.some(({ key }) => key.startsWith('CC')),
     [availableWantStickers]
   )
-  const teamsWithMissing = useMemo(() => {
-    const codes = new Set(
-      availableWantStickers
-        .map(({ key }) => (key.includes('_') ? key.split('_')[0] : null))
-        .filter(Boolean) as string[]
-    )
-    return TEAMS.filter((t) => codes.has(t.code))
-  }, [availableWantStickers])
-
   const filteredWantStickers = useMemo(() => {
     let base = availableWantStickers
     if (wantTeamFilter === 'fwc') base = base.filter(({ key }) => !key.includes('_') && !key.startsWith('CC'))
@@ -1020,19 +1011,19 @@ export const MarketplaceView = ({
             ) : (
               <>
                 {/* Category + team filter chips */}
-                <div className="flex gap-1.5 overflow-x-auto scrollbar-none mb-2 pb-0.5">
+                <div className="flex flex-wrap gap-1.5 mb-3">
                   {(
                     [
                       { id: null,         label: 'Todos'     },
                       ...(hasMissingFWC ? [{ id: 'fwc',      label: 'FWC'      }] : []),
                       ...(hasMissingCC  ? [{ id: 'cocacola', label: 'Coca-Cola' }] : []),
-                      ...teamsWithMissing.map((t) => ({ id: t.code, label: t.code })),
+                      ...TEAMS.map((t) => ({ id: t.code, label: t.code })),
                     ] as { id: string | null; label: string }[]
                   ).map(({ id, label }) => (
                     <button
                       key={id ?? 'all'}
                       onClick={() => setWantTeamFilter(id)}
-                      className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition border ${
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition border ${
                         wantTeamFilter === id
                           ? 'bg-gold2 text-dark border-gold2'
                           : 'bg-surface2 text-gray-400 border-surface3 hover:border-gold2/50'
