@@ -527,6 +527,7 @@ export const MarketplaceView = ({
                     key={trade.id}
                     trade={trade}
                     myUserId={userId}
+                    myStickers={myStickers}
                     loading={actionLoading === trade.id}
                     onAccept={() => handleAccept(trade)}
                     onReject={() => handleReject(trade)}
@@ -550,6 +551,7 @@ export const MarketplaceView = ({
                     key={trade.id}
                     trade={trade}
                     myUserId={userId}
+                    myStickers={myStickers}
                     loading={actionLoading === trade.id}
                     onAccept={() => handleAccept(trade)}
                     onReject={() => handleReject(trade)}
@@ -574,6 +576,7 @@ export const MarketplaceView = ({
                     key={trade.id}
                     trade={trade}
                     myUserId={userId}
+                    myStickers={myStickers}
                     loading={actionLoading === trade.id}
                     onAccept={() => handleAccept(trade)}
                     onReject={() => handleReject(trade)}
@@ -602,6 +605,7 @@ export const MarketplaceView = ({
                       key={trade.id}
                       trade={trade}
                       myUserId={userId}
+                      myStickers={myStickers}
                       loading={actionLoading === trade.id}
                       onAccept={() => handleAccept(trade)}
                       onReject={() => handleReject(trade)}

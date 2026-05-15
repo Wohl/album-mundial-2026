@@ -9,7 +9,8 @@ import { supabase, isOfflineMode } from '@/lib/supabase'
 export const useTrades = (
   userId: string | null,
   myStickers: StickerState[],
-  onStickerUpdate?: () => void
+  onStickerUpdate?: () => void,
+  onPacksUpdate?: () => void
 ) => {
   const [trades, setTrades] = useState<TradeRequest[]>([])
   const [othersRepeated, setOthersRepeated] = useState<OtherUserSticker[]>([])
@@ -17,6 +18,8 @@ export const useTrades = (
   const [loading, setLoading] = useState(false)
   const onStickerUpdateRef = useRef(onStickerUpdate)
   onStickerUpdateRef.current = onStickerUpdate
+  const onPacksUpdateRef = useRef(onPacksUpdate)
+  onPacksUpdateRef.current = onPacksUpdate
 
   const loadTrades = useCallback(async () => {
     if (!userId) return
@@ -75,11 +78,19 @@ export const useTrades = (
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'trade_requests', filter: `requester_id=eq.${userId}` },
-        (payload) => {
+        async (payload) => {
           loadTrades()
-          if ((payload.new as { status?: string })?.status === 'accepted') {
+          const newData = payload.new as Record<string, unknown>
+          if (newData?.status === 'accepted' && userId) {
             setTimeout(() => onStickerUpdateRef.current?.(), 600)
             setTimeout(() => onStickerUpdateRef.current?.(), 1500)
+            // El requester recibe lo que pidió (requested_sticker_keys)
+            const keys = (newData.requested_sticker_keys as string[] | null) ??
+                         (newData.requested_sticker_key ? [newData.requested_sticker_key as string] : [])
+            if (keys.length > 0) {
+              await packService.addItems(userId, newData.id as string, keys)
+              setTimeout(() => onPacksUpdateRef.current?.(), 300)
+            }
           }
         }
       )
@@ -160,6 +171,7 @@ export const useTrades = (
         const receivedKeys = trade.offered_sticker_keys ?? (trade.offered_sticker_key ? [trade.offered_sticker_key] : [])
         if (receivedKeys.length > 0) {
           await packService.addItems(userId, trade.id, receivedKeys)
+          setTimeout(() => onPacksUpdateRef.current?.(), 300)
         }
         onStickerUpdateRef.current?.()
         setTimeout(() => onStickerUpdateRef.current?.(), 800)

@@ -19,6 +19,7 @@ import { TeamFlag } from '@/components/TeamFlag'
 import { NotificationsPanel } from '@/components/NotificationsPanel'
 import { StickerSearch } from '@/components/StickerSearch'
 import { PackOpeningModal } from '@/components/PackOpeningModal'
+import type { PackItem } from '@/services/packService'
 import {
   getAllStickers,
   getTotalStickers,
@@ -84,14 +85,30 @@ export default function Home() {
 
   const totalStickers = getTotalStickers()
   const { stickers, progress, loading, updateSticker, refetch: refetchStickers } = useStickers(userId, totalStickers)
+  const { packItems, openPack, refetch: refetchPacks } = usePacks(userId)
+  const hasPendingPack = packItems.length > 0
   const {
     trades, othersRepeated, othersOwned, matches,
     loading: tradesLoading, pendingIncoming,
     createTrade, respondToTrade, counterTrade, cancelTrade,
-  } = useTrades(userId, stickers, refetchStickers)
+  } = useTrades(userId, stickers, refetchStickers, refetchPacks)
 
-  const { packItems, openPack } = usePacks(userId)
-  const hasPendingPack = packItems.length > 0
+  // Snapshot pack items when they arrive so the modal keeps its items
+  // even after openPack() clears packItems mid-animation
+  const [showPackModal, setShowPackModal] = useState(false)
+  const [packModalItems, setPackModalItems] = useState<PackItem[]>([])
+
+  useEffect(() => {
+    if (packItems.length > 0 && !showPackModal) {
+      setPackModalItems([...packItems])
+      setShowPackModal(true)
+    }
+  }, [packItems, showPackModal])
+
+  const handleClosePackModal = useCallback(() => {
+    setShowPackModal(false)
+    setPackModalItems([])
+  }, [])
 
   // Ctrl+K / Cmd+K → búsqueda
   useEffect(() => {
@@ -488,13 +505,13 @@ export default function Home() {
 
       <NotificationsPanel show={showNotifications} trades={trades} userId={userId} onClose={() => setShowNotifications(false)} />
 
-      {/* Pack opening — se muestra automáticamente si hay sobre pendiente */}
+      {/* Pack opening — se muestra con snapshot de items para no cerrar mid-animación */}
       <AnimatePresence>
-        {hasPendingPack && (
+        {showPackModal && packModalItems.length > 0 && (
           <PackOpeningModal
-            items={packItems}
+            items={packModalItems}
             onOpen={openPack}
-            onClose={() => {/* se cierra sólo al completar */}}
+            onClose={handleClosePackModal}
           />
         )}
       </AnimatePresence>

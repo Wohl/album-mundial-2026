@@ -1,18 +1,22 @@
 'use client'
 
-import { TradeRequest } from '@/types'
+import { useMemo } from 'react'
+import { TradeRequest, StickerState } from '@/types'
 import { getStickerName, displayKey } from '@/lib/stickers'
 import { StickerFlag } from '@/components/TeamFlag'
 
 interface TradeCardProps {
   trade: TradeRequest
   myUserId: string
+  myStickers?: StickerState[]
   loading?: boolean
   onAccept: () => void
   onReject: () => void
   onCancel: () => void
   onCounter?: () => void
 }
+
+type StickerStatus = 'owned' | 'repeated' | 'new'
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -32,18 +36,57 @@ const STATUS_STYLES: Record<TradeRequest['status'], { label: string; cls: string
   countered: { label: 'Contraoferta', cls: 'bg-purple-500/20 text-purple-400 border-purple-500/40' },
 }
 
-const StickerList = ({ keys, label }: { keys: string[]; label: string }) => (
-  <div className="flex-1 min-w-0 bg-surface3/60 rounded-lg p-3 space-y-2">
-    <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold text-center">{label}</div>
-    <div className="space-y-1.5">
-      {keys.map((key) => (
-        <div key={key} className="flex items-center gap-2">
-          <StickerFlag stickerKey={key} className="text-lg leading-none shrink-0" />
-          <div className="min-w-0">
-            <div className="text-[10px] text-gold2 font-mono font-bold">{displayKey(key)}</div>
-            <div className="text-xs text-white font-semibold leading-tight truncate">{getStickerName(key)}</div>
-          </div>
+const STICKER_STATUS_BADGE: Record<StickerStatus, { label: string; cls: string }> = {
+  repeated: { label: 'Repetida',    cls: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
+  owned:    { label: 'Ya la tenés', cls: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
+  new:      { label: '¡Nueva!',     cls: 'bg-green-500/15 text-green-400 border-green-500/30' },
+}
+
+const StickerRow = ({
+  stickerKey,
+  status,
+}: {
+  stickerKey: string
+  status?: StickerStatus
+}) => {
+  const badge = status ? STICKER_STATUS_BADGE[status] : null
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-2">
+        <StickerFlag stickerKey={stickerKey} className="text-base leading-none shrink-0" />
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] text-gold2 font-mono font-bold leading-none">{displayKey(stickerKey)}</div>
+          <div className="text-xs text-white font-semibold leading-tight truncate">{getStickerName(stickerKey)}</div>
         </div>
+      </div>
+      {badge && (
+        <div className={`self-start inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide border ${badge.cls}`}>
+          {status === 'new' && (
+            <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          )}
+          {badge.label}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const StickerList = ({
+  keys,
+  label,
+  statusMap,
+}: {
+  keys: string[]
+  label: string
+  statusMap: Map<string, StickerStatus>
+}) => (
+  <div className="flex-1 min-w-0 bg-surface3/50 rounded-xl p-3 space-y-2.5">
+    <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold text-center">{label}</div>
+    <div className="space-y-2.5">
+      {keys.map((key) => (
+        <StickerRow key={key} stickerKey={key} status={statusMap.get(key)} />
       ))}
     </div>
   </div>
@@ -52,6 +95,7 @@ const StickerList = ({ keys, label }: { keys: string[]; label: string }) => (
 export const TradeCard = ({
   trade,
   myUserId,
+  myStickers,
   loading = false,
   onAccept,
   onReject,
@@ -62,6 +106,22 @@ export const TradeCard = ({
   const status = STATUS_STYLES[trade.status]
   const otherName = isIncoming ? trade.requester_name : trade.owner_name
   const iCountered = trade.status === 'countered' && trade.counter_by === myUserId
+
+  // Build a map key → status using MY collection
+  const statusMap = useMemo((): Map<string, StickerStatus> => {
+    const map = new Map<string, StickerStatus>()
+    if (!myStickers) return map
+    myStickers.forEach((s) => {
+      map.set(s.sticker_key, s.status === 'repeated' ? 'repeated' : 'owned')
+    })
+    return map
+  }, [myStickers])
+
+  // For any key not in statusMap, status = 'new' (I don't own it)
+  const getStatus = (key: string): StickerStatus | undefined => {
+    if (!myStickers) return undefined
+    return statusMap.get(key) ?? 'new'
+  }
 
   // Prefer array fields; fall back to legacy single-key fields
   const rawOffered = trade.offered_sticker_keys?.length
@@ -79,7 +139,29 @@ export const TradeCard = ({
     ? (isIncoming ? trade.counter_requested_keys : trade.counter_offered_keys ?? rawRequested)
     : rawRequested
 
-  // Action permissions
+  // Build status maps for each column
+  // "offered" column = stickers being offered TO me (I'll receive them)
+  // "requested" column = stickers being asked FROM me (I'd give them away)
+  const offeredStatusMap = useMemo(() => {
+    const map = new Map<string, StickerStatus>()
+    displayedOffered.forEach((key) => {
+      const s = getStatus(key)
+      if (s) map.set(key, s)
+    })
+    return map
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayedOffered, statusMap])
+
+  const requestedStatusMap = useMemo(() => {
+    const map = new Map<string, StickerStatus>()
+    displayedRequested.forEach((key) => {
+      const s = getStatus(key)
+      if (s) map.set(key, s)
+    })
+    return map
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayedRequested, statusMap])
+
   const canRespond =
     (isIncoming && trade.status === 'pending') ||
     (trade.status === 'countered' && !iCountered && (trade.owner_id === myUserId || trade.requester_id === myUserId))
@@ -133,11 +215,13 @@ export const TradeCard = ({
         <StickerList
           keys={displayedOffered}
           label={isIncoming ? 'Él ofrece' : 'Vos ofrecés'}
+          statusMap={offeredStatusMap}
         />
         <div className="flex items-center text-gray-600 font-bold text-base shrink-0 self-center">⇄</div>
         <StickerList
           keys={displayedRequested}
           label={isIncoming ? 'Él pide' : 'Vos pedís'}
+          statusMap={requestedStatusMap}
         />
       </div>
 
@@ -149,7 +233,7 @@ export const TradeCard = ({
               <button
                 onClick={onAccept}
                 disabled={loading}
-                className="flex-1 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg uppercase transition"
+                className="flex-1 py-2 bg-green-700 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg uppercase transition"
               >
                 {loading ? '...' : trade.status === 'countered' ? 'Aceptar oferta' : 'Aceptar'}
               </button>
