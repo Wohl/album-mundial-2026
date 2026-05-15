@@ -145,7 +145,7 @@ function RankRow({ entry, pos, isMe }: { entry: RankEntry; pos: number; isMe: bo
         </div>
       </div>
       <div className="text-right shrink-0">
-        <div className={`text-sm font-bold leading-none ${isMe ? 'text-gold2' : 'text-gray-300'}`}>{entry.pct}%</div>
+        <div className={`text-sm font-bold leading-none ${isMe ? 'text-gold2' : 'text-gray-300'}`}>{entry.pct.toFixed(1)}%</div>
         <div className="text-[11px] text-gray-600 mt-1">{entry.ownedCount.toLocaleString('es')}</div>
       </div>
     </motion.div>
@@ -316,7 +316,7 @@ export function DashboardView({ userId, myProgress, myStickers, myTrades }: Dash
               </defs>
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="font-display text-4xl text-gold2 leading-none">{myProgress.percentComplete}%</span>
+              <span className="font-display text-4xl text-gold2 leading-none">{myProgress.percentComplete.toFixed(1)}%</span>
               <span className="text-xs text-gray-600 mt-1">completo</span>
             </div>
           </div>

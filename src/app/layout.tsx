@@ -5,6 +5,9 @@ import 'flag-icons/css/flag-icons.min.css'
 export const metadata: Metadata = {
   title: 'Álbum Mundial 2026',
   description: 'Colecciona figuritas del Mundial 2026',
+  icons: {
+    icon: '/2026_FIFA_World_Cup_emblem.svg',
+  },
 }
 
 export default function RootLayout({

@@ -74,7 +74,7 @@ export function useDashboard(myUserId: string | null): DashboardData {
         extraCount: extras,
         tradesCount: tradesMap[uid] ?? 0,
         packsCount: packsMap[uid] ?? 0,
-        pct: Math.round((owned / TOTAL) * 100),
+        pct: Math.round((owned / TOTAL) * 1000) / 10,
       }))
       .sort((a, b) => b.ownedCount - a.ownedCount)
   }, [states, nameMap, tradesMap, packsMap])
