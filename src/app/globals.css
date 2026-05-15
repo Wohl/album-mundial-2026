@@ -334,6 +334,36 @@ h1, h2, h3, h4, h5, h6 {
   50%       { box-shadow: 0 0 50px rgba(245,197,66,0.7),  0 20px 60px rgba(0,0,0,0.8), 0 0 100px rgba(245,197,66,0.2); }
 }
 
+/* ─── Pack reveal card — holo sweep ─── */
+@keyframes holo-card-sweep {
+  0%   { background-position: -100% 50%; }
+  100% { background-position: 200%  50%; }
+}
+
+.holo-card-sweep {
+  background-size: 250% 100%;
+  animation: holo-card-sweep 2.2s linear infinite;
+}
+
+/* ─── Card back pattern ─── */
+.card-back-pattern {
+  background-image:
+    repeating-linear-gradient(
+      135deg,
+      rgba(245,197,66,0.04) 0px,
+      rgba(245,197,66,0.04) 1px,
+      transparent 1px,
+      transparent 18px
+    ),
+    repeating-linear-gradient(
+      45deg,
+      rgba(56,189,248,0.03) 0px,
+      rgba(56,189,248,0.03) 1px,
+      transparent 1px,
+      transparent 18px
+    );
+}
+
 /* ─────────────────────────────────────────────────────────────────
    PROGRESS BAR — barra de estadio
    ───────────────────────────────────────────────────────────────── */
