@@ -7,6 +7,7 @@ import { useStickers } from '@/hooks/useStickers'
 import { useTrades } from '@/hooks/useTrades'
 import { AuthModal } from '@/components/AuthModal'
 import { ProfileModal } from '@/components/ProfileModal'
+import { ResetPasswordModal } from '@/components/ResetPasswordModal'
 import { ProgressBar } from '@/components/ProgressBar'
 import { StickerGallery } from '@/components/StickerGallery'
 import { TeamOverview } from '@/components/TeamOverview'
@@ -28,7 +29,7 @@ type Tab = 'intro' | 'equipos' | 'final' | 'cocacola' | 'repetidas' | 'stats' | 
 type GlobalToast = { id: number; msg: string }
 
 export default function Home() {
-  const { userId, profile, loading: authLoading, signIn, signUp, signOut, changePassword, updateDisplayName } = useAuth()
+  const { userId, profile, loading: authLoading, isRecovery, signIn, signUp, signOut, sendPasswordReset, confirmPasswordReset, changePassword, updateDisplayName } = useAuth()
   const [activeTab, setActiveTab] = useState<Tab>('equipos')
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null)
   const [showBulk, setShowBulk] = useState(false)
@@ -150,8 +151,12 @@ export default function Home() {
     )
   }
 
+  if (isRecovery) {
+    return <ResetPasswordModal onConfirm={confirmPasswordReset} />
+  }
+
   if (!userId || !profile) {
-    return <AuthModal onSignIn={signIn} onSignUp={signUp} />
+    return <AuthModal onSignIn={signIn} onSignUp={signUp} onSendPasswordReset={sendPasswordReset} />
   }
 
   const tabs: { id: Tab; label: string; emoji: string; badge?: number }[] = [

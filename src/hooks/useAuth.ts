@@ -9,6 +9,7 @@ export const useAuth = () => {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isRecovery, setIsRecovery] = useState(false)
 
   const loadProfile = useCallback(async (uid: string) => {
     try {
@@ -37,7 +38,11 @@ export const useAuth = () => {
       }
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsRecovery(true)
+        return
+      }
       if (session?.user) {
         setUserId(session.user.id)
         setUserEmail(session.user.email ?? null)
@@ -85,6 +90,18 @@ export const useAuth = () => {
     if (error) throw error
   }
 
+  const sendPasswordReset = async (email: string) => {
+    const redirectTo = typeof window !== 'undefined' ? window.location.origin : ''
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+    if (error) throw error
+  }
+
+  const confirmPasswordReset = async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) throw error
+    setIsRecovery(false)
+  }
+
   const updateDisplayName = async (name: string) => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('No autenticado')
@@ -93,5 +110,5 @@ export const useAuth = () => {
     setProfile((prev) => prev ? { ...prev, display_name: name } : prev)
   }
 
-  return { userId, userEmail, profile, loading, signIn, signUp, signOut, changePassword, updateDisplayName }
+  return { userId, userEmail, profile, loading, isRecovery, signIn, signUp, signOut, sendPasswordReset, confirmPasswordReset, changePassword, updateDisplayName }
 }
