@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { TradeRequest, StickerState, TradeMatch } from '@/types'
 import { tradeService, OtherUserSticker } from '@/services/tradeService'
+import { packService } from '@/services/packService'
 import { supabase, isOfflineMode } from '@/lib/supabase'
 
 export const useTrades = (
@@ -155,6 +156,11 @@ export const useTrades = (
       setTrades((prev) => prev.map((t) => (t.id === trade.id ? { ...t, status: response } : t)))
 
       if (response === 'accepted') {
+        // Las figuritas que recibe el owner son las que el requester ofreció
+        const receivedKeys = trade.offered_sticker_keys ?? (trade.offered_sticker_key ? [trade.offered_sticker_key] : [])
+        if (receivedKeys.length > 0) {
+          await packService.addItems(userId, trade.id, receivedKeys)
+        }
         onStickerUpdateRef.current?.()
         setTimeout(() => onStickerUpdateRef.current?.(), 800)
       }

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/hooks/useAuth'
 import { useStickers } from '@/hooks/useStickers'
 import { useTrades } from '@/hooks/useTrades'
+import { usePacks } from '@/hooks/usePacks'
 import { AuthModal } from '@/components/AuthModal'
 import { ProfileModal } from '@/components/ProfileModal'
 import { ResetPasswordModal } from '@/components/ResetPasswordModal'
@@ -17,6 +18,7 @@ import { BulkEntryModal } from '@/components/BulkEntryModal'
 import { TeamFlag } from '@/components/TeamFlag'
 import { NotificationsPanel } from '@/components/NotificationsPanel'
 import { StickerSearch } from '@/components/StickerSearch'
+import { PackOpeningModal } from '@/components/PackOpeningModal'
 import {
   getAllStickers,
   getTotalStickers,
@@ -25,8 +27,47 @@ import { INTRO_FWC_STICKERS, FINAL_FWC_STICKERS, COCA_COLA_STICKERS, TEAMS } fro
 import type { Sticker } from '@/types'
 
 type Tab = 'intro' | 'equipos' | 'final' | 'cocacola' | 'repetidas' | 'stats' | 'market'
-
 type GlobalToast = { id: number; msg: string }
+
+// ── SVG Icons ──────────────────────────────────────────────────────
+const SearchIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+  </svg>
+)
+const BellIcon = ({ dot }: { dot?: boolean }) => (
+  <span className="relative inline-flex">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+    </svg>
+    {dot && <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-dark" />}
+  </span>
+)
+const PlusIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+    <path d="M12 5v14M5 12h14"/>
+  </svg>
+)
+const LogoutIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+  </svg>
+)
+const PackIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/>
+  </svg>
+)
+
+const TAB_ICONS: Record<string, JSX.Element> = {
+  intro:     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>,
+  equipos:   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>,
+  final:     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+  cocacola:  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="2" x2="12" y2="6"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M8.5 8a3.5 3.5 0 0 0 7 0"/><rect x="5" y="6" width="14" height="4" rx="1"/><path d="M7 18h10"/><path d="M5 10l2 8"/><path d="M19 10l-2 8"/></svg>,
+  repetidas: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>,
+  stats:     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+  market:    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>,
+}
 
 export default function Home() {
   const { userId, profile, loading: authLoading, isRecovery, signIn, signUp, signOut, sendPasswordReset, confirmPasswordReset, changePassword, updateDisplayName } = useAuth()
@@ -44,19 +85,15 @@ export default function Home() {
   const totalStickers = getTotalStickers()
   const { stickers, progress, loading, updateSticker, refetch: refetchStickers } = useStickers(userId, totalStickers)
   const {
-    trades,
-    othersRepeated,
-    othersOwned,
-    matches,
-    loading: tradesLoading,
-    pendingIncoming,
-    createTrade,
-    respondToTrade,
-    counterTrade,
-    cancelTrade,
+    trades, othersRepeated, othersOwned, matches,
+    loading: tradesLoading, pendingIncoming,
+    createTrade, respondToTrade, counterTrade, cancelTrade,
   } = useTrades(userId, stickers, refetchStickers)
 
-  // Ctrl+K / Cmd+K opens sticker search
+  const { packItems, openPack } = usePacks(userId)
+  const hasPendingPack = packItems.length > 0
+
+  // Ctrl+K / Cmd+K → búsqueda
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -97,35 +134,27 @@ export default function Home() {
   }, [matches.length, activeTab, pushGlobalToast])
 
   const handleUpdateSticker = useCallback(
-    (key: string, status: 'owned' | 'missing' | 'repeated', count: number = 0) => {
+    (key: string, status: 'owned' | 'missing' | 'repeated', count = 0) => {
       if (userId) updateSticker(key, status, count)
     },
     [userId, updateSticker]
   )
 
   const handleBulkMark = useCallback(
-    (ids: string[]) => {
-      ids.forEach((id) => handleUpdateSticker(id, 'owned', 0))
-    },
+    (ids: string[]) => ids.forEach((id) => handleUpdateSticker(id, 'owned', 0)),
     [handleUpdateSticker]
   )
 
   const allStickers = useMemo(() => getAllStickers(), [])
 
   const introFWCStickers = useMemo<Sticker[]>(() =>
-    INTRO_FWC_STICKERS.map((s) => ({ id: s.id, name: s.name, type: 'intro', foil: s.foil })),
-    []
-  )
+    INTRO_FWC_STICKERS.map((s) => ({ id: s.id, name: s.name, type: 'intro' as const, foil: s.foil })), [])
 
   const finalFWCStickers = useMemo<Sticker[]>(() =>
-    FINAL_FWC_STICKERS.map((s) => ({ id: s.id, name: s.name, type: 'final', foil: s.foil })),
-    []
-  )
+    FINAL_FWC_STICKERS.map((s) => ({ id: s.id, name: s.name, type: 'final' as const, foil: s.foil })), [])
 
   const cocaColaStickers = useMemo<Sticker[]>(() =>
-    COCA_COLA_STICKERS.map((s) => ({ id: s.id, name: s.name, type: 'cocacola', foil: s.foil })),
-    []
-  )
+    COCA_COLA_STICKERS.map((s) => ({ id: s.id, name: s.name, type: 'cocacola' as const, foil: s.foil })), [])
 
   const selectedTeamStickers = useMemo<Sticker[]>(() => {
     if (!selectedTeam) return []
@@ -143,30 +172,29 @@ export default function Home() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full border-2 border-gold2/30 border-t-gold2 animate-spin" />
-          <div className="text-gold2/70 text-sm font-display tracking-widest uppercase">Cargando</div>
+        <div className="flex flex-col items-center gap-5">
+          <div className="relative w-16 h-16">
+            <div className="absolute inset-0 rounded-full border-2 border-gold/10" />
+            <div className="absolute inset-0 rounded-full border-t-2 border-gold animate-spin" />
+            <div className="absolute inset-3 rounded-full border border-gold2/20" />
+          </div>
+          <div className="text-gold/60 text-sm font-display tracking-[0.4em] uppercase">Cargando</div>
         </div>
       </div>
     )
   }
 
-  if (isRecovery) {
-    return <ResetPasswordModal onConfirm={confirmPasswordReset} />
-  }
+  if (isRecovery) return <ResetPasswordModal onConfirm={confirmPasswordReset} />
+  if (!userId || !profile) return <AuthModal onSignIn={signIn} onSignUp={signUp} onSendPasswordReset={sendPasswordReset} />
 
-  if (!userId || !profile) {
-    return <AuthModal onSignIn={signIn} onSignUp={signUp} onSendPasswordReset={sendPasswordReset} />
-  }
-
-  const tabs: { id: Tab; label: string; emoji: string; badge?: number }[] = [
-    { id: 'intro',     label: 'Intro',     emoji: '🌍' },
-    { id: 'equipos',   label: 'Equipos',   emoji: '🏆' },
-    { id: 'final',     label: 'Final',     emoji: '🎖️' },
-    { id: 'cocacola',  label: 'Coca-Cola', emoji: '🥤' },
-    { id: 'repetidas', label: 'Extras',    emoji: '🔁' },
-    { id: 'stats',     label: 'Stats',     emoji: '📊' },
-    { id: 'market',    label: 'Mercado',   emoji: '🔄', badge: pendingIncoming },
+  const tabs: { id: Tab; label: string; badge?: number }[] = [
+    { id: 'intro',     label: 'Intro'     },
+    { id: 'equipos',   label: 'Equipos'   },
+    { id: 'final',     label: 'Final'     },
+    { id: 'cocacola',  label: 'Coca-Cola' },
+    { id: 'repetidas', label: 'Extras'    },
+    { id: 'stats',     label: 'Stats'     },
+    { id: 'market',    label: 'Mercado',  badge: pendingIncoming },
   ]
 
   const handleTabChange = (tab: Tab) => {
@@ -178,129 +206,181 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
-      {/* ── Header ──────────────────────────────────────────────── */}
+
+      {/* ── HEADER — Transmisión oficial premium ─────────────────── */}
       <motion.header
-        className="sticky top-0 z-40 bg-surface/95 backdrop-blur-md border-b border-white/5"
-        initial={{ opacity: 0, y: -16 }}
+        className="sticky top-0 z-40 header-glow"
+        style={{ background: 'rgba(8,17,32,0.92)', backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)' }}
+        initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       >
-        {/* Gold accent line */}
+        {/* Acento dorado superior */}
         <div className="header-accent" />
 
-        <div className="max-w-7xl mx-auto px-4 py-2.5">
-          <div className="flex justify-between items-center gap-3">
-            {/* Logo */}
-            <div className="flex items-center gap-2.5 shrink-0">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-gold/25 to-gold2/10 border border-gold/25 flex items-center justify-center shadow-gold-sm">
-                <span className="text-gold2 font-display text-lg leading-none">26</span>
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+
+            {/* ── Logo / Branding ──────────────────────────────── */}
+            <div className="flex items-center gap-3 shrink-0">
+              {/* Ícono Copa */}
+              <div className="relative w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(245,197,66,0.18) 0%, rgba(255,215,0,0.06) 100%)',
+                  border: '1px solid rgba(245,197,66,0.25)',
+                  boxShadow: '0 0 20px rgba(245,197,66,0.12)',
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F5C542" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+                  <path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+                  <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+                  <path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>
+                </svg>
               </div>
+              {/* Texto */}
               <div className="hidden sm:block">
-                <h1 className="text-xl font-display text-gold2 uppercase leading-none tracking-wide">Álbum</h1>
-                <p className="text-[10px] text-gray-600 uppercase tracking-[0.2em]">Mundial 2026</p>
+                <h1 className="text-xl font-display text-gradient-gold uppercase leading-none tracking-wide">Álbum</h1>
+                <p className="text-[9px] text-surface4 uppercase tracking-[0.35em] mt-0.5">Mundial 2026</p>
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-2">
-              {/* Search */}
+            {/* ── Acciones ─────────────────────────────────────── */}
+            <div className="flex items-center gap-1.5">
+
+              {/* Sobre pendiente */}
+              {hasPendingPack && (
+                <motion.button
+                  onClick={() => {/* el modal se abre solo */}}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-dark transition-all animate-glow-pulse"
+                  style={{ background: 'linear-gradient(135deg, #F5C542, #FFD700)', boxShadow: '0 0 16px rgba(255,215,0,0.4)' }}
+                >
+                  <PackIcon />
+                  <span className="hidden sm:inline">Abrir sobre</span>
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                    {packItems.length}
+                  </span>
+                </motion.button>
+              )}
+
+              {/* Búsqueda */}
               <button
                 onClick={() => setShowSearch(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface2 hover:bg-surface3 text-gray-400 hover:text-gray-200 border border-surface3 hover:border-surface4 transition-all"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border"
+                style={{ background: 'rgba(26,40,64,0.8)', borderColor: 'rgba(33,50,85,0.8)', color: 'rgba(163,181,211,0.8)' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(245,197,66,0.3)'; (e.currentTarget as HTMLElement).style.color = '#F3F4F6' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(33,50,85,0.8)'; (e.currentTarget as HTMLElement).style.color = 'rgba(163,181,211,0.8)' }}
                 title="Buscar figurita (Ctrl+K)"
               >
-                <span className="text-sm">🔍</span>
+                <SearchIcon />
                 <span className="hidden sm:inline">Buscar</span>
-                <kbd className="hidden md:flex items-center text-[9px] text-gray-600 border border-surface4 rounded px-1 py-0.5 font-mono">
+                <kbd className="hidden md:flex items-center text-[9px] border rounded px-1 py-0.5 font-mono opacity-50" style={{ borderColor: 'rgba(33,50,85,0.8)' }}>
                   ⌘K
                 </kbd>
               </button>
 
-              {/* Quick entry */}
+              {/* Entrada rápida */}
               <button
                 onClick={() => setShowBulk(true)}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface2 hover:bg-surface3 text-gray-400 hover:text-gray-200 border border-surface3 hover:border-surface4 transition-all"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all border"
+                style={{ background: 'rgba(26,40,64,0.8)', borderColor: 'rgba(33,50,85,0.8)', color: 'rgba(163,181,211,0.8)' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(14,90,54,0.6)'; (e.currentTarget as HTMLElement).style.color = '#F3F4F6' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(33,50,85,0.8)'; (e.currentTarget as HTMLElement).style.color = 'rgba(163,181,211,0.8)' }}
               >
-                <span className="hidden sm:inline">+ Entrada rápida</span>
-                <span className="sm:hidden">+</span>
+                <PlusIcon />
+                <span className="hidden sm:inline">Entrada rápida</span>
               </button>
 
-              {/* Notifications */}
+              {/* Notificaciones */}
               <button
                 onClick={() => setShowNotifications(true)}
-                className="relative p-2 rounded-lg bg-surface2 hover:bg-surface3 text-gray-400 hover:text-gray-200 border border-surface3 hover:border-surface4 transition-all"
-                title="Actividad de intercambios"
+                className="relative p-2 rounded-lg transition-all border"
+                style={{ background: 'rgba(26,40,64,0.8)', borderColor: 'rgba(33,50,85,0.8)', color: 'rgba(163,181,211,0.8)' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(245,197,66,0.3)'; (e.currentTarget as HTMLElement).style.color = '#F3F4F6' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(33,50,85,0.8)'; (e.currentTarget as HTMLElement).style.color = 'rgba(163,181,211,0.8)' }}
+                title="Actividad"
               >
-                <span className="text-base">🔔</span>
+                <BellIcon dot={pendingIncoming > 0} />
                 {pendingIncoming > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[1.1rem] h-[1.1rem] px-1 flex items-center justify-center shadow-lg animate-pulse-glow">
+                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[1rem] h-4 px-1 flex items-center justify-center shadow-lg">
                     {pendingIncoming}
                   </span>
                 )}
               </button>
 
-              {/* User */}
-              <div className="flex items-center gap-1.5 pl-1 border-l border-surface3">
-                <button
-                  onClick={() => setShowProfile(true)}
-                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-surface3 transition-all group"
-                  title="Gestionar perfil"
+              {/* Separador */}
+              <div className="w-px h-6 mx-0.5" style={{ background: 'rgba(33,50,85,0.8)' }} />
+
+              {/* Usuario */}
+              <button
+                onClick={() => setShowProfile(true)}
+                className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all group"
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(26,40,64,0.8)'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+                title="Mi perfil"
+              >
+                <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 font-display text-dark font-bold text-sm"
+                  style={{ background: 'linear-gradient(135deg, #F5C542, #FFD700)' }}
                 >
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gold/30 to-gold2/10 border border-gold/30 flex items-center justify-center shrink-0 group-hover:border-gold/60 transition-colors">
-                    <span className="text-gold2 text-xs font-display leading-none">
-                      {profile.display_name.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="text-right hidden sm:block">
-                    <p className="text-[10px] text-gray-600 uppercase tracking-wider leading-none mb-0.5">Hola,</p>
-                    <p className="font-bold text-gold2 text-sm leading-tight">{profile.display_name}</p>
-                  </div>
-                </button>
-                <button
-                  onClick={signOut}
-                  className="p-1.5 rounded-lg text-sm text-gray-600 hover:text-gray-300 hover:bg-surface3 transition-all"
-                  title="Cerrar sesión"
-                >
-                  ↩
-                </button>
-              </div>
+                  {profile.display_name.charAt(0).toUpperCase()}
+                </div>
+                <div className="hidden sm:block text-right">
+                  <p className="text-[9px] text-surface4 uppercase tracking-wider leading-none mb-0.5">Hola,</p>
+                  <p className="font-bold text-gold text-xs leading-tight">{profile.display_name}</p>
+                </div>
+              </button>
+
+              {/* Logout */}
+              <button
+                onClick={signOut}
+                className="p-1.5 rounded-lg transition-all text-surface4 hover:text-red-400"
+                style={{ background: 'transparent' }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(220,38,38,0.1)'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+                title="Cerrar sesión"
+              >
+                <LogoutIcon />
+              </button>
             </div>
           </div>
         </div>
       </motion.header>
 
-      {/* ── Main ───────────────────────────────────────────────── */}
+      {/* ── MAIN ─────────────────────────────────────────────────── */}
       <main className="max-w-7xl mx-auto px-4 py-5 space-y-5">
 
         {/* Progress bar */}
         {activeTab !== 'market' && activeTab !== 'stats' && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-          >
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
             <ProgressBar progress={progress} />
           </motion.div>
         )}
 
-        {/* ── Tab navigation ─────────────────────────────────── */}
-        <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
+        {/* ── Tab navigation ─────────────────────────────────────── */}
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}
-              className={`relative flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-display text-sm tracking-wide transition-all whitespace-nowrap shrink-0 ${
+              className={`relative flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-display text-sm tracking-wide transition-all whitespace-nowrap shrink-0 border ${
                 activeTab === tab.id
-                  ? 'bg-gradient-to-r from-gold to-gold2 text-dark tab-active-glow'
-                  : 'bg-surface2 text-gray-500 hover:text-gray-200 hover:bg-surface3 border border-surface3 hover:border-surface4'
+                  ? 'text-dark border-gold/40 tab-active-glow'
+                  : 'text-surface4 hover:text-humo border-surface3/60 hover:border-surface4'
               }`}
+              style={
+                activeTab === tab.id
+                  ? { background: 'linear-gradient(135deg, #F5C542, #FFD700)' }
+                  : { background: 'rgba(19,32,48,0.8)' }
+              }
             >
-              <span className={`text-base leading-none ${activeTab === tab.id ? 'opacity-80' : 'opacity-60'}`}>
-                {tab.emoji}
+              <span className={`flex items-center leading-none ${activeTab === tab.id ? 'opacity-70' : 'opacity-50'}`}>
+                {TAB_ICONS[tab.id]}
               </span>
               {tab.label}
               {tab.badge != null && tab.badge > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[1.1rem] px-1 flex items-center justify-center leading-none h-[1.1rem]">
+                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[1rem] px-1 flex items-center justify-center leading-none h-4">
                   {tab.badge}
                 </span>
               )}
@@ -308,176 +388,133 @@ export default function Home() {
           ))}
         </div>
 
-        {/* ── Tab content ─────────────────────────────────────── */}
+        {/* ── Tab content ──────────────────────────────────────────── */}
         <motion.div
           key={activeTab}
-          initial={{ opacity: 0, y: 6 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.15 }}
+          transition={{ duration: 0.18 }}
         >
-          {/* INTRO FWC */}
           {activeTab === 'intro' && !loading && (
-            <StickerGallery
-              stickers={introFWCStickers}
-              userStickers={stickers}
-              onUpdateSticker={handleUpdateSticker}
-              title="Intro FWC — Portada y presentación"
-            />
+            <StickerGallery stickers={introFWCStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} title="Intro FWC — Portada y presentación" />
           )}
 
-          {/* EQUIPOS */}
           {activeTab === 'equipos' && !loading && (
             <div className="space-y-5">
               {selectedTeam && selectedTeamData ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setSelectedTeam(null)}
-                      className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gold2 transition-colors"
-                    >
+                    <button onClick={() => setSelectedTeam(null)} className="flex items-center gap-1.5 text-sm text-surface4 hover:text-gold transition-colors">
                       ← Volver
                     </button>
-                    <span className="text-surface4">·</span>
+                    <span className="text-surface3">·</span>
                     <div className="flex items-center gap-2">
                       <TeamFlag code={selectedTeam} className="text-lg" />
-                      <span className="text-sm font-semibold text-white">{selectedTeamData.name}</span>
-                      <span className="text-[10px] text-gray-600 bg-surface3 border border-surface4 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      <span className="text-sm font-bold text-humo">{selectedTeamData.name}</span>
+                      <span className="text-[9px] text-surface4 border border-surface3 px-2 py-0.5 rounded-full uppercase tracking-wider">
                         Grupo {selectedTeamData.group}
                       </span>
                     </div>
                   </div>
-                  <StickerGallery
-                    stickers={selectedTeamStickers}
-                    userStickers={stickers}
-                    onUpdateSticker={handleUpdateSticker}
-                  />
+                  <StickerGallery stickers={selectedTeamStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} />
                 </div>
               ) : (
-                <TeamOverview
-                  userStickers={stickers}
-                  selectedTeam={selectedTeam}
-                  onSelectTeam={setSelectedTeam}
-                />
+                <TeamOverview userStickers={stickers} selectedTeam={selectedTeam} onSelectTeam={setSelectedTeam} />
               )}
             </div>
           )}
 
-          {/* FINAL FWC */}
           {activeTab === 'final' && !loading && (
-            <StickerGallery
-              stickers={finalFWCStickers}
-              userStickers={stickers}
-              onUpdateSticker={handleUpdateSticker}
-              title="Final FWC — Historia del torneo"
-            />
+            <StickerGallery stickers={finalFWCStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} title="Final FWC — Historia del torneo" />
           )}
 
-          {/* COCA-COLA */}
           {activeTab === 'cocacola' && !loading && (
             <div className="space-y-4">
-              <div className="flex items-center gap-4 p-4 rounded-xl border border-red-800/30 bg-gradient-to-r from-red-950/40 to-surface2 relative overflow-hidden diamond-pattern">
+              <div className="flex items-center gap-4 p-4 rounded-xl border overflow-hidden relative"
+                style={{ background: 'linear-gradient(135deg, rgba(153,0,0,0.25) 0%, rgba(19,32,48,0.9) 100%)', borderColor: 'rgba(153,0,0,0.3)' }}
+              >
+                <div className="absolute inset-0 diamond-pattern opacity-30 pointer-events-none" />
                 <span className="text-3xl relative z-10">🥤</span>
                 <div className="relative z-10">
-                  <div className="text-white font-display text-xl tracking-wide uppercase">Coca-Cola Special Edition</div>
-                  <div className="text-gray-500 text-xs mt-0.5">14 stickers premium — CC1 al CC14</div>
+                  <p className="text-white font-display text-xl tracking-wide uppercase">Coca-Cola Special Edition</p>
+                  <p className="text-surface4 text-xs mt-0.5">14 stickers premium — CC1 al CC14</p>
                 </div>
               </div>
-              <StickerGallery
-                stickers={cocaColaStickers}
-                userStickers={stickers}
-                onUpdateSticker={handleUpdateSticker}
-              />
+              <StickerGallery stickers={cocaColaStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} />
             </div>
           )}
 
-          {/* REPETIDAS */}
           {activeTab === 'repetidas' && !loading && (
-            <StickerGallery
-              stickers={allStickers}
-              userStickers={stickers}
-              onUpdateSticker={handleUpdateSticker}
-              defaultFilter="repeated"
-              title="Mis repetidas"
-            />
+            <StickerGallery stickers={allStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} defaultFilter="repeated" title="Mis repetidas" />
           )}
 
-          {/* STATS */}
           {activeTab === 'stats' && (
             <StatsPanel progress={progress} stickers={stickers} />
           )}
 
-          {/* MERCADO */}
           {activeTab === 'market' && (
             <MarketplaceView
-              userId={userId}
-              myStickers={stickers}
-              trades={trades}
-              othersRepeated={othersRepeated}
-              othersOwned={othersOwned}
-              matches={matches}
-              loading={tradesLoading}
-              onCreateTrade={createTrade}
-              onRespondToTrade={respondToTrade}
-              onCounterTrade={counterTrade}
-              onCancelTrade={cancelTrade}
+              userId={userId} myStickers={stickers} trades={trades}
+              othersRepeated={othersRepeated} othersOwned={othersOwned} matches={matches}
+              loading={tradesLoading} onCreateTrade={createTrade} onRespondToTrade={respondToTrade}
+              onCounterTrade={counterTrade} onCancelTrade={cancelTrade}
             />
           )}
 
-          {/* Loading state */}
           {loading && activeTab !== 'market' && activeTab !== 'stats' && (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <div className="w-10 h-10 rounded-full border-2 border-gold2/20 border-t-gold2/80 animate-spin" />
-              <div className="text-gray-600 text-sm font-display tracking-widest uppercase">Cargando figuritas</div>
+              <div className="relative w-10 h-10">
+                <div className="absolute inset-0 rounded-full border-2 border-gold/10" />
+                <div className="absolute inset-0 rounded-full border-t-2 border-gold animate-spin" />
+              </div>
+              <p className="text-surface4 text-sm font-display tracking-[0.3em] uppercase">Cargando figuritas</p>
             </div>
           )}
         </motion.div>
       </main>
 
-      {/* ── Modales y overlays ─────────────────────────────────── */}
+      {/* ── Modales ──────────────────────────────────────────────── */}
       <AnimatePresence>
         {showSearch && (
-          <StickerSearch
-            userStickers={stickers}
-            onNavigate={handleSearchNavigate}
-            onClose={() => setShowSearch(false)}
+          <StickerSearch userStickers={stickers} onNavigate={handleSearchNavigate} onClose={() => setShowSearch(false)} />
+        )}
+      </AnimatePresence>
+
+      {showBulk && <BulkEntryModal onConfirm={handleBulkMark} onClose={() => setShowBulk(false)} />}
+
+      {showProfile && (
+        <ProfileModal profile={profile} onChangePassword={changePassword} onUpdateDisplayName={updateDisplayName} onClose={() => setShowProfile(false)} />
+      )}
+
+      <NotificationsPanel show={showNotifications} trades={trades} userId={userId} onClose={() => setShowNotifications(false)} />
+
+      {/* Pack opening — se muestra automáticamente si hay sobre pendiente */}
+      <AnimatePresence>
+        {hasPendingPack && (
+          <PackOpeningModal
+            items={packItems}
+            onOpen={openPack}
+            onClose={() => {/* se cierra sólo al completar */}}
           />
         )}
       </AnimatePresence>
 
-      {showBulk && (
-        <BulkEntryModal onConfirm={handleBulkMark} onClose={() => setShowBulk(false)} />
-      )}
-
-      {showProfile && (
-        <ProfileModal
-          profile={profile}
-          onChangePassword={changePassword}
-          onUpdateDisplayName={updateDisplayName}
-          onClose={() => setShowProfile(false)}
-        />
-      )}
-
-      <NotificationsPanel
-        show={showNotifications}
-        trades={trades}
-        userId={userId}
-        onClose={() => setShowNotifications(false)}
-      />
-
-      {/* ── Global toasts ──────────────────────────────────────── */}
+      {/* ── Toasts globales ──────────────────────────────────────── */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[110] flex flex-col gap-2 items-center pointer-events-none">
         <AnimatePresence mode="popLayout">
           {globalToasts.map((t) => (
             <motion.button
               key={t.id}
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              initial={{ opacity: 0, y: 20, scale: 0.93 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              onClick={() => { setActiveTab('market'); setShowNotifications(false) }}
-              className="px-5 py-3 rounded-xl font-bold text-sm shadow-2xl whitespace-nowrap pointer-events-auto bg-amber-600 hover:bg-amber-500 text-white transition flex items-center gap-2 border border-amber-500/40"
+              onClick={() => { setActiveTab('market') }}
+              className="px-5 py-3 rounded-xl font-bold text-sm shadow-2xl whitespace-nowrap pointer-events-auto transition-all flex items-center gap-2 border"
+              style={{ background: 'linear-gradient(135deg, #92400e, #b45309)', borderColor: 'rgba(245,158,11,0.3)', color: '#fff' }}
             >
-              🔔 {t.msg}
-              <span className="text-amber-200 font-normal text-xs">→ Ver</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              {t.msg}
+              <span className="text-amber-300 font-normal text-xs">→ Ver</span>
             </motion.button>
           ))}
         </AnimatePresence>
