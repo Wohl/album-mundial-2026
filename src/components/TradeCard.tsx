@@ -18,6 +18,12 @@ interface TradeCardProps {
 
 type StickerStatus = 'owned' | 'repeated' | 'new'
 
+const STICKER_ROW_BG: Record<StickerStatus, string> = {
+  new:      'bg-green-500/8 border border-green-500/20',
+  owned:    'bg-blue-500/8 border border-blue-500/20',
+  repeated: 'bg-amber-500/8 border border-amber-500/20',
+}
+
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
@@ -50,8 +56,9 @@ const StickerRow = ({
   status?: StickerStatus
 }) => {
   const badge = status ? STICKER_STATUS_BADGE[status] : null
+  const rowBg = status ? STICKER_ROW_BG[status] : ''
   return (
-    <div className="space-y-1">
+    <div className={`rounded-lg px-2 py-1.5 space-y-1 ${rowBg}`}>
       <div className="flex items-center gap-2">
         <StickerFlag stickerKey={stickerKey} className="text-base leading-none shrink-0" />
         <div className="min-w-0 flex-1">
@@ -60,10 +67,20 @@ const StickerRow = ({
         </div>
       </div>
       {badge && (
-        <div className={`self-start inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide border ${badge.cls}`}>
+        <div className={`self-start inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide border ${badge.cls}`}>
           {status === 'new' && (
+            <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          )}
+          {status === 'owned' && (
             <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          )}
+          {status === 'repeated' && (
+            <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
             </svg>
           )}
           {badge.label}
@@ -82,9 +99,9 @@ const StickerList = ({
   label: string
   statusMap: Map<string, StickerStatus>
 }) => (
-  <div className="flex-1 min-w-0 bg-surface3/50 rounded-xl p-3 space-y-2.5">
-    <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold text-center">{label}</div>
-    <div className="space-y-2.5">
+  <div className="flex-1 min-w-0 bg-surface3/40 rounded-xl p-2.5 space-y-1.5">
+    <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold text-center mb-2">{label}</div>
+    <div className="space-y-1.5">
       {keys.map((key) => (
         <StickerRow key={key} stickerKey={key} status={statusMap.get(key)} />
       ))}
@@ -107,12 +124,14 @@ export const TradeCard = ({
   const otherName = isIncoming ? trade.requester_name : trade.owner_name
   const iCountered = trade.status === 'countered' && trade.counter_by === myUserId
 
-  // Build a map key → status using MY collection
+  // Build a map key → status using MY collection (only owned/repeated — skip 'missing')
   const statusMap = useMemo((): Map<string, StickerStatus> => {
     const map = new Map<string, StickerStatus>()
     if (!myStickers) return map
     myStickers.forEach((s) => {
-      map.set(s.sticker_key, s.status === 'repeated' ? 'repeated' : 'owned')
+      if (s.status === 'owned' || s.status === 'repeated') {
+        map.set(s.sticker_key, s.status)
+      }
     })
     return map
   }, [myStickers])

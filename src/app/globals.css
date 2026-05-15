@@ -36,7 +36,7 @@ body {
     /* ─ Vignette lateral: funde los bordes de la foto con el color base ─ */
     radial-gradient(ellipse 120% 100% at 50% 50%, transparent 50%, rgba(8,17,32,0.55) 100%),
     /* ─ Foto de fondo — estadio mundialista nocturno ─ */
-    url('/stadium-bg.png');
+    url('/stadium-bg2.png');
 
   background-size: cover;
   background-position: center 62%;

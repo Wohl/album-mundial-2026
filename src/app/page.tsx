@@ -283,49 +283,104 @@ export default function Home() {
               )}
 
               {/* Búsqueda */}
-              <button
+              <motion.button
                 onClick={() => setShowSearch(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border"
-                style={{ background: 'rgba(26,40,64,0.8)', borderColor: 'rgba(33,50,85,0.8)', color: 'rgba(163,181,211,0.8)' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(245,197,66,0.3)'; (e.currentTarget as HTMLElement).style.color = '#F3F4F6' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(33,50,85,0.8)'; (e.currentTarget as HTMLElement).style.color = 'rgba(163,181,211,0.8)' }}
                 title="Buscar figurita (Ctrl+K)"
+                className="relative flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold overflow-hidden"
+                style={{
+                  background: 'rgba(15,23,42,0.72)',
+                  backdropFilter: 'blur(16px)',
+                  WebkitBackdropFilter: 'blur(16px)',
+                  border: '1px solid rgba(56,73,105,0.55)',
+                  color: 'rgba(163,181,211,0.85)',
+                  boxShadow: '0 2px 12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)',
+                }}
+                whileHover={{
+                  scale: 1.04,
+                  borderColor: 'rgba(245,197,66,0.45)',
+                  color: '#F3F4F6',
+                  boxShadow: '0 0 18px rgba(245,197,66,0.18), 0 2px 14px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
+                } as object}
+                whileTap={{ scale: 0.96 }}
+                transition={{ duration: 0.18 }}
               >
                 <SearchIcon />
-                <span className="hidden sm:inline">Buscar</span>
-                <kbd className="hidden md:flex items-center text-[9px] border rounded px-1 py-0.5 font-mono opacity-50" style={{ borderColor: 'rgba(33,50,85,0.8)' }}>
+                <span className="hidden sm:inline tracking-wide">Buscar</span>
+                <kbd className="hidden md:flex items-center gap-0.5 text-[9px] border rounded-md px-1.5 py-0.5 font-mono opacity-40 ml-0.5"
+                  style={{ borderColor: 'rgba(56,73,105,0.7)', background: 'rgba(8,17,32,0.5)' }}>
                   ⌘K
                 </kbd>
-              </button>
+              </motion.button>
 
               {/* Entrada rápida */}
-              <button
+              <motion.button
                 onClick={() => setShowBulk(true)}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all border"
-                style={{ background: 'rgba(26,40,64,0.8)', borderColor: 'rgba(33,50,85,0.8)', color: 'rgba(163,181,211,0.8)' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(14,90,54,0.6)'; (e.currentTarget as HTMLElement).style.color = '#F3F4F6' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(33,50,85,0.8)'; (e.currentTarget as HTMLElement).style.color = 'rgba(163,181,211,0.8)' }}
+                title="Entrada rápida de figuritas"
+                className="relative flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold overflow-hidden"
+                style={{
+                  background: 'rgba(14,90,54,0.18)',
+                  backdropFilter: 'blur(16px)',
+                  WebkitBackdropFilter: 'blur(16px)',
+                  border: '1px solid rgba(14,90,54,0.38)',
+                  color: 'rgba(163,211,181,0.85)',
+                  boxShadow: '0 2px 12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)',
+                }}
+                whileHover={{
+                  scale: 1.04,
+                  background: 'rgba(14,90,54,0.28)',
+                  borderColor: 'rgba(14,90,54,0.65)',
+                  color: '#E2F5EC',
+                  boxShadow: '0 0 18px rgba(14,90,54,0.28), 0 2px 14px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
+                } as object}
+                whileTap={{ scale: 0.96 }}
+                transition={{ duration: 0.18 }}
               >
                 <PlusIcon />
-                <span className="hidden sm:inline">Entrada rápida</span>
-              </button>
+                <span className="hidden sm:inline tracking-wide">Entrada rápida</span>
+              </motion.button>
 
               {/* Notificaciones */}
-              <button
+              <motion.button
                 onClick={() => setShowNotifications(true)}
-                className="relative p-2 rounded-lg transition-all border"
-                style={{ background: 'rgba(26,40,64,0.8)', borderColor: 'rgba(33,50,85,0.8)', color: 'rgba(163,181,211,0.8)' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(245,197,66,0.3)'; (e.currentTarget as HTMLElement).style.color = '#F3F4F6' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(33,50,85,0.8)'; (e.currentTarget as HTMLElement).style.color = 'rgba(163,181,211,0.8)' }}
                 title="Actividad"
+                className="relative flex items-center justify-center w-9 h-9 rounded-xl overflow-hidden"
+                style={{
+                  background: pendingIncoming > 0
+                    ? 'rgba(245,197,66,0.12)'
+                    : 'rgba(15,23,42,0.72)',
+                  backdropFilter: 'blur(16px)',
+                  WebkitBackdropFilter: 'blur(16px)',
+                  border: pendingIncoming > 0
+                    ? '1px solid rgba(245,197,66,0.38)'
+                    : '1px solid rgba(56,73,105,0.55)',
+                  color: pendingIncoming > 0 ? '#F5C542' : 'rgba(163,181,211,0.85)',
+                  boxShadow: pendingIncoming > 0
+                    ? '0 0 14px rgba(245,197,66,0.2), 0 2px 12px rgba(0,0,0,0.35)'
+                    : '0 2px 12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)',
+                }}
+                whileHover={{
+                  scale: 1.08,
+                  borderColor: 'rgba(245,197,66,0.5)',
+                  color: '#F5C542',
+                  boxShadow: '0 0 22px rgba(245,197,66,0.28), 0 2px 14px rgba(0,0,0,0.4)',
+                } as object}
+                whileTap={{ scale: 0.94 }}
+                transition={{ duration: 0.18 }}
+                animate={pendingIncoming > 0 ? { scale: [1, 1.06, 1] } : {}}
               >
-                <BellIcon dot={pendingIncoming > 0} />
+                <BellIcon dot={false} />
                 {pendingIncoming > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[1rem] h-4 px-1 flex items-center justify-center shadow-lg">
+                  <motion.span
+                    className="absolute -top-1 -right-1 bg-gradient-to-br from-red-500 to-red-600 text-white text-[9px] font-bold rounded-full min-w-[1.1rem] h-[1.1rem] px-1 flex items-center justify-center"
+                    style={{ boxShadow: '0 0 8px rgba(220,38,38,0.6), 0 2px 4px rgba(0,0,0,0.4)' }}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                  >
                     {pendingIncoming}
-                  </span>
+                  </motion.span>
                 )}
-              </button>
+              </motion.button>
 
               {/* Separador */}
               <div className="w-px h-6 mx-0.5" style={{ background: 'rgba(33,50,85,0.8)' }} />

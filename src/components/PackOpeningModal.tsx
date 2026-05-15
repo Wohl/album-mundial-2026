@@ -770,59 +770,145 @@ export const PackOpeningModal = ({ items, onOpen, onClose }: PackOpeningModalPro
             <motion.div
               key="done"
               className="flex flex-col items-center gap-5 w-full"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: 'spring', stiffness: 280, damping: 26 }}
+              initial={{ opacity: 0, y: 28 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 26 }}
             >
-              {/* Trophy header */}
-              <div className="text-center">
+              {/* ── Trophy header ── */}
+              <div className="relative flex flex-col items-center text-center">
+                {/* Blur glow behind trophy */}
                 <motion.div
-                  className="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center"
-                  style={{ background: 'linear-gradient(135deg, rgba(245,197,66,0.18), rgba(255,215,0,0.06))', border: '1.5px solid rgba(245,197,66,0.35)' }}
+                  className="absolute -top-4 left-1/2 -translate-x-1/2 w-36 h-36 rounded-full pointer-events-none"
+                  style={{ background: 'radial-gradient(circle, rgba(245,197,66,0.22) 0%, transparent 70%)', filter: 'blur(20px)' }}
+                  animate={{ scale: [0.85, 1.2, 0.85], opacity: [0.6, 1, 0.6] }}
+                  transition={{ repeat: Infinity, duration: 2.6, ease: 'easeInOut' }}
+                />
+
+                {/* Trophy circle with ripple rings */}
+                <motion.div
+                  className="relative w-20 h-20 rounded-full flex items-center justify-center mb-4"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(245,197,66,0.22) 0%, rgba(255,215,0,0.06) 100%)',
+                    border: '2px solid rgba(245,197,66,0.55)',
+                  }}
+                  initial={{ scale: 0, rotate: -90 }}
                   animate={{
+                    scale: 1,
+                    rotate: 0,
                     boxShadow: [
-                      '0 0 20px rgba(255,215,0,0.3)',
-                      '0 0 55px rgba(255,215,0,0.65), 0 0 100px rgba(255,215,0,0.2)',
-                      '0 0 20px rgba(255,215,0,0.3)',
+                      '0 0 22px rgba(255,215,0,0.32)',
+                      '0 0 65px rgba(255,215,0,0.7), 0 0 110px rgba(255,215,0,0.22)',
+                      '0 0 22px rgba(255,215,0,0.32)',
                     ],
                   }}
-                  transition={{ repeat: 3, duration: 0.9 }}
+                  transition={{
+                    scale: { type: 'spring', stiffness: 220, damping: 16 },
+                    rotate: { duration: 0.5 },
+                    boxShadow: { repeat: Infinity, duration: 1.9, delay: 0.5 },
+                  }}
                 >
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F5C542" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
-                    <path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+                  {/* Expanding ripple rings */}
+                  {[0, 0.45, 0.9].map((d, i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute inset-0 rounded-full border border-gold/30"
+                      animate={{ scale: [1, 2.4 + i * 0.3], opacity: [0.55, 0] }}
+                      transition={{ repeat: Infinity, duration: 1.9, delay: d, ease: 'easeOut' }}
+                    />
+                  ))}
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#F5C542" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+                    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+                    <path d="M4 22h16"/>
+                    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
                     <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
                     <path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>
                   </svg>
                 </motion.div>
-                <h2 className="text-3xl font-display text-gradient-gold uppercase mb-1">¡Todo listo!</h2>
-                <p className="text-sm" style={{ color: 'rgba(163,180,210,0.6)' }}>
-                  {total} {total === 1 ? 'figurita agregada' : 'figuritas agregadas'} a tu álbum
-                </p>
+
+                {/* Floating ✦ sparkles around trophy */}
+                {[
+                  { x: -52, y:  6, delay: 0.30 },
+                  { x:  52, y:  6, delay: 0.42 },
+                  { x: -34, y: -20, delay: 0.52 },
+                  { x:  34, y: -20, delay: 0.38 },
+                  { x:   0, y: -30, delay: 0.48 },
+                ].map((s, i) => (
+                  <motion.span
+                    key={i}
+                    className="absolute text-[10px] text-gold pointer-events-none select-none"
+                    style={{ left: `calc(50% + ${s.x}px)`, top: `calc(40px + ${s.y}px)` }}
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: [0, 1, 1, 0], scale: [0, 1.3, 1, 0] }}
+                    transition={{ delay: s.delay, duration: 0.75, repeat: Infinity, repeatDelay: 2.6 + i * 0.12 }}
+                  >
+                    ✦
+                  </motion.span>
+                ))}
+
+                {/* Title */}
+                <motion.h2
+                  className="text-4xl font-display text-gradient-gold uppercase tracking-wide"
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.18, type: 'spring', stiffness: 280, damping: 22 }}
+                >
+                  ¡Todo listo!
+                </motion.h2>
+
+                {/* Animated gold separator */}
+                <motion.div
+                  className="h-px my-2.5"
+                  style={{ background: 'linear-gradient(90deg, transparent, rgba(245,197,66,0.6), transparent)' }}
+                  initial={{ width: 0 }}
+                  animate={{ width: 170 }}
+                  transition={{ delay: 0.3, duration: 0.55, ease: 'easeOut' }}
+                />
+
+                <motion.p
+                  className="text-sm"
+                  style={{ color: 'rgba(163,180,210,0.65)' }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.38 }}
+                >
+                  {total} {total === 1 ? 'figurita nueva en tu álbum' : 'figuritas nuevas en tu álbum'}
+                </motion.p>
               </div>
 
-              {/* Cards grid */}
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 w-full max-w-xs">
+              {/* ── Cards grid — adaptive by count ── */}
+              <div className={`grid gap-2.5 w-full ${
+                total === 1 ? 'grid-cols-1 max-w-[148px] mx-auto'
+                : total === 2 ? 'grid-cols-2 max-w-[200px] mx-auto'
+                : total <= 4 ? 'grid-cols-2 max-w-xs mx-auto'
+                : 'grid-cols-4 max-w-xs mx-auto'
+              }`}>
                 {items.map((item, i) => (
                   <DoneCard key={i} item={item} index={i} />
                 ))}
               </div>
 
-              {/* Close button */}
+              {/* ── Close button ── */}
               <motion.button
                 onClick={onClose}
-                className="relative px-10 py-3.5 rounded-xl font-display text-lg uppercase tracking-[0.14em] text-dark font-bold overflow-hidden"
-                style={{ background: 'linear-gradient(135deg, #F5C542, #FFD700)', boxShadow: '0 0 30px rgba(255,215,0,0.38)' }}
-                whileHover={{ scale: 1.05, boxShadow: '0 0 50px rgba(255,215,0,0.6)' }}
+                className="relative px-12 py-4 rounded-2xl font-display text-xl uppercase tracking-[0.18em] text-dark font-bold overflow-hidden"
+                style={{
+                  background: 'linear-gradient(135deg, #F5C542 0%, #FFD700 50%, #F5C542 100%)',
+                  boxShadow: '0 0 42px rgba(255,215,0,0.48), 0 8px 22px rgba(0,0,0,0.55)',
+                }}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.52, type: 'spring', stiffness: 280 }}
+                whileHover={{ scale: 1.05, boxShadow: '0 0 68px rgba(255,215,0,0.72), 0 8px 24px rgba(0,0,0,0.5)' }}
                 whileTap={{ scale: 0.96 }}
               >
                 <motion.div
                   className="absolute inset-0 pointer-events-none"
                   animate={{ x: ['-100%', '200%'] }}
-                  transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut', repeatDelay: 1.8 }}
-                  style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.3), transparent)', width: '45%' }}
+                  transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut', repeatDelay: 1.5 }}
+                  style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.35), transparent)', width: '50%' }}
                 />
-                <span className="relative">Perfecto</span>
+                <span className="relative">¡Perfecto!</span>
               </motion.button>
             </motion.div>
           )}
