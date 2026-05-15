@@ -24,7 +24,6 @@ export default function RootLayout({
         {/* ── Stadium background texture layers (fixed, behind all content) ── */}
         <div aria-hidden="true" className="stadium-dots-overlay fixed inset-0 pointer-events-none select-none" style={{ zIndex: 0 }} />
         <div aria-hidden="true" className="stadium-lines-overlay fixed inset-0 pointer-events-none select-none" style={{ zIndex: 0 }} />
-        <div aria-hidden="true" className="stadium-ambient-overlay fixed inset-0 pointer-events-none select-none" style={{ zIndex: 0 }} />
         {/* ── Content sits above background at z-index: 1 ── */}
         <div className="relative" style={{ zIndex: 1 }}>
           {children}
