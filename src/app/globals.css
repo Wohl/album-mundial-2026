@@ -22,18 +22,32 @@ body {
   color: #F3F4F6;
   font-family: var(--font-barlow);
 
-  /* Estadio nocturno: floodlights volumétricos, atmósfera premium */
+  /* ══ ESTADIO MUNDIALISTA NOCTURNO ══
+     4 torres de floodlights, cancha iluminada, atmósfera de partido final */
   background-image:
-    /* Floodlight beam — esquina superior izquierda */
-    radial-gradient(ellipse 45% 28% at 8%  0%,  rgba(245,197,66,0.07)  0%, transparent 65%),
-    /* Floodlight beam — esquina superior derecha */
-    radial-gradient(ellipse 45% 28% at 92% 0%,  rgba(245,197,66,0.07)  0%, transparent 65%),
-    /* Halo central de transmisión oficial */
-    radial-gradient(ellipse 70% 30% at 50% 0%,  rgba(56,189,248,0.04)  0%, transparent 70%),
-    /* Brillo de cancha — verde césped desde abajo */
-    radial-gradient(ellipse 80% 20% at 50% 100%, rgba(14,90,54,0.18)   0%, transparent 55%),
-    /* Atmósfera profunda azul noche */
-    radial-gradient(ellipse 100% 70% at 50% 50%, rgba(15,23,42,0.6)    0%, transparent 100%);
+    /* ─ FLOODLIGHTS: torretas de iluminación — 4 esquinas altas ─ */
+    radial-gradient(ellipse 64% 50% at  -6%  -6%,  rgba(255,232,110,0.22) 0%, rgba(245,197,66,0.10) 20%, transparent 65%),
+    radial-gradient(ellipse 64% 50% at 106%  -6%,  rgba(255,232,110,0.22) 0%, rgba(245,197,66,0.10) 20%, transparent 65%),
+    radial-gradient(ellipse 36% 28% at  14%   0%,  rgba(255,248,195,0.07) 0%, transparent 58%),
+    radial-gradient(ellipse 36% 28% at  86%   0%,  rgba(255,248,195,0.07) 0%, transparent 58%),
+
+    /* ─ BROADCAST: señal de transmisión oficial desde arriba ─ */
+    radial-gradient(ellipse 58% 26% at  50%  -8%,  rgba(56,189,248,0.07)  0%, transparent 68%),
+
+    /* ─ LATERAL AMBIENT: luz difusa sobre las bandas laterales ─ */
+    radial-gradient(ellipse 22% 55% at   0%  58%,  rgba(14,90,54,0.09)    0%, transparent 65%),
+    radial-gradient(ellipse 22% 55% at 100%  58%,  rgba(14,90,54,0.09)    0%, transparent 65%),
+
+    /* ─ PITCH GLOW: verde césped iluminado desde el piso ─ */
+    radial-gradient(ellipse 130% 44% at  50% 115%, rgba(14,90,54,0.40)    0%, rgba(14,90,54,0.14) 32%, transparent 58%),
+
+    /* ─ ARC: arco de círculo central del campo (muy sutil) ─ */
+    radial-gradient(ellipse 72% 18% at  50%  98%,  transparent 75%, rgba(14,90,54,0.08) 76%, rgba(14,90,54,0.05) 79%, transparent 81%),
+
+    /* ─ DEPTH: profundidad atmosférica azul noche ─ */
+    radial-gradient(ellipse  90% 70% at  50%  44%,  rgba(6,12,24,0.50)    0%, transparent 100%),
+    radial-gradient(ellipse 160% 38% at  50% 100%,  rgba(0,0,0,0.30)      0%, transparent 68%);
+
   background-attachment: fixed;
 }
 
@@ -398,4 +412,40 @@ h1, h2, h3, h4, h5, h6 {
     rgba(8,17,32,0.85)  60%,
     rgba(8,17,32,0.98)  100%
   );
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   STADIUM BACKGROUND OVERLAYS — capas de textura fija sobre el fondo
+   (aplicadas como divs fixed en layout.tsx, z-index 0, bajo el contenido)
+   ───────────────────────────────────────────────────────────────── */
+
+/* Matriz de puntos — textura de balón de fútbol (hexagonal) */
+.stadium-dots-overlay {
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.022) 1.3px, transparent 1.3px),
+    linear-gradient( 60deg, rgba(255,255,255,0.007) 0%, transparent 50%),
+    linear-gradient(-60deg, rgba(255,255,255,0.007) 0%, transparent 50%);
+  background-size: 28px 28px, 56px 56px, 56px 56px;
+}
+
+/* Grilla táctica — líneas de campo de fútbol */
+.stadium-lines-overlay {
+  background-image:
+    linear-gradient(to right,  rgba(14,90,54,0.042) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(14,90,54,0.042) 1px, transparent 1px);
+  background-size: 52px 52px;
+}
+
+/* Respiración de focos — animación suave de la iluminación ambiental */
+@keyframes stadium-ambient-breathe {
+  0%, 100% { opacity: 0.45; }
+  50%       { opacity: 1;    }
+}
+
+.stadium-ambient-overlay {
+  background-image:
+    radial-gradient(ellipse 72% 54% at  -5%  -5%,  rgba(245,197,66,0.11) 0%, transparent 65%),
+    radial-gradient(ellipse 72% 54% at 105%  -5%,  rgba(245,197,66,0.11) 0%, transparent 65%),
+    radial-gradient(ellipse 115% 40% at  50% 118%, rgba(14,90,54,0.24)   0%, transparent 58%);
+  animation: stadium-ambient-breathe 7s ease-in-out infinite;
 }
