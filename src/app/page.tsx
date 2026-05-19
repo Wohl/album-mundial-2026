@@ -369,17 +369,32 @@ export default function Home() {
               </motion.button>
 
               {/* Exportar */}
-              <button
+              <motion.button
                 onClick={() => setShowExport(true)}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all border"
-                style={{ background: 'rgba(26,40,64,0.8)', borderColor: 'rgba(33,50,85,0.8)', color: 'rgba(163,181,211,0.8)' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(245,197,66,0.3)'; (e.currentTarget as HTMLElement).style.color = '#F5C542' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(33,50,85,0.8)'; (e.currentTarget as HTMLElement).style.color = 'rgba(163,181,211,0.8)' }}
                 title="Exportar álbum"
+                className="relative flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold overflow-hidden"
+                style={{
+                  background: 'rgba(245,197,66,0.1)',
+                  backdropFilter: 'blur(16px)',
+                  WebkitBackdropFilter: 'blur(16px)',
+                  border: '1px solid rgba(245,197,66,0.28)',
+                  color: 'rgba(245,197,66,0.85)',
+                  boxShadow: '0 2px 12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)',
+                }}
+                whileHover={{
+                  scale: 1.04,
+                  background: 'rgba(245,197,66,0.18)',
+                  borderColor: 'rgba(245,197,66,0.55)',
+                  color: '#FFD700',
+                  boxShadow: '0 0 18px rgba(245,197,66,0.22), 0 2px 14px rgba(0,0,0,0.4)',
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                } as any}
+                whileTap={{ scale: 0.96 }}
+                transition={{ duration: 0.18 }}
               >
                 <ExportIcon />
-                <span className="hidden md:inline">Exportar</span>
-              </button>
+                <span className="hidden sm:inline tracking-wide">Exportar</span>
+              </motion.button>
 
               {/* Notificaciones */}
               <motion.button
