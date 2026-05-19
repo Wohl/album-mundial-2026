@@ -254,32 +254,13 @@ async function generateAndDownloadPDF(mode: ExportType, stickers: StickerState[]
   type GridItem = { id: string; name: string }
 
   function specialGrid(items: GridItem[], tv: TradeView) {
-    let show: GridItem[]
-    if (mode === 'full') {
-      show = items
-    } else if (tv === 'dar') {
-      show = items.filter((s) => stickerSt(s.id) === 'repeated')
-      if (show.length === 0) return
-    } else {
-      // missing mode (tv=null) OR trade 'pedir' view
-      show = items.filter((s) => stickerSt(s.id) === 'missing')
-      if (show.length === 0) {
-        ensure(7)
-        doc.setFont('helvetica', 'italic'); doc.setFontSize(7)
-        tc(C.txMd)
-        doc.text('    Seccion completa', ML + 4, y + 4)
-        y += 6.5
-        return
-      }
-    }
-
-    const rows = Math.ceil(show.length / NCOLS)
+    const rows = Math.ceil(items.length / NCOLS)
     ensure(rows * RH + 3)
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < NCOLS; c++) {
         const i = r * NCOLS + c
-        if (i >= show.length) break
-        drawCell(ML + c * CX, y + r * RH, show[i].id, show[i].id, show[i].name, tv)
+        if (i >= items.length) break
+        drawCell(ML + c * CX, y + r * RH, items[i].id, items[i].id, items[i].name, tv)
       }
     }
     y += rows * RH + 3
