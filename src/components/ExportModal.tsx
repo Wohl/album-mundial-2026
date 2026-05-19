@@ -7,13 +7,15 @@ import { INTRO_FWC_STICKERS, FINAL_FWC_STICKERS, COCA_COLA_STICKERS, TEAMS } fro
 import type { StickerState } from '@/types'
 
 type ExportType = 'missing' | 'full' | 'trade'
+type RGB = [number, number, number]
+type TradeView = 'dar' | 'pedir' | null
 
 interface ExportModalProps {
   stickers: StickerState[]
   onClose: () => void
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────
+// ── Static data helpers ────────────────────────────────────────────────
 
 const GROUP_ORDER = ['A','B','C','D','E','F','G','H','I','J','K','L'] as const
 
@@ -31,274 +33,364 @@ function todayStr() {
   return new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-const W = 56
-const SEP = '═'.repeat(W)
-const bLine = (content: string) => `║ ${content.padEnd(W - 2)} ║`
+// ── PDF generation ─────────────────────────────────────────────────────
 
-function boxHeader(title: string, subtitle: string): string[] {
-  return [
-    `╔${SEP}╗`,
-    bLine(title),
-    bLine(subtitle),
-    `╚${SEP}╝`,
-    '',
-  ]
-}
+async function generateAndDownloadPDF(mode: ExportType, stickers: StickerState[]) {
+  const { jsPDF } = await import('jspdf')
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  const sm = buildMap(stickers)
 
-// ── Export generators ─────────────────────────────────────────────────
+  // Layout constants
+  const PW = 210, PH = 297, ML = 14
+  const CW = PW - ML * 2   // 182 mm
+  const NCOLS = 4
+  const CX = CW / NCOLS    // ≈45.5 mm per column
+  const RH = 10             // sticker row height
+  const FH = 10             // footer height
 
-function generateMissing(stickers: StickerState[]): string {
-  const m = buildMap(stickers)
-  const isMissing = (k: string) => { const s = m.get(k); return !s || s.status === 'missing' }
+  // Color palette
+  const C = {
+    navyDk:  [8,  18,  38]  as RGB,
+    navyMd:  [20, 45,  82]  as RGB,
+    navyLt:  [38, 72,  118] as RGB,
+    gold:    [245, 197, 66] as RGB,
+    goldLt:  [255, 249, 219] as RGB,
+    white:   [255, 255, 255] as RGB,
+    grnCell: [225, 242, 228] as RGB,
+    redCell: [255, 232, 232] as RGB,
+    greyCl:  [244, 246, 245] as RGB,
+    border:  [200, 212, 226] as RGB,
+    txDk:    [22,  26,  32]  as RGB,
+    txMd:    [88,  100, 116] as RGB,
+    txLt:    [162, 172, 186] as RGB,
+    txRed:   [165, 28,  28]  as RGB,
+    txGld:   [136, 86,  0]   as RGB,
+    txGrn:   [22,  96,  46]  as RGB,
+  }
 
-  const L: string[] = [
-    ...boxHeader(
-      'ÁLBUM FIFA WORLD CUP 2026 — FIGURITAS FALTANTES',
-      `Generado: ${todayStr()}`
-    ),
-  ]
+  const fc = (c: RGB) => doc.setFillColor(c[0], c[1], c[2])
+  const tc = (c: RGB) => doc.setTextColor(c[0], c[1], c[2])
+  const dc = (c: RGB) => doc.setDrawColor(c[0], c[1], c[2])
 
-  let total = 0
-  const body: string[] = []
+  let y = ML
 
-  // FWC Inicial
-  const mi = INTRO_FWC_STICKERS.filter((s) => isMissing(s.id))
-  total += mi.length
-  body.push(`▸ FWC INICIAL ─── ${mi.length} faltante${mi.length !== 1 ? 's' : ''} de 9`)
-  if (mi.length === 0) body.push('  (sección completa ✓)')
-  else mi.forEach((s) => body.push(`  ${s.id.padEnd(9)} ${s.name}`))
-  body.push('')
+  function ensure(h: number) {
+    if (y + h > PH - FH - 3) { doc.addPage(); y = ML }
+  }
 
-  // Teams by group
-  for (const g of GROUP_ORDER) {
-    const teams = GROUPED[g] ?? []
-    if (!teams.length) continue
-    body.push(`▸ GRUPO ${g} ─── ${teams.map((t) => t.name).join(' · ')}`)
-    for (const team of teams) {
-      const rows: string[] = []
-      for (let i = 0; i < 20; i++) {
-        const k = `${team.code}_${i}`
-        if (isMissing(k)) { rows.push(`    ${displayKey(k).padEnd(10)} ${team.players[i]}`); total++ }
-      }
-      if (rows.length === 0) body.push(`  [${team.name} — completa ✓]`)
-      else {
-        body.push(`  [${team.name} — ${rows.length} faltante${rows.length !== 1 ? 's' : ''}]`)
-        body.push(...rows)
+  function trunc(s: string, max = 21): string {
+    return s.length > max ? s.slice(0, max - 1) + '.' : s
+  }
+
+  // ── Status helpers ─────────────────────────────────────────────────
+
+  function stickerSt(key: string): 'owned' | 'missing' | 'repeated' {
+    const s = sm.get(key)
+    if (!s || s.status === 'missing') return 'missing'
+    return s.status as 'owned' | 'repeated'
+  }
+
+  function cellBg(key: string, tv: TradeView): RGB {
+    const st = stickerSt(key)
+    if (tv === 'dar')   return st === 'repeated' ? C.goldLt : C.greyCl
+    if (tv === 'pedir') return st === 'missing'  ? C.redCell : C.greyCl
+    if (mode === 'missing') return st === 'missing' ? C.redCell : C.greyCl
+    if (st === 'missing')  return C.redCell
+    if (st === 'repeated') return C.goldLt
+    return C.grnCell
+  }
+
+  function idClr(key: string, tv: TradeView): RGB {
+    const st = stickerSt(key)
+    if (tv === 'dar')   return st === 'repeated' ? C.txGld : C.txLt
+    if (tv === 'pedir') return st === 'missing'  ? C.txRed : C.txLt
+    if (mode === 'missing') return st === 'missing' ? C.txRed : C.txLt
+    if (st === 'missing')  return C.txRed
+    if (st === 'repeated') return C.txGld
+    return C.txGrn
+  }
+
+  function nameClr(key: string, tv: TradeView): RGB {
+    const st = stickerSt(key)
+    const muted =
+      (tv === 'dar'   && st !== 'repeated') ||
+      (tv === 'pedir' && st !== 'missing')  ||
+      (!tv && mode === 'missing' && st !== 'missing')
+    return muted ? C.txLt : C.txDk
+  }
+
+  // ── Draw one sticker cell ──────────────────────────────────────────
+
+  function drawCell(
+    cx: number, cy: number,
+    key: string, dispId: string, playerName: string,
+    tv: TradeView,
+  ) {
+    const st = stickerSt(key)
+
+    fc(cellBg(key, tv)); doc.rect(cx, cy, CX, RH, 'F')
+    dc(C.border); doc.setLineWidth(0.2); doc.rect(cx, cy, CX, RH, 'S')
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5)
+    tc(idClr(key, tv))
+    doc.text(dispId, cx + 2, cy + 4)
+
+    if (st === 'repeated' && (mode === 'full' || tv === 'dar')) {
+      const rc = (sm.get(key)?.repeat_count ?? 0) + 1
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(5.8)
+      tc(C.txGld)
+      doc.text(`x${rc}`, cx + CX - 2, cy + 4, { align: 'right' })
+    }
+
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(5.6)
+    tc(nameClr(key, tv))
+    doc.text(trunc(playerName), cx + 2, cy + 7.8)
+  }
+
+  // ── Section header ─────────────────────────────────────────────────
+
+  function secHdr(title: string) {
+    ensure(12)
+    fc(C.navyMd); doc.rect(ML, y, CW, 7.5, 'F')
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5)
+    tc(C.gold); doc.text(title, ML + 4, y + 5.2)
+    y += 9.5
+  }
+
+  // ── Group header ───────────────────────────────────────────────────
+
+  function grpHdr(g: string) {
+    ensure(8)
+    fc(C.navyLt); doc.rect(ML, y, CW, 6, 'F')
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5)
+    tc(C.white); doc.text(`GRUPO  ${g}`, ML + 4, y + 4.2)
+    y += 7.5
+  }
+
+  // ── Team name bar ──────────────────────────────────────────────────
+
+  function teamBar(name: string) {
+    fc(C.navyMd); doc.rect(ML, y, CW, 6, 'F')
+    fc(C.gold);   doc.rect(ML, y, 2.5, 6, 'F')
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5)
+    tc(C.white); doc.text(name.toUpperCase(), ML + 5.5, y + 4.2)
+    y += 6
+  }
+
+  // ── 4×5 team grid ─────────────────────────────────────────────────
+
+  function teamGrid(team: typeof TEAMS[number], tv: TradeView) {
+    for (let row = 0; row < 5; row++) {
+      for (let col = 0; col < 4; col++) {
+        const i = row * 4 + col
+        const key = `${team.code}_${i}`
+        drawCell(ML + col * CX, y + row * RH, key, displayKey(key), team.players[i] ?? '', tv)
       }
     }
-    body.push('')
+    y += 5 * RH + 3
   }
 
-  // FWC Final
-  const mf = FINAL_FWC_STICKERS.filter((s) => isMissing(s.id))
-  total += mf.length
-  body.push(`▸ FWC FINAL ─── ${mf.length} faltante${mf.length !== 1 ? 's' : ''} de 11`)
-  if (mf.length === 0) body.push('  (sección completa ✓)')
-  else mf.forEach((s) => body.push(`  ${s.id.padEnd(9)} ${s.name}`))
-  body.push('')
-
-  // Coca-Cola
-  const mc = COCA_COLA_STICKERS.filter((s) => isMissing(s.id))
-  total += mc.length
-  body.push(`▸ COCA-COLA SPECIAL EDITION ─── ${mc.length} faltante${mc.length !== 1 ? 's' : ''} de 14`)
-  if (mc.length === 0) body.push('  (sección completa ✓)')
-  else mc.forEach((s) => body.push(`  ${s.id.padEnd(9)} ${s.name}`))
-
-  L.push(`Total faltantes: ${total} de 994`, '', ...body)
-  return L.join('\n')
-}
-
-function generateFull(stickers: StickerState[]): string {
-  const m = buildMap(stickers)
-  const icon = (k: string) => {
-    const s = m.get(k)
-    if (!s || s.status === 'missing') return '✗  '
-    if (s.status === 'repeated') return `×${s.repeat_count + 1} `
-    return '✓  '
+  function teamHas(team: typeof TEAMS[number], sts: string[]): boolean {
+    for (let i = 0; i < 20; i++) {
+      if (sts.includes(stickerSt(`${team.code}_${i}`))) return true
+    }
+    return false
   }
+
+  function drawTeam(team: typeof TEAMS[number], tv: TradeView) {
+    if (tv === 'dar'   && !teamHas(team, ['repeated'])) return
+    if (tv === 'pedir' && !teamHas(team, ['missing']))  return
+    if (!tv && mode === 'missing' && !teamHas(team, ['missing'])) {
+      ensure(7)
+      doc.setFont('helvetica', 'italic'); doc.setFontSize(7)
+      tc(C.txMd)
+      doc.text(`    ${team.name}: coleccion completa`, ML + 4, y + 4)
+      y += 6.5
+      return
+    }
+    ensure(6 + 5 * RH + 3)
+    teamBar(team.name)
+    teamGrid(team, tv)
+  }
+
+  // ── Special sticker grid (FWC / CC) ───────────────────────────────
+
+  type GridItem = { id: string; name: string }
+
+  function specialGrid(items: GridItem[], tv: TradeView) {
+    let show: GridItem[]
+    if (mode === 'full') {
+      show = items
+    } else if (tv === 'dar') {
+      show = items.filter((s) => stickerSt(s.id) === 'repeated')
+      if (show.length === 0) return
+    } else {
+      // missing mode (tv=null) OR trade 'pedir' view
+      show = items.filter((s) => stickerSt(s.id) === 'missing')
+      if (show.length === 0) {
+        ensure(7)
+        doc.setFont('helvetica', 'italic'); doc.setFontSize(7)
+        tc(C.txMd)
+        doc.text('    Seccion completa', ML + 4, y + 4)
+        y += 6.5
+        return
+      }
+    }
+
+    const rows = Math.ceil(show.length / NCOLS)
+    ensure(rows * RH + 3)
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < NCOLS; c++) {
+        const i = r * NCOLS + c
+        if (i >= show.length) break
+        drawCell(ML + c * CX, y + r * RH, show[i].id, show[i].id, show[i].name, tv)
+      }
+    }
+    y += rows * RH + 3
+  }
+
+  // ── Build all document sections ────────────────────────────────────
+
+  const introItems: GridItem[] = INTRO_FWC_STICKERS.map((s) => ({ id: s.id, name: s.name }))
+  const finalItems: GridItem[] = FINAL_FWC_STICKERS.map((s) => ({ id: s.id, name: s.name }))
+  const ccItems:    GridItem[] = COCA_COLA_STICKERS.map((s) => ({ id: s.id, name: s.player }))
+
+  function buildSections(tv: TradeView) {
+    secHdr(`FWC INICIAL  (${introItems.length} figuritas)`)
+    specialGrid(introItems, tv)
+
+    for (const g of GROUP_ORDER) {
+      const teams = GROUPED[g] ?? []
+      if (!teams.length) continue
+      if (tv === 'dar'   && !teams.some((t) => teamHas(t, ['repeated']))) continue
+      if (tv === 'pedir' && !teams.some((t) => teamHas(t, ['missing'])))  continue
+      grpHdr(g)
+      for (const t of teams) drawTeam(t, tv)
+    }
+
+    secHdr(`FWC FINAL  (${finalItems.length} figuritas)`)
+    specialGrid(finalItems, tv)
+
+    secHdr(`COCA-COLA SPECIAL EDITION  (${ccItems.length} figuritas)`)
+    specialGrid(ccItems, tv)
+  }
+
+  // ── Document stats ─────────────────────────────────────────────────
 
   const owned = stickers.filter((s) => s.status === 'owned').length
-  const rep = stickers.filter((s) => s.status === 'repeated').length
-  const miss = 994 - owned - rep
-  const pct = (((owned + rep) / 994) * 100).toFixed(1)
+  const rep   = stickers.filter((s) => s.status === 'repeated').length
+  const miss  = 994 - owned - rep
+  const pct   = ((owned + rep) / 994 * 100).toFixed(1)
+  const date  = todayStr()
 
-  const L: string[] = [
-    ...boxHeader(
-      'ÁLBUM FIFA WORLD CUP 2026 — PROGRESO COMPLETO',
-      `Generado: ${todayStr()}`
-    ),
-    `Progreso: ${owned + rep}/994 (${pct}%)`,
-    `✓ ${owned} obtenidas   ×N ${rep} repetidas   ✗ ${miss} faltantes`,
-    '',
-  ]
+  // ── Cover ──────────────────────────────────────────────────────────
 
-  // Intro
-  const oi = INTRO_FWC_STICKERS.filter((s) => { const st = m.get(s.id); return st && st.status !== 'missing' }).length
-  L.push(`▸ FWC INICIAL ─── ${oi}/9 obtenidas`)
-  INTRO_FWC_STICKERS.forEach((s) => L.push(`  ${icon(s.id).padEnd(5)} ${s.id.padEnd(8)} ${s.name}`))
-  L.push('')
+  fc(C.navyDk); doc.rect(0, 0, PW, 44, 'F')
+  fc(C.gold);   doc.rect(0, 44, PW, 1.5, 'F')
 
-  // Teams
-  for (const g of GROUP_ORDER) {
-    const teams = GROUPED[g] ?? []
-    if (!teams.length) continue
-    L.push(`▸ GRUPO ${g}`)
-    for (const team of teams) {
-      const keys = Array.from({ length: 20 }, (_, i) => `${team.code}_${i}`)
-      const oc = keys.filter((k) => { const s = m.get(k); return s && s.status !== 'missing' }).length
-      L.push(`  ── ${team.name} (${oc}/20) ──`)
-      for (let i = 0; i < 20; i++) {
-        const k = `${team.code}_${i}`
-        L.push(`    ${icon(k).padEnd(5)} ${displayKey(k).padEnd(9)} ${team.players[i]}`)
-      }
-    }
-    L.push('')
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(15)
+  tc(C.gold)
+  doc.text('ALBUM FIFA WORLD CUP 2026', PW / 2, 15, { align: 'center' })
+
+  const titles: Record<ExportType, string> = {
+    missing: 'FIGURITAS FALTANTES',
+    full:    'PROGRESO COMPLETO DE COLECCION',
+    trade:   'LISTA PARA INTERCAMBIOS',
   }
+  doc.setFontSize(11); tc(C.white)
+  doc.text(titles[mode], PW / 2, 26, { align: 'center' })
 
-  // Final
-  const of2 = FINAL_FWC_STICKERS.filter((s) => { const st = m.get(s.id); return st && st.status !== 'missing' }).length
-  L.push(`▸ FWC FINAL ─── ${of2}/11 obtenidas`)
-  FINAL_FWC_STICKERS.forEach((s) => L.push(`  ${icon(s.id).padEnd(5)} ${s.id.padEnd(8)} ${s.name}`))
-  L.push('')
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5)
+  tc([170, 190, 225] as RGB)
+  doc.text(`Generado: ${date}`, ML, 37)
+  doc.text(
+    `${owned + rep} / 994  (${pct}%)   Obtenidas: ${owned}   Repetidas: ${rep}   Faltantes: ${miss}`,
+    PW - ML, 37, { align: 'right' },
+  )
 
-  // Coca-Cola
-  const occ = COCA_COLA_STICKERS.filter((s) => { const st = m.get(s.id); return st && st.status !== 'missing' }).length
-  L.push(`▸ COCA-COLA SPECIAL EDITION ─── ${occ}/14 obtenidas`)
-  COCA_COLA_STICKERS.forEach((s) => L.push(`  ${icon(s.id).padEnd(5)} ${s.id.padEnd(8)} ${s.name}`))
+  y = 52
 
-  return L.join('\n')
-}
+  // ── Legend ─────────────────────────────────────────────────────────
 
-function generateTrade(stickers: StickerState[]): string {
-  const m = buildMap(stickers)
-  const isRep = (k: string) => m.get(k)?.status === 'repeated'
-  const isMiss = (k: string) => { const s = m.get(k); return !s || s.status === 'missing' }
-  const rc = (k: string) => (m.get(k)?.repeat_count ?? 0) + 1
+  const legend: { bg: RGB; label: string }[] =
+    mode === 'full' ? [
+      { bg: C.grnCell, label: 'Obtenida' },
+      { bg: C.goldLt,  label: 'Repetida' },
+      { bg: C.redCell, label: 'Faltante' },
+    ] : mode === 'missing' ? [
+      { bg: C.redCell, label: 'Necesito conseguirla' },
+      { bg: C.greyCl,  label: 'Ya la tengo' },
+    ] : [
+      { bg: C.goldLt,  label: 'Para dar (repetida)' },
+      { bg: C.redCell, label: 'Necesito (faltante)' },
+      { bg: C.greyCl,  label: 'Ya la tengo' },
+    ]
 
-  const totalRep = stickers.filter((s) => s.status === 'repeated').length
-  const totalMiss = 994 - stickers.filter((s) => s.status !== 'missing').length
+  let lx = ML
+  for (const item of legend) {
+    fc(item.bg); doc.rect(lx, y, 5, 4, 'F')
+    dc(C.border); doc.setLineWidth(0.2); doc.rect(lx, y, 5, 4, 'S')
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5)
+    tc(C.txMd); doc.text(item.label, lx + 6.5, y + 2.9)
+    lx += 44
+  }
+  y += 8
 
-  const L: string[] = [
-    ...boxHeader(
-      'ÁLBUM FIFA WORLD CUP 2026 — PARA INTERCAMBIOS',
-      `Generado: ${todayStr()}`
-    ),
-  ]
+  // ── Main content ───────────────────────────────────────────────────
 
-  // ── TENGO PARA DAR ────────────────────────────────────────────────
-  L.push(`✦ TENGO PARA DAR — ${totalRep} figurita${totalRep !== 1 ? 's' : ''} repetida${totalRep !== 1 ? 's' : ''}`)
-  L.push('─'.repeat(W + 2), '')
+  if (mode === 'trade') {
+    secHdr('TENGO PARA DAR')
+    buildSections('dar')
 
-  if (totalRep === 0) {
-    L.push('  (Sin figuritas repetidas)', '')
+    ensure(16)
+    y += 4
+    fc(C.navyDk); doc.rect(ML, y, CW, 10, 'F')
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10)
+    tc(C.gold); doc.text('NECESITO', ML + 4, y + 7)
+    y += 14
+
+    buildSections('pedir')
   } else {
-    const ri = INTRO_FWC_STICKERS.filter((s) => isRep(s.id))
-    if (ri.length) {
-      L.push('▸ FWC INICIAL')
-      L.push('  ' + ri.map((s) => `${s.id} ×${rc(s.id)}`).join('   '))
-      L.push('')
-    }
-
-    for (const g of GROUP_ORDER) {
-      const teams = GROUPED[g] ?? []
-      const hasRep = teams.some((t) =>
-        Array.from({ length: 20 }, (_, i) => `${t.code}_${i}`).some(isRep)
-      )
-      if (!hasRep) continue
-      L.push(`▸ GRUPO ${g}`)
-      for (const team of teams) {
-        const rk = Array.from({ length: 20 }, (_, i) => `${team.code}_${i}`).filter(isRep)
-        if (!rk.length) continue
-        L.push(`  [${team.name}]  ` + rk.map((k) => `${displayKey(k)} ×${rc(k)}`).join('   '))
-      }
-      L.push('')
-    }
-
-    const rf = FINAL_FWC_STICKERS.filter((s) => isRep(s.id))
-    if (rf.length) {
-      L.push('▸ FWC FINAL')
-      L.push('  ' + rf.map((s) => `${s.id} ×${rc(s.id)}`).join('   '))
-      L.push('')
-    }
-
-    const rcc = COCA_COLA_STICKERS.filter((s) => isRep(s.id))
-    if (rcc.length) {
-      L.push('▸ COCA-COLA SPECIAL EDITION')
-      L.push('  ' + rcc.map((s) => `${s.id} ×${rc(s.id)}`).join('   '))
-      L.push('')
-    }
+    buildSections(null)
   }
 
-  L.push('', '─'.repeat(W + 2), '')
+  // ── Footers on all pages ───────────────────────────────────────────
 
-  // ── NECESITO ──────────────────────────────────────────────────────
-  L.push(`✦ NECESITO — ${totalMiss} figurita${totalMiss !== 1 ? 's' : ''} faltante${totalMiss !== 1 ? 's' : ''}`)
-  L.push('─'.repeat(W + 2), '')
-
-  if (totalMiss === 0) {
-    L.push('  (¡Álbum completo! 🏆)', '')
-  } else {
-    const mi = INTRO_FWC_STICKERS.filter((s) => isMiss(s.id))
-    if (mi.length) {
-      L.push('▸ FWC INICIAL')
-      L.push('  ' + mi.map((s) => s.id).join(', '))
-      L.push('')
-    }
-
-    for (const g of GROUP_ORDER) {
-      const teams = GROUPED[g] ?? []
-      const hasMiss = teams.some((t) =>
-        Array.from({ length: 20 }, (_, i) => `${t.code}_${i}`).some(isMiss)
-      )
-      if (!hasMiss) continue
-      L.push(`▸ GRUPO ${g}`)
-      for (const team of teams) {
-        const mk = Array.from({ length: 20 }, (_, i) => `${team.code}_${i}`)
-          .filter(isMiss)
-          .map(displayKey)
-        if (!mk.length) continue
-        L.push(`  [${team.name}]  ` + mk.join(', '))
-      }
-      L.push('')
-    }
-
-    const mf = FINAL_FWC_STICKERS.filter((s) => isMiss(s.id))
-    if (mf.length) {
-      L.push('▸ FWC FINAL')
-      L.push('  ' + mf.map((s) => s.id).join(', '))
-      L.push('')
-    }
-
-    const mcc = COCA_COLA_STICKERS.filter((s) => isMiss(s.id))
-    if (mcc.length) {
-      L.push('▸ COCA-COLA SPECIAL EDITION')
-      L.push('  ' + mcc.map((s) => s.id).join(', '))
-      L.push('')
-    }
+  const totalPg = doc.getNumberOfPages()
+  for (let pg = 1; pg <= totalPg; pg++) {
+    doc.setPage(pg)
+    fc(C.navyDk); doc.rect(0, PH - FH, PW, FH, 'F')
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5)
+    tc([150, 170, 205] as RGB)
+    doc.text('Album FIFA World Cup 2026  —  panini.com', ML, PH - 3.5)
+    doc.text(`Pagina ${pg} de ${totalPg}`, PW - ML, PH - 3.5, { align: 'right' })
   }
 
-  return L.join('\n')
+  // ── Save ───────────────────────────────────────────────────────────
+
+  const names: Record<ExportType, string> = {
+    missing: 'faltantes',
+    full:    'progreso',
+    trade:   'intercambios',
+  }
+  doc.save(`album-2026-${names[mode]}-${date.replace(/\//g, '-')}.pdf`)
 }
 
-function downloadText(content: string, filename: string) {
-  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
-}
+// ── Icons ──────────────────────────────────────────────────────────────
 
-// ── Icons ─────────────────────────────────────────────────────────────
+const PdfIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="16" y1="13" x2="8" y2="13"/>
+    <line x1="16" y1="17" x2="8" y2="17"/>
+    <polyline points="10 9 9 9 8 9"/>
+  </svg>
+)
 
-const DownloadIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-    <polyline points="7 10 12 15 17 10"/>
-    <line x1="12" y1="15" x2="12" y2="3"/>
+const SpinnerIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="animate-spin">
+    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
   </svg>
 )
 
@@ -333,17 +425,18 @@ const CheckIcon = () => (
   </svg>
 )
 
-// ── Component ─────────────────────────────────────────────────────────
+// ── Component ──────────────────────────────────────────────────────────
 
 export function ExportModal({ stickers, onClose }: ExportModalProps) {
-  const [selected, setSelected] = useState<ExportType>('missing')
-  const [exported, setExported] = useState(false)
+  const [selected, setSelected]   = useState<ExportType>('missing')
+  const [generating, setGenerating] = useState(false)
+  const [exported, setExported]   = useState(false)
 
   const stats = useMemo(() => {
-    const owned = stickers.filter((s) => s.status === 'owned').length
+    const owned    = stickers.filter((s) => s.status === 'owned').length
     const repeated = stickers.filter((s) => s.status === 'repeated').length
-    const missing = 994 - owned - repeated
-    const pct = Math.round(((owned + repeated) / 994) * 100)
+    const missing  = 994 - owned - repeated
+    const pct      = Math.round(((owned + repeated) / 994) * 100)
     return { owned, repeated, missing, pct }
   }, [stickers])
 
@@ -358,7 +451,7 @@ export function ExportModal({ stickers, onClose }: ExportModalProps) {
     {
       id: 'missing',
       label: 'Figuritas Faltantes',
-      desc: 'Solo las que te faltan, separadas por sección. Ideal para pedirlas.',
+      desc: 'PDF con las figuritas que te faltan por sección. Ideal para pedirlas o comprarlas.',
       icon: <MissingIcon />,
       count: `${stats.missing} faltantes`,
       accentBg: 'rgba(239,68,68,0.13)',
@@ -366,7 +459,7 @@ export function ExportModal({ stickers, onClose }: ExportModalProps) {
     {
       id: 'full',
       label: 'Progreso Completo',
-      desc: 'Todas las figuritas con su estado: obtenida, faltante o repetida.',
+      desc: 'PDF con las 994 figuritas y su estado: obtenida, repetida o faltante.',
       icon: <FullIcon />,
       count: `${stats.pct}% completado`,
       accentBg: 'rgba(34,197,94,0.1)',
@@ -374,32 +467,22 @@ export function ExportModal({ stickers, onClose }: ExportModalProps) {
     {
       id: 'trade',
       label: 'Para Intercambios',
-      desc: 'Primero las que tenés para dar, luego las que necesitás recibir.',
+      desc: 'PDF dividido en "Tengo para dar" (repetidas) y "Necesito" (faltantes).',
       icon: <TradeIcon />,
       count: `${stats.repeated} para dar · ${stats.missing} necesito`,
       accentBg: 'rgba(245,197,66,0.1)',
     },
   ]
 
-  const handleExport = () => {
-    const date = todayStr().replace(/\//g, '-')
-    let content: string
-    let filename: string
-
-    if (selected === 'missing') {
-      content = generateMissing(stickers)
-      filename = `album-2026-faltantes-${date}.txt`
-    } else if (selected === 'full') {
-      content = generateFull(stickers)
-      filename = `album-2026-progreso-${date}.txt`
-    } else {
-      content = generateTrade(stickers)
-      filename = `album-2026-intercambios-${date}.txt`
+  const handleExport = async () => {
+    setGenerating(true)
+    try {
+      await generateAndDownloadPDF(selected, stickers)
+      setExported(true)
+      setTimeout(() => setExported(false), 2800)
+    } finally {
+      setGenerating(false)
     }
-
-    downloadText(content, filename)
-    setExported(true)
-    setTimeout(() => setExported(false), 2800)
   }
 
   return (
@@ -447,20 +530,19 @@ export function ExportModal({ stickers, onClose }: ExportModalProps) {
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                 style={{
-                  background:
-                    'linear-gradient(135deg, rgba(245,197,66,0.22) 0%, rgba(255,215,0,0.07) 100%)',
+                  background: 'linear-gradient(135deg, rgba(245,197,66,0.22) 0%, rgba(255,215,0,0.07) 100%)',
                   border: '1px solid rgba(245,197,66,0.3)',
                   boxShadow: '0 0 20px rgba(245,197,66,0.12)',
                   color: '#F5C542',
                 }}
               >
-                <DownloadIcon />
+                <PdfIcon />
               </div>
               <div>
                 <h2 className="text-base font-display text-gold2 uppercase tracking-wider leading-none">
-                  Exportar Álbum
+                  Exportar PDF
                 </h2>
-                <p className="text-[11px] text-surface4 mt-1">Seleccioná el tipo de archivo</p>
+                <p className="text-[11px] text-surface4 mt-1">Seleccioná el tipo de reporte</p>
               </div>
             </div>
             <button
@@ -503,9 +585,7 @@ export function ExportModal({ stickers, onClose }: ExportModalProps) {
                       className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200"
                       style={{
                         color: active ? '#F5C542' : 'rgba(163,181,211,0.55)',
-                        background: active
-                          ? 'rgba(245,197,66,0.14)'
-                          : 'rgba(255,255,255,0.04)',
+                        background: active ? 'rgba(245,197,66,0.14)' : 'rgba(255,255,255,0.04)',
                         border: `1px solid ${active ? 'rgba(245,197,66,0.28)' : 'rgba(33,50,85,0.65)'}`,
                       }}
                     >
@@ -571,16 +651,21 @@ export function ExportModal({ stickers, onClose }: ExportModalProps) {
           <div className="px-6 py-4">
             <motion.button
               onClick={handleExport}
-              whileHover={{ scale: 1.015 }}
-              whileTap={{ scale: 0.975 }}
+              disabled={generating}
+              whileHover={generating ? {} : { scale: 1.015 }}
+              whileTap={generating ? {} : { scale: 0.975 }}
               className="w-full py-3 rounded-xl font-display font-bold text-dark uppercase tracking-wider text-sm flex items-center justify-center gap-2.5 transition-all duration-300"
               style={{
                 background: exported
                   ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
+                  : generating
+                  ? 'linear-gradient(135deg, #b8943c 0%, #c9a84c 100%)'
                   : 'linear-gradient(135deg, #F5C542 0%, #FFD700 60%, #F5C542 100%)',
                 boxShadow: exported
                   ? '0 0 28px rgba(34,197,94,0.35), 0 4px 16px rgba(0,0,0,0.4)'
                   : '0 0 28px rgba(245,197,66,0.22), 0 4px 16px rgba(0,0,0,0.4)',
+                opacity: generating ? 0.85 : 1,
+                cursor: generating ? 'wait' : 'pointer',
               }}
             >
               {exported ? (
@@ -588,12 +673,17 @@ export function ExportModal({ stickers, onClose }: ExportModalProps) {
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                     <polyline points="20 6 9 17 4 12"/>
                   </svg>
-                  ¡Archivo descargado!
+                  ¡PDF descargado!
+                </>
+              ) : generating ? (
+                <>
+                  <SpinnerIcon />
+                  Generando PDF...
                 </>
               ) : (
                 <>
-                  <DownloadIcon />
-                  Descargar archivo
+                  <PdfIcon />
+                  Descargar PDF
                 </>
               )}
             </motion.button>
