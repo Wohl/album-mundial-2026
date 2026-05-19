@@ -45,7 +45,7 @@ async function generateAndDownloadPDF(mode: ExportType, stickers: StickerState[]
   const CW = PW - ML * 2   // 182 mm
   const NCOLS = 4
   const CX = CW / NCOLS    // ≈45.5 mm per column
-  const RH = 10             // sticker row height
+  const RH = 14             // sticker row height
   const FH = 10             // footer height
 
   // Color palette
@@ -56,10 +56,10 @@ async function generateAndDownloadPDF(mode: ExportType, stickers: StickerState[]
     gold:    [245, 197, 66] as RGB,
     goldLt:  [255, 249, 219] as RGB,
     white:   [255, 255, 255] as RGB,
-    grnCell: [225, 242, 228] as RGB,
-    redCell: [255, 232, 232] as RGB,
-    greyCl:  [244, 246, 245] as RGB,
-    border:  [200, 212, 226] as RGB,
+    grnCell: [212, 240, 220] as RGB,
+    redCell: [255, 222, 222] as RGB,
+    greyCl:  [236, 240, 243] as RGB,
+    border:  [178, 196, 216] as RGB,
     txDk:    [22,  26,  32]  as RGB,
     txMd:    [88,  100, 116] as RGB,
     txLt:    [162, 172, 186] as RGB,
@@ -110,6 +110,18 @@ async function generateAndDownloadPDF(mode: ExportType, stickers: StickerState[]
     return C.txGrn
   }
 
+  function accentColor(key: string, tv: TradeView): RGB {
+    const st = stickerSt(key)
+    const isMuted =
+      (tv === 'dar'   && st !== 'repeated') ||
+      (tv === 'pedir' && st !== 'missing')  ||
+      (!tv && mode === 'missing' && st !== 'missing')
+    if (isMuted)           return [205, 215, 228] as RGB
+    if (st === 'missing')  return [210, 68,  68]  as RGB
+    if (st === 'repeated') return C.gold
+    return [48, 148, 72] as RGB
+  }
+
   function nameClr(key: string, tv: TradeView): RGB {
     const st = stickerSt(key)
     const muted =
@@ -119,6 +131,23 @@ async function generateAndDownloadPDF(mode: ExportType, stickers: StickerState[]
     return muted ? C.txLt : C.txDk
   }
 
+  function statusLabel(key: string, tv: TradeView): { text: string; color: RGB } {
+    const st = stickerSt(key)
+    const rc = sm.get(key)?.repeat_count ?? 1
+    const isMuted =
+      (tv === 'dar'   && st !== 'repeated') ||
+      (tv === 'pedir' && st !== 'missing')  ||
+      (!tv && mode === 'missing' && st !== 'missing')
+    if (isMuted) {
+      if (st === 'missing')  return { text: 'No encontrada', color: C.txLt }
+      if (st === 'repeated') return { text: `Repetida x${rc}`, color: C.txLt }
+      return { text: 'Encontrada', color: C.txLt }
+    }
+    if (st === 'missing')  return { text: 'No encontrada', color: C.txRed }
+    if (st === 'repeated') return { text: `Repetida x${rc}`, color: C.txGld }
+    return { text: 'Encontrada', color: C.txGrn }
+  }
+
   // ── Draw one sticker cell ──────────────────────────────────────────
 
   function drawCell(
@@ -126,25 +155,32 @@ async function generateAndDownloadPDF(mode: ExportType, stickers: StickerState[]
     key: string, dispId: string, playerName: string,
     tv: TradeView,
   ) {
-    const st = stickerSt(key)
+    const accentW = 1.8
 
+    // Cell background
     fc(cellBg(key, tv)); doc.rect(cx, cy, CX, RH, 'F')
-    dc(C.border); doc.setLineWidth(0.2); doc.rect(cx, cy, CX, RH, 'S')
 
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5)
+    // Left accent strip (status color indicator)
+    fc(accentColor(key, tv)); doc.rect(cx, cy, accentW, RH, 'F')
+
+    // Border
+    dc(C.border); doc.setLineWidth(0.35); doc.rect(cx, cy, CX, RH, 'S')
+
+    // Sticker ID
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(7)
     tc(idClr(key, tv))
-    doc.text(dispId, cx + 2, cy + 4)
+    doc.text(dispId, cx + accentW + 1.5, cy + 4.5)
 
-    if (st === 'repeated' && (mode === 'full' || tv === 'dar')) {
-      const rc = (sm.get(key)?.repeat_count ?? 0) + 1
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(5.8)
-      tc(C.txGld)
-      doc.text(`x${rc}`, cx + CX - 2, cy + 4, { align: 'right' })
-    }
-
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(5.6)
+    // Player name
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(5.8)
     tc(nameClr(key, tv))
-    doc.text(trunc(playerName), cx + 2, cy + 7.8)
+    doc.text(trunc(playerName), cx + accentW + 1.5, cy + 8.5)
+
+    // Status label
+    const sl = statusLabel(key, tv)
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(5.3)
+    tc(sl.color)
+    doc.text(sl.text, cx + accentW + 1.5, cy + 12.2)
   }
 
   // ── Section header ─────────────────────────────────────────────────
