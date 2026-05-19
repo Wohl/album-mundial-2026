@@ -97,6 +97,7 @@ async function generateAndDownloadPDF(mode: ExportType, stickers: StickerState[]
     if (mode === 'missing') return st === 'missing' ? C.redCell : C.greyCl
     if (st === 'missing')  return C.redCell
     if (st === 'repeated') return C.goldLt
+    if (mode === 'trade')  return C.greyCl   // owned in trade = not relevant
     return C.grnCell
   }
 
@@ -107,6 +108,7 @@ async function generateAndDownloadPDF(mode: ExportType, stickers: StickerState[]
     if (mode === 'missing') return st === 'missing' ? C.txRed : C.txLt
     if (st === 'missing')  return C.txRed
     if (st === 'repeated') return C.txGld
+    if (mode === 'trade')  return C.txLt
     return C.txGrn
   }
 
@@ -115,7 +117,8 @@ async function generateAndDownloadPDF(mode: ExportType, stickers: StickerState[]
     const isMuted =
       (tv === 'dar'   && st !== 'repeated') ||
       (tv === 'pedir' && st !== 'missing')  ||
-      (!tv && mode === 'missing' && st !== 'missing')
+      (!tv && mode === 'missing' && st !== 'missing') ||
+      (!tv && mode === 'trade'   && st === 'owned')
     if (isMuted)           return [205, 215, 228] as RGB
     if (st === 'missing')  return [210, 68,  68]  as RGB
     if (st === 'repeated') return C.gold
@@ -127,7 +130,8 @@ async function generateAndDownloadPDF(mode: ExportType, stickers: StickerState[]
     const muted =
       (tv === 'dar'   && st !== 'repeated') ||
       (tv === 'pedir' && st !== 'missing')  ||
-      (!tv && mode === 'missing' && st !== 'missing')
+      (!tv && mode === 'missing' && st !== 'missing') ||
+      (!tv && mode === 'trade'   && st === 'owned')
     return muted ? C.txLt : C.txDk
   }
 
@@ -137,7 +141,8 @@ async function generateAndDownloadPDF(mode: ExportType, stickers: StickerState[]
     const isMuted =
       (tv === 'dar'   && st !== 'repeated') ||
       (tv === 'pedir' && st !== 'missing')  ||
-      (!tv && mode === 'missing' && st !== 'missing')
+      (!tv && mode === 'missing' && st !== 'missing') ||
+      (!tv && mode === 'trade'   && st === 'owned')
     if (isMuted) {
       if (st === 'missing')  return { text: 'No encontrada', color: C.txLt }
       if (st === 'repeated') return { text: `Repetida x${rc}`, color: C.txLt }
@@ -244,6 +249,7 @@ async function generateAndDownloadPDF(mode: ExportType, stickers: StickerState[]
       y += 6.5
       return
     }
+    if (!tv && mode === 'trade' && !teamHas(team, ['missing', 'repeated'])) return
     ensure(6 + 5 * RH + 3)
     teamBar(team.name)
     teamGrid(team, tv)
@@ -281,6 +287,7 @@ async function generateAndDownloadPDF(mode: ExportType, stickers: StickerState[]
       if (!teams.length) continue
       if (tv === 'dar'   && !teams.some((t) => teamHas(t, ['repeated']))) continue
       if (tv === 'pedir' && !teams.some((t) => teamHas(t, ['missing'])))  continue
+      if (!tv && mode === 'trade' && !teams.some((t) => teamHas(t, ['missing', 'repeated']))) continue
       grpHdr(g)
       for (const t of teams) drawTeam(t, tv)
     }
@@ -355,21 +362,7 @@ async function generateAndDownloadPDF(mode: ExportType, stickers: StickerState[]
 
   // ── Main content ───────────────────────────────────────────────────
 
-  if (mode === 'trade') {
-    secHdr('TENGO PARA DAR')
-    buildSections('dar')
-
-    ensure(16)
-    y += 4
-    fc(C.navyDk); doc.rect(ML, y, CW, 10, 'F')
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(10)
-    tc(C.gold); doc.text('NECESITO', ML + 4, y + 7)
-    y += 14
-
-    buildSections('pedir')
-  } else {
-    buildSections(null)
-  }
+  buildSections(null)
 
   // ── Footers on all pages ───────────────────────────────────────────
 
