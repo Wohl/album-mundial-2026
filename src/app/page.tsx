@@ -16,6 +16,7 @@ import { MarketplaceView } from '@/components/MarketplaceView'
 import { StatsPanel } from '@/components/StatsPanel'
 import { DashboardView } from '@/components/DashboardView'
 import { BulkEntryModal } from '@/components/BulkEntryModal'
+import { ExportModal } from '@/components/ExportModal'
 import { TeamFlag } from '@/components/TeamFlag'
 import { NotificationsPanel } from '@/components/NotificationsPanel'
 import { StickerSearch } from '@/components/StickerSearch'
@@ -60,6 +61,13 @@ const PackIcon = () => (
     <path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/>
   </svg>
 )
+const ExportIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+    <polyline points="7 10 12 15 17 10"/>
+    <line x1="12" y1="15" x2="12" y2="3"/>
+  </svg>
+)
 
 const TAB_ICONS: Record<string, JSX.Element> = {
   intro:     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>,
@@ -77,6 +85,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>('equipos')
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null)
   const [showBulk, setShowBulk] = useState(false)
+  const [showExport, setShowExport] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
@@ -160,8 +169,23 @@ export default function Home() {
   )
 
   const handleBulkMark = useCallback(
-    (ids: string[]) => ids.forEach((id) => handleUpdateSticker(id, 'owned', 0)),
-    [handleUpdateSticker]
+    (ids: string[]) => {
+      const counts = new Map<string, number>()
+      ids.forEach((id) => counts.set(id, (counts.get(id) ?? 0) + 1))
+      counts.forEach((addCount, id) => {
+        const current = stickers.find((s) => s.sticker_key === id)
+        const currentTotal = !current || current.status === 'missing' ? 0
+          : current.status === 'owned' ? 1
+          : current.repeat_count + 1
+        const newTotal = currentTotal + addCount
+        if (newTotal <= 1) {
+          handleUpdateSticker(id, 'owned', 0)
+        } else {
+          handleUpdateSticker(id, 'repeated', newTotal - 1)
+        }
+      })
+    },
+    [handleUpdateSticker, stickers]
   )
 
   const allStickers = useMemo(() => getAllStickers(), [])
@@ -343,6 +367,19 @@ export default function Home() {
                 <PlusIcon />
                 <span className="hidden sm:inline tracking-wide">Entrada rápida</span>
               </motion.button>
+
+              {/* Exportar */}
+              <button
+                onClick={() => setShowExport(true)}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all border"
+                style={{ background: 'rgba(26,40,64,0.8)', borderColor: 'rgba(33,50,85,0.8)', color: 'rgba(163,181,211,0.8)' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(245,197,66,0.3)'; (e.currentTarget as HTMLElement).style.color = '#F5C542' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(33,50,85,0.8)'; (e.currentTarget as HTMLElement).style.color = 'rgba(163,181,211,0.8)' }}
+                title="Exportar álbum"
+              >
+                <ExportIcon />
+                <span className="hidden md:inline">Exportar</span>
+              </button>
 
               {/* Notificaciones */}
               <motion.button
@@ -568,6 +605,8 @@ export default function Home() {
       </AnimatePresence>
 
       {showBulk && <BulkEntryModal onConfirm={handleBulkMark} onClose={() => setShowBulk(false)} />}
+
+      {showExport && <ExportModal stickers={stickers} onClose={() => setShowExport(false)} />}
 
       {showProfile && (
         <ProfileModal profile={profile} onChangePassword={changePassword} onUpdateDisplayName={updateDisplayName} onClose={() => setShowProfile(false)} />

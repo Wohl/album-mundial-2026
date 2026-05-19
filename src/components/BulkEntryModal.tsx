@@ -19,18 +19,21 @@ export const BulkEntryModal = ({ onConfirm, onClose }: BulkEntryModalProps) => {
       .split(/[\s,;/\n]+/)
       .map((p) => p.trim().toUpperCase())
       .filter(Boolean)
-    const valid: string[] = []
+    const validMap = new Map<string, number>()
     const invalid: string[] = []
-    const seen = new Set<string>()
+    const invalidSeen = new Set<string>()
     parts.forEach((p) => {
       const internalKey = parseInputKey(p)
       if (allIds.has(internalKey)) {
-        if (!seen.has(internalKey)) { valid.push(internalKey); seen.add(internalKey) }
+        validMap.set(internalKey, (validMap.get(internalKey) ?? 0) + 1)
       } else {
-        invalid.push(p)
+        if (!invalidSeen.has(p)) { invalid.push(p); invalidSeen.add(p) }
       }
     })
-    return { valid, invalid }
+    // flat array with duplicates so onConfirm can count them
+    const valid: string[] = []
+    validMap.forEach((count, id) => { for (let i = 0; i < count; i++) valid.push(id) })
+    return { valid, validMap, invalid }
   }, [input, allIds])
 
   const handleConfirm = () => {
@@ -75,18 +78,21 @@ export const BulkEntryModal = ({ onConfirm, onClose }: BulkEntryModalProps) => {
 
             {(parsed.valid.length > 0 || parsed.invalid.length > 0) && (
               <div className="space-y-3">
-                {parsed.valid.length > 0 && (
+                {parsed.validMap.size > 0 && (
                   <div>
                     <p className="text-xs text-green-400 font-semibold mb-2">
                       ✓ {parsed.valid.length} figurita{parsed.valid.length !== 1 ? 's' : ''} reconocida{parsed.valid.length !== 1 ? 's' : ''}
                     </p>
                     <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
-                      {parsed.valid.map((id) => (
+                      {Array.from(parsed.validMap.entries()).map(([id, count]) => (
                         <span
                           key={id}
-                          className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded font-mono"
+                          className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded font-mono flex items-center gap-1"
                         >
                           {displayKey(id)}
+                          {count > 1 && (
+                            <span className="bg-green-500/30 text-green-300 rounded px-1">×{count}</span>
+                          )}
                         </span>
                       ))}
                     </div>
@@ -132,7 +138,7 @@ export const BulkEntryModal = ({ onConfirm, onClose }: BulkEntryModalProps) => {
               onClick={handleConfirm}
               className="flex-1 py-2.5 bg-gradient-to-r from-gold to-gold2 text-dark font-bold rounded-xl text-sm uppercase transition disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Marcar {parsed.valid.length > 0 ? parsed.valid.length : ''} como Tengo
+              Marcar {parsed.valid.length > 0 ? parsed.valid.length : ''} cop{parsed.valid.length === 1 ? 'ia' : 'ias'}
             </button>
           </div>
         </motion.div>
