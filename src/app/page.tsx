@@ -20,8 +20,11 @@ import { ExportModal } from '@/components/ExportModal'
 import { TeamFlag } from '@/components/TeamFlag'
 import { NotificationsPanel } from '@/components/NotificationsPanel'
 import { StickerSearch } from '@/components/StickerSearch'
-import { PackOpeningModal } from '@/components/PackOpeningModal'
+// PackOpeningModal is kept but bypassed — infrastructure preserved for future reactivation
+// import { PackOpeningModal } from '@/components/PackOpeningModal'
+import { TradeReceivedSummary } from '@/components/TradeReceivedSummary'
 import type { PackItem } from '@/services/packService'
+import type { StickerState } from '@/types'
 import {
   getAllStickers,
   getTotalStickers,
@@ -101,25 +104,29 @@ export default function Home() {
   const {
     trades, othersRepeated, othersOwned, matches,
     loading: tradesLoading, pendingIncoming,
-    createTrade, respondToTrade, counterTrade, cancelTrade,
+    createTrade, respondToTrade, bulkRespondToTrade, counterTrade, cancelTrade,
   } = useTrades(userId, stickers, refetchStickers, refetchPacks)
 
-  // Snapshot pack items when they arrive so the modal keeps its items
-  // even after openPack() clears packItems mid-animation
+  // Snapshot pack items when they arrive for the summary modal.
+  // stickersSnapshot is taken at arrival time for accurate new/extra categorization.
   const [showPackModal, setShowPackModal] = useState(false)
   const [packModalItems, setPackModalItems] = useState<PackItem[]>([])
+  const [packModalSnapshot, setPackModalSnapshot] = useState<StickerState[]>([])
 
   useEffect(() => {
     if (packItems.length > 0 && !showPackModal) {
       setPackModalItems([...packItems])
+      setPackModalSnapshot([...stickers])
       setShowPackModal(true)
     }
-  }, [packItems, showPackModal])
+  }, [packItems, showPackModal, stickers])
 
   const handleClosePackModal = useCallback(() => {
+    openPack() // mark items as opened in DB
     setShowPackModal(false)
     setPackModalItems([])
-  }, [])
+    setPackModalSnapshot([])
+  }, [openPack])
 
   // Ctrl+K / Cmd+K → búsqueda
   useEffect(() => {
@@ -596,6 +603,7 @@ export default function Home() {
               userId={userId} myStickers={stickers} trades={trades}
               othersRepeated={othersRepeated} othersOwned={othersOwned} matches={matches}
               loading={tradesLoading} onCreateTrade={createTrade} onRespondToTrade={respondToTrade}
+              onBulkAccept={bulkRespondToTrade}
               onCounterTrade={counterTrade} onCancelTrade={cancelTrade}
             />
           )}
@@ -629,12 +637,12 @@ export default function Home() {
 
       <NotificationsPanel show={showNotifications} trades={trades} userId={userId} onClose={() => setShowNotifications(false)} />
 
-      {/* Pack opening — se muestra con snapshot de items para no cerrar mid-animación */}
+      {/* Trade received summary — replaces cinematic pack opening (PackOpeningModal preserved but inactive) */}
       <AnimatePresence>
         {showPackModal && packModalItems.length > 0 && (
-          <PackOpeningModal
-            items={packModalItems}
-            onOpen={openPack}
+          <TradeReceivedSummary
+            receivedKeys={packModalItems.map((i) => i.sticker_key)}
+            myStickersSnapshot={packModalSnapshot}
             onClose={handleClosePackModal}
           />
         )}
