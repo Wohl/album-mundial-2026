@@ -4,12 +4,14 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { StickerState, TradeRequest, TradeMatch } from '@/types'
 import { OtherUserSticker, tradeService } from '@/services/tradeService'
+import { BulkAcceptResult } from '@/hooks/useTrades'
 import { getStickerName, getAllStickers, displayKey } from '@/lib/stickers'
 import { TEAMS } from '@/stickers'
 import { StickerFlag } from '@/components/TeamFlag'
 import { TradeCard } from './TradeCard'
 import { TradeOfferModal } from './TradeOfferModal'
 import { CounterOfferModal } from './CounterOfferModal'
+import { TradeReceivedSummary } from './TradeReceivedSummary'
 import { isOfflineMode } from '@/lib/supabase'
 
 interface MarketplaceViewProps {
@@ -22,6 +24,7 @@ interface MarketplaceViewProps {
   loading: boolean
   onCreateTrade: (ownerId: string, requestedKeys: string[], offeredKeys: string[]) => Promise<unknown>
   onRespondToTrade: (trade: TradeRequest, response: 'accepted' | 'rejected') => Promise<void>
+  onBulkAccept: (tradeIds: string[]) => Promise<BulkAcceptResult>
   onCounterTrade: (tradeId: string, counterRequestedKeys: string[], counterOfferedKeys: string[]) => Promise<void>
   onCancelTrade: (tradeId: string) => Promise<void>
 }
@@ -43,6 +46,7 @@ export const MarketplaceView = ({
   loading,
   onCreateTrade,
   onRespondToTrade,
+  onBulkAccept,
   onCounterTrade,
   onCancelTrade,
 }: MarketplaceViewProps) => {
@@ -65,6 +69,14 @@ export const MarketplaceView = ({
   const [searchQuery, setSearchQuery] = useState('')
   const [toasts, setToasts] = useState<ToastMsg[]>([])
   const toastId = useRef(0)
+  // Bulk accept state
+  const [bulkMode, setBulkMode] = useState(false)
+  const [selectedTradeIds, setSelectedTradeIds] = useState<Set<string>>(new Set())
+  const [bulkConfirm1, setBulkConfirm1] = useState(false)
+  const [bulkConfirm2, setBulkConfirm2] = useState(false)
+  const [bulkLoading, setBulkLoading] = useState(false)
+  const [bulkResult, setBulkResult] = useState<BulkAcceptResult | null>(null)
+  const [bulkSnapshot, setBulkSnapshot] = useState<StickerState[]>([])
   // Solicitar tab state
   const [wantSearch, setWantSearch] = useState('')
   const [wantKey, setWantKey] = useState<string | null>(null)
@@ -245,6 +257,45 @@ export const MarketplaceView = ({
       return true
     })
   }, [wantKey, othersRepeated])
+
+  // ── Bulk accept handlers ───────────────────────────────────────────────────
+
+  const handleBulkModeToggle = useCallback(() => {
+    setBulkMode((prev) => !prev)
+    setSelectedTradeIds(new Set())
+    setBulkConfirm1(false)
+    setBulkConfirm2(false)
+  }, [])
+
+  const toggleTradeSelection = useCallback((tradeId: string) => {
+    setSelectedTradeIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(tradeId)) next.delete(tradeId)
+      else next.add(tradeId)
+      return next
+    })
+  }, [])
+
+  const handleBulkAccept = useCallback(async () => {
+    if (selectedTradeIds.size === 0 || !bulkConfirm1 || !bulkConfirm2 || bulkLoading) return
+    setBulkSnapshot([...myStickers])
+    setBulkLoading(true)
+    try {
+      const result = await onBulkAccept(Array.from(selectedTradeIds))
+      setBulkResult(result)
+      setBulkMode(false)
+      setSelectedTradeIds(new Set())
+      setBulkConfirm1(false)
+      setBulkConfirm2(false)
+      if (result.failedTradeIds.length > 0) {
+        pushToast(`${result.failedTradeIds.length} intercambio${result.failedTradeIds.length !== 1 ? 's' : ''} no pudo${result.failedTradeIds.length !== 1 ? 'n' : ''} procesarse`, 'error')
+      }
+    } catch {
+      pushToast('Error al procesar los intercambios', 'error')
+    } finally {
+      setBulkLoading(false)
+    }
+  }, [selectedTradeIds, bulkConfirm1, bulkConfirm2, bulkLoading, myStickers, onBulkAccept, pushToast])
 
   // ── Action handlers ────────────────────────────────────────────────────────
 
@@ -499,12 +550,26 @@ export const MarketplaceView = ({
         <div className="space-y-6">
           {/* Por responder */}
           <section>
-            <div className="flex items-center gap-2 mb-3">
-              <h2 className="text-sm font-display text-gold2 uppercase tracking-wide">Por responder</h2>
-              {toRespondCount > 0 && (
-                <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  {toRespondCount}
-                </span>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-display text-gold2 uppercase tracking-wide">Por responder</h2>
+                {toRespondCount > 0 && (
+                  <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                    {toRespondCount}
+                  </span>
+                )}
+              </div>
+              {toRespondCount >= 2 && (
+                <button
+                  onClick={handleBulkModeToggle}
+                  className={`text-xs font-bold px-3 py-1.5 rounded-lg uppercase transition border ${
+                    bulkMode
+                      ? 'bg-gold2/15 border-gold2/50 text-gold2'
+                      : 'bg-surface3 border-surface3 text-gray-400 hover:text-gray-200 hover:border-surface4'
+                  }`}
+                >
+                  {bulkMode ? '✕ Cancelar selección' : '☑ Aceptar múltiples'}
+                </button>
               )}
             </div>
             {toRespondCount === 0 ? (
@@ -512,23 +577,137 @@ export const MarketplaceView = ({
                 No hay solicitudes esperando tu respuesta
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 ${bulkMode ? 'pb-48' : ''}`}>
                 {toRespond.map((trade) => (
-                  <TradeCard
-                    key={trade.id}
-                    trade={trade}
-                    myUserId={userId}
-                    myStickers={myStickers}
-                    loading={actionLoading === trade.id}
-                    onAccept={() => handleAccept(trade)}
-                    onReject={() => handleReject(trade)}
-                    onCancel={() => handleCancel(trade.id)}
-                    onCounter={() => handleCounter(trade)}
-                  />
+                  <div key={trade.id} className="relative">
+                    {bulkMode && (
+                      <button
+                        onClick={() => toggleTradeSelection(trade.id)}
+                        className={`absolute -top-2 -left-2 z-10 w-7 h-7 rounded-full border-2 flex items-center justify-center transition shadow-lg ${
+                          selectedTradeIds.has(trade.id)
+                            ? 'bg-gold2 border-gold2'
+                            : 'bg-surface2 border-surface3 hover:border-gold2/60'
+                        }`}
+                      >
+                        {selectedTradeIds.has(trade.id) && (
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#081120" strokeWidth="3.5" strokeLinecap="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </button>
+                    )}
+                    <div
+                      className={`transition-all duration-150 ${
+                        bulkMode
+                          ? selectedTradeIds.has(trade.id)
+                            ? 'ring-2 ring-gold2/60 ring-offset-2 ring-offset-dark rounded-xl'
+                            : 'opacity-60 hover:opacity-80'
+                          : ''
+                      }`}
+                      onClick={bulkMode ? () => toggleTradeSelection(trade.id) : undefined}
+                      style={{ cursor: bulkMode ? 'pointer' : undefined }}
+                    >
+                      <TradeCard
+                        trade={trade}
+                        myUserId={userId}
+                        myStickers={myStickers}
+                        loading={!bulkMode && actionLoading === trade.id}
+                        onAccept={bulkMode ? () => {} : () => handleAccept(trade)}
+                        onReject={bulkMode ? () => {} : () => handleReject(trade)}
+                        onCancel={bulkMode ? () => {} : () => handleCancel(trade.id)}
+                        onCounter={bulkMode ? undefined : () => handleCounter(trade)}
+                      />
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
           </section>
+
+          {/* ── Bulk accept confirmation panel ─────────────────────────────────── */}
+          {bulkMode && (
+            <div
+              className="fixed bottom-0 left-0 right-0 z-[80] px-4 py-4"
+              style={{
+                background: 'rgba(6,14,26,0.97)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                borderTop: '1px solid rgba(245,197,66,0.22)',
+                boxShadow: '0 -8px 32px rgba(0,0,0,0.5)',
+              }}
+            >
+              <div className="max-w-2xl mx-auto space-y-3">
+                <div className="text-center">
+                  <span className={`text-sm font-bold ${selectedTradeIds.size > 0 ? 'text-gold2' : 'text-gray-500'}`}>
+                    {selectedTradeIds.size === 0
+                      ? 'Tocá los intercambios para seleccionarlos'
+                      : `${selectedTradeIds.size} intercambio${selectedTradeIds.size !== 1 ? 's' : ''} seleccionado${selectedTradeIds.size !== 1 ? 's' : ''}`}
+                  </span>
+                </div>
+
+                {selectedTradeIds.size > 0 && (
+                  <>
+                    <button
+                      onClick={() => setBulkConfirm1((v) => !v)}
+                      className="w-full flex items-start gap-3 text-left"
+                    >
+                      <div
+                        className={`mt-0.5 w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition ${
+                          bulkConfirm1 ? 'bg-gold2 border-gold2' : 'border-gray-500'
+                        }`}
+                      >
+                        {bulkConfirm1 && (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#081120" strokeWidth="3.5" strokeLinecap="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-sm text-gray-300 leading-snug">
+                        Confirmo que tengo las figuritas que ofrezco en los intercambios seleccionados
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => setBulkConfirm2((v) => !v)}
+                      className="w-full flex items-start gap-3 text-left"
+                    >
+                      <div
+                        className={`mt-0.5 w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition ${
+                          bulkConfirm2 ? 'bg-gold2 border-gold2' : 'border-gray-500'
+                        }`}
+                      >
+                        {bulkConfirm2 && (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#081120" strokeWidth="3.5" strokeLinecap="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-sm text-gray-300 leading-snug">
+                        Quiero recibir las figuritas indicadas en los intercambios seleccionados
+                      </span>
+                    </button>
+
+                    <button
+                      disabled={!bulkConfirm1 || !bulkConfirm2 || bulkLoading}
+                      onClick={handleBulkAccept}
+                      className="w-full py-3 rounded-xl font-bold text-sm uppercase transition disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{
+                        background:
+                          bulkConfirm1 && bulkConfirm2
+                            ? 'linear-gradient(135deg, #F5C542, #FFD700)'
+                            : 'rgba(56,73,105,0.5)',
+                        color: bulkConfirm1 && bulkConfirm2 ? '#081120' : '#6b7280',
+                      }}
+                    >
+                      {bulkLoading
+                        ? 'Procesando...'
+                        : `Aceptar ${selectedTradeIds.size} intercambio${selectedTradeIds.size !== 1 ? 's' : ''}`}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Mis contraofertas en espera */}
           {iCountered.length > 0 && (
@@ -1246,6 +1425,17 @@ export const MarketplaceView = ({
             setCounterPhase('select')
             setCounterError(null)
           }}
+        />
+      )}
+
+      {/* ── Bulk accept summary ────────────────────────────────────────────────── */}
+      {bulkResult && (
+        <TradeReceivedSummary
+          receivedKeys={bulkResult.receivedKeys}
+          myStickersSnapshot={bulkSnapshot}
+          title={`${bulkResult.acceptedTradeIds.length > 1 ? 'Intercambios completados' : 'Intercambio completado'}`}
+          subtitle={`${bulkResult.acceptedTradeIds.length} aceptado${bulkResult.acceptedTradeIds.length !== 1 ? 's' : ''}${bulkResult.failedTradeIds.length > 0 ? ` · ${bulkResult.failedTradeIds.length} con error` : ''} · ${bulkResult.receivedKeys.length} figurita${bulkResult.receivedKeys.length !== 1 ? 's' : ''} recibida${bulkResult.receivedKeys.length !== 1 ? 's' : ''}`}
+          onClose={() => { setBulkResult(null); setBulkSnapshot([]) }}
         />
       )}
     </div>

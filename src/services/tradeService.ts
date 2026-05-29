@@ -59,18 +59,46 @@ export const tradeService = {
     if (error) { console.error('getOtherUsersRepeated:', error); return [] }
     if (!data || data.length === 0) return []
 
+    // Fetch pending trades to compute reservations:
+    // each pending trade reserves the requested sticker from the owner's supply
+    const { data: pendingTrades } = await supabase
+      .from('trade_requests')
+      .select('owner_id, requested_sticker_keys, requested_sticker_key')
+      .eq('status', 'pending')
+
+    // Map `${userId}:${stickerKey}` → count of reserved copies
+    const reservations = new Map<string, number>()
+    ;(pendingTrades ?? []).forEach((t: Record<string, unknown>) => {
+      const ownerId = t.owner_id as string
+      const keys: string[] =
+        (t.requested_sticker_keys as string[] | null) ??
+        (t.requested_sticker_key ? [t.requested_sticker_key as string] : [])
+      keys.forEach((key) => {
+        const k = `${ownerId}:${key}`
+        reservations.set(k, (reservations.get(k) ?? 0) + 1)
+      })
+    })
+
     const userIds = Array.from(new Set(data.map((r) => r.user_id as string)))
     const names = await fetchProfileNames(userIds)
 
-    return data.map((row) => ({
-      id: row.id as string,
-      user_id: row.user_id as string,
-      sticker_key: row.sticker_key as string,
-      status: row.status as StickerState['status'],
-      repeat_count: row.repeat_count as number,
-      updated_at: row.updated_at as string,
-      owner_name: names.get(row.user_id as string) ?? '',
-    }))
+    const result: OtherUserSticker[] = []
+    data.forEach((row) => {
+      const repeatCount = row.repeat_count as number
+      const reserved = reservations.get(`${row.user_id}:${row.sticker_key}`) ?? 0
+      const available = Math.max(0, repeatCount - reserved)
+      if (available <= 0) return // fully reserved — hide from marketplace
+      result.push({
+        id: row.id as string,
+        user_id: row.user_id as string,
+        sticker_key: row.sticker_key as string,
+        status: row.status as StickerState['status'],
+        repeat_count: available,
+        updated_at: row.updated_at as string,
+        owner_name: names.get(row.user_id as string) ?? '',
+      })
+    })
+    return result
   },
 
   async getMyTrades(userId: string): Promise<TradeRequest[]> {

@@ -6,6 +6,12 @@ import { tradeService, OtherUserSticker } from '@/services/tradeService'
 import { packService } from '@/services/packService'
 import { supabase, isOfflineMode } from '@/lib/supabase'
 
+export interface BulkAcceptResult {
+  acceptedTradeIds: string[]
+  failedTradeIds: string[]
+  receivedKeys: string[]
+}
+
 export const useTrades = (
   userId: string | null,
   myStickers: StickerState[],
@@ -199,6 +205,47 @@ export const useTrades = (
     setTimeout(() => loadTrades(), 600)
   }, [loadTrades])
 
+  // Accepts multiple incoming trades at once without triggering the pack animation.
+  // Pack items are intentionally skipped so the caller can show a consolidated summary.
+  const bulkRespondToTrade = useCallback(
+    async (tradeIds: string[]): Promise<BulkAcceptResult> => {
+      if (!userId) return { acceptedTradeIds: [], failedTradeIds: [], receivedKeys: [] }
+
+      const acceptedTradeIds: string[] = []
+      const failedTradeIds: string[] = []
+      const receivedKeys: string[] = []
+
+      for (const tradeId of tradeIds) {
+        const trade = trades.find((t) => t.id === tradeId)
+        if (!trade) continue
+        try {
+          await tradeService.respondToTrade(tradeId, 'accepted')
+          const keys =
+            trade.offered_sticker_keys?.length
+              ? trade.offered_sticker_keys
+              : trade.offered_sticker_key
+              ? [trade.offered_sticker_key]
+              : []
+          receivedKeys.push(...keys)
+          acceptedTradeIds.push(tradeId)
+          setTrades((prev) =>
+            prev.map((t) => (t.id === tradeId ? { ...t, status: 'accepted' as const } : t))
+          )
+        } catch (err) {
+          console.error('bulkRespondToTrade error:', tradeId, err)
+          failedTradeIds.push(tradeId)
+        }
+      }
+
+      onStickerUpdateRef.current?.()
+      setTimeout(() => onStickerUpdateRef.current?.(), 800)
+      setTimeout(() => loadTrades(), 600)
+
+      return { acceptedTradeIds, failedTradeIds, receivedKeys }
+    },
+    [userId, trades, loadTrades]
+  )
+
   // Count trades awaiting my response (pending incoming + countered by other party)
   const pendingIncoming = trades.filter(
     (t) =>
@@ -216,6 +263,7 @@ export const useTrades = (
     pendingIncoming,
     createTrade,
     respondToTrade,
+    bulkRespondToTrade,
     counterTrade,
     cancelTrade,
     refetch: loadTrades,
