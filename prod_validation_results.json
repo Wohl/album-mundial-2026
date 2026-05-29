@@ -1,0 +1,62 @@
+{
+  "timestamp": "2026-05-29T19:20:53.897Z",
+  "pass": 11,
+  "fail": 0,
+  "details": [
+    {
+      "s": "PASS",
+      "label": "Production app HTTP 200",
+      "detail": "content-type: text/html; charset=utf-8"
+    },
+    {
+      "s": "PASS",
+      "label": "signUp via ANON key",
+      "detail": "user id: ce5034a7..."
+    },
+    {
+      "s": "PASS",
+      "label": "signUp returned access_token (no confirmation required)",
+      "detail": ""
+    },
+    {
+      "s": "PASS",
+      "label": "Admin create user",
+      "detail": "840757f9..."
+    },
+    {
+      "s": "PASS",
+      "label": "signInWithPassword via ANON key",
+      "detail": "token: eyJhbGciOiJFUzI1NiIs..."
+    },
+    {
+      "s": "PASS",
+      "label": "Profile auto-created by trigger",
+      "detail": "display_name: \"ProdAdmin_1780082444272\""
+    },
+    {
+      "s": "PASS",
+      "label": "sticker_state INSERT with ANON key + user JWT",
+      "detail": ""
+    },
+    {
+      "s": "PASS",
+      "label": "REST API SELECT with ANON key + user JWT",
+      "detail": "HTTP 200"
+    },
+    {
+      "s": "PASS",
+      "label": "sb_publishable_ key works as apikey (secondary fallback)",
+      "detail": "HTTP 200"
+    },
+    {
+      "s": "PASS",
+      "label": "Deleted test user 840757f9...",
+      "detail": ""
+    },
+    {
+      "s": "PASS",
+      "label": "Deleted test user ce5034a7...",
+      "detail": ""
+    }
+  ]
+}
