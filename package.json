@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "next lint",
     "backup": "node --env-file=.env.backup scripts/backup.mjs",
-    "backup:verify": "node --env-file=.env.backup scripts/backup.mjs --verify-only"
+    "backup:verify": "node --env-file=.env.backup scripts/backup.mjs --verify-only",
+    "backup:list": "node --env-file=.env.backup scripts/restore_backup.mjs --list",
+    "backup:schedule": "powershell -ExecutionPolicy Bypass -File scripts/schedule_backup.ps1",
+    "backup:unschedule": "powershell -ExecutionPolicy Bypass -File scripts/schedule_backup.ps1 -Uninstall",
+    "restore": "node --env-file=.env.restore scripts/restore_backup.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

@@ -127,4 +127,6 @@ temp/
 
 # Backup credentials and backup data — never commit
 .env.backup
+.env.restore
 backups/
+scripts/run_scheduled_backup.ps1
