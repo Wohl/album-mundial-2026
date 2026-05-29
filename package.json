@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "backup": "node --env-file=.env.backup scripts/backup.mjs",
+    "backup:verify": "node --env-file=.env.backup scripts/backup.mjs --verify-only"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
