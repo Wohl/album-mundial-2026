@@ -5,8 +5,9 @@ import { motion } from 'framer-motion'
 import { TeamFlag } from '@/components/TeamFlag'
 import type { LiveMatch, LiveMatchStatus } from '@/lib/live-data/types'
 import { getAllFriendlies } from '@/lib/live-data/services/friendlies-service'
+import { useFavorites } from '@/hooks/useFavorites'
 
-type FilterTab = 'upcoming' | 'recent' | 'all'
+type FilterTab = 'upcoming' | 'recent' | 'all' | 'favorites'
 
 // ── Helpers ────────────────────────────────────────────────────────
 function daysUntil(iso: string): number {
@@ -207,6 +208,7 @@ export function FriendliesView() {
   const [filterTab, setFilterTab] = useState<FilterTab>('upcoming')
   const [searchQuery, setSearchQuery] = useState('')
   const searchRef = useRef<HTMLInputElement>(null)
+  const { favorites, loaded: favLoaded } = useFavorites()
 
   useEffect(() => {
     let cancelled = false
@@ -223,6 +225,12 @@ export function FriendliesView() {
       base = base.filter(m => m.status === 'upcoming' || m.status === 'live' || m.status === 'halftime')
     } else if (filterTab === 'recent') {
       base = base.filter(m => m.status === 'completed' || m.status === 'postponed')
+    } else if (filterTab === 'favorites') {
+      if (favorites.length > 0) {
+        base = base.filter(m => favorites.includes(m.home.code) || favorites.includes(m.away.code))
+      } else {
+        base = []
+      }
     }
 
     if (searchQuery.trim()) {
@@ -254,11 +262,13 @@ export function FriendliesView() {
 
   const upcomingCount = matches.filter(m => m.status === 'upcoming' || m.status === 'live').length
   const recentCount = matches.filter(m => m.status === 'completed').length
+  const favCount = matches.filter(m => favorites.includes(m.home.code) || favorites.includes(m.away.code)).length
 
   const FILTER_TABS: { id: FilterTab; label: string; count?: number }[] = [
-    { id: 'upcoming', label: 'Próximos', count: upcomingCount },
-    { id: 'recent',   label: 'Recientes', count: recentCount },
-    { id: 'all',      label: 'Todos' },
+    { id: 'upcoming',  label: 'Próximos',        count: upcomingCount },
+    { id: 'recent',    label: 'Recientes',        count: recentCount },
+    { id: 'all',       label: 'Todos' },
+    { id: 'favorites', label: '⭐ Mis Selecciones', count: favCount > 0 ? favCount : undefined },
   ]
 
   return (
@@ -389,10 +399,18 @@ export function FriendliesView() {
           </div>
           <div>
             <p className="text-sm font-semibold" style={{ color: 'rgba(163,181,211,0.7)' }}>
-              {searchQuery ? `Sin resultados para "${searchQuery}"` : 'Sin partidos en esta categoría'}
+              {searchQuery
+                ? `Sin resultados para "${searchQuery}"`
+                : filterTab === 'favorites' && favorites.length === 0
+                ? 'Sin selecciones favoritas'
+                : 'Sin partidos en esta categoría'}
             </p>
             <p className="text-xs mt-1" style={{ color: 'rgba(163,181,211,0.38)' }}>
-              {searchQuery ? 'Prueba con el nombre de una selección, estadio o ciudad' : 'Intenta cambiar el filtro activo'}
+              {searchQuery
+                ? 'Prueba con el nombre de una selección, estadio o ciudad'
+                : filterTab === 'favorites' && favorites.length === 0
+                ? 'Ve a ⭐ Mis Selecciones para marcar tus equipos favoritos'
+                : 'Intenta cambiar el filtro activo'}
             </p>
           </div>
           <button

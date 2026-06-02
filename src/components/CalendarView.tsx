@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { TeamFlag } from '@/components/TeamFlag'
 import { CountdownHero } from '@/components/CountdownHero'
 import { FriendliesView } from '@/components/FriendliesView'
+import { MyTeamsView } from '@/components/MyTeamsView'
+import { useFavorites } from '@/hooks/useFavorites'
 import {
   CalMatch,
   Phase,
@@ -234,9 +236,8 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
   const [activeGroup, setActiveGroup] = useState<GroupLetter | 'all'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [showFavorites, setShowFavorites] = useState(false)
-  // favoriteTeams: state preparado para Phase 3 (no UI de gestión aún)
-  const [favoriteTeams] = useState<string[]>([])
-  const [calendarTab, setCalendarTab] = useState<'world_cup' | 'friendlies'>('world_cup')
+  const { favorites: favoriteTeams } = useFavorites()
+  const [calendarTab, setCalendarTab] = useState<'world_cup' | 'friendlies' | 'my_teams'>('world_cup')
   const searchRef = useRef<HTMLInputElement>(null)
   const matchesRef = useRef<HTMLDivElement>(null)
 
@@ -294,20 +295,22 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
   return (
     <div className="space-y-5">
 
-      {/* ── Section tabs: Mundial 2026 / Amistosos ────────────────── */}
-      <div className="flex gap-2" role="tablist" aria-label="Secciones del Calendario">
-        {(['world_cup', 'friendlies'] as const).map(tab => {
-          const isActive = calendarTab === tab
-          const label = tab === 'world_cup' ? 'Mundial 2026' : 'Amistosos'
-          const icon  = tab === 'world_cup' ? '🏆' : '⚽'
+      {/* ── Section tabs: Mundial 2026 / Amistosos / Mis Selecciones ─ */}
+      <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-none" role="tablist" aria-label="Secciones del Calendario">
+        {([
+          { id: 'world_cup', label: 'Mundial 2026', icon: '🏆' },
+          { id: 'friendlies', label: 'Amistosos', icon: '⚽' },
+          { id: 'my_teams', label: 'Mis Selecciones', icon: '⭐' },
+        ] as const).map(tab => {
+          const isActive = calendarTab === tab.id
           return (
             <button
-              key={tab}
+              key={tab.id}
               role="tab"
               aria-selected={isActive}
-              aria-label={label}
-              onClick={() => setCalendarTab(tab)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl font-display text-sm uppercase tracking-wide border transition-all"
+              aria-label={tab.label}
+              onClick={() => setCalendarTab(tab.id)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl font-display text-sm uppercase tracking-wide border transition-all whitespace-nowrap shrink-0"
               style={isActive ? {
                 background: 'linear-gradient(135deg, #F5C542, #FFD700)',
                 color: '#0B1624',
@@ -321,8 +324,8 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
               onMouseEnter={e => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.borderColor = 'rgba(245,197,66,0.25)'; el.style.color = '#E5E7EB' } }}
               onMouseLeave={e => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.borderColor = 'rgba(42,60,90,0.45)'; el.style.color = 'rgba(163,181,211,0.7)' } }}
             >
-              <span>{icon}</span>
-              {label}
+              <span>{tab.icon}</span>
+              {tab.label}
             </button>
           )
         })}
@@ -670,6 +673,8 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
       </>}
 
       {calendarTab === 'friendlies' && <FriendliesView />}
+
+      {calendarTab === 'my_teams' && <MyTeamsView />}
     </div>
   )
 }

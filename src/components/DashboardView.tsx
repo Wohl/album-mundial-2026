@@ -7,6 +7,7 @@ import { getStickerName, displayKey } from '@/lib/stickers'
 import { StickerFlag } from '@/components/TeamFlag'
 import { TEAMS } from '@/stickers'
 import { useDashboard, RankEntry } from '@/hooks/useDashboard'
+import { FavoriteMatchesBlock } from '@/components/FavoriteMatchesBlock'
 
 // ─── Achievement System ───────────────────────────────────────────────────────
 
@@ -253,6 +254,9 @@ export function DashboardView({ userId, myProgress, myStickers, myTrades }: Dash
 
   return (
     <div className="space-y-5 pb-12">
+
+      {/* ── Favorite matches block (hidden if no favorites) ────────── */}
+      <FavoriteMatchesBlock />
 
       {/* ── Header ────────────────────────────────────────────────── */}
       <motion.div
