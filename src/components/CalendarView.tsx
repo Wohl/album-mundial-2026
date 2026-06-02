@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { TeamFlag } from '@/components/TeamFlag'
+import { CountdownHero } from '@/components/CountdownHero'
 import {
   CalMatch,
   Phase,
@@ -235,6 +236,11 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
   // favoriteTeams: state preparado para Phase 3 (no UI de gestión aún)
   const [favoriteTeams] = useState<string[]>([])
   const searchRef = useRef<HTMLInputElement>(null)
+  const matchesRef = useRef<HTMLDivElement>(null)
+
+  const handleScrollToMatches = useCallback(() => {
+    matchesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [])
 
   const allMatches = externalMatches ?? WC2026_MATCHES
 
@@ -286,36 +292,59 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
   return (
     <div className="space-y-5">
 
+      {/* ── Countdown Hero ───────────────────────────────────────── */}
+      <CountdownHero onCTAClick={handleScrollToMatches} />
+
+      {/* ── Section divider + header ─────────────────────────────── */}
+      <div ref={matchesRef} className="flex items-center gap-3 pt-1">
+        <div className="h-px flex-1" style={{ background: 'rgba(245,197,66,0.12)' }} />
+        <span
+          className="font-display uppercase tracking-[0.32em] shrink-0"
+          style={{ fontSize: '10px', color: 'rgba(245,197,66,0.45)' }}
+        >
+          Partidos
+        </span>
+        <div className="h-px flex-1" style={{ background: 'rgba(245,197,66,0.12)' }} />
+      </div>
+
       {/* ── Page header ──────────────────────────────────────────── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-display tracking-widest uppercase"
-            style={{ background: 'linear-gradient(135deg, #F5C542, #FFD700)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-            Calendario
+          <h2 className="font-display tracking-widest uppercase leading-none"
+            style={{
+              fontSize: 'clamp(22px, 3.5vw, 30px)',
+              background: 'linear-gradient(135deg, #F5C542, #FFD700)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}>
+            Calendario 2026
           </h2>
-          <p className="text-sm mt-0.5 tracking-wide" style={{ color: 'rgba(185,205,230,0.72)' }}>
-            FIFA World Cup 2026 ·{' '}
-            <span className="font-bold" style={{ color: 'rgba(245,197,66,0.85)' }}>
+          <p className="text-sm mt-1 tracking-wide" style={{ color: 'rgba(185,205,230,0.8)' }}>
+            <span className="font-bold" style={{ color: 'rgba(245,197,66,0.9)' }}>
               {allMatches.length}
             </span>
-            {' '}partidos
+            {' '}partidos · 16 sedes · 3 países anfitriones
           </p>
         </div>
-        <div className="flex items-center gap-3 text-xs" style={{ color: 'rgba(163,181,211,0.6)' }}>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full" style={{ background: 'rgba(125,211,252,0.7)' }} />Próximo
+        <div
+          className="flex items-center gap-3 flex-wrap"
+          style={{ fontSize: '11px', color: 'rgba(185,205,230,0.75)' }}
+        >
+          <span className="flex items-center gap-1.5 font-semibold">
+            <span className="w-2 h-2 rounded-full" style={{ background: 'rgba(125,211,252,0.85)' }} />Próximo
           </span>
-          <span className="flex items-center gap-1.5">
+          <span className="flex items-center gap-1.5 font-semibold">
             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />En vivo
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full" style={{ background: 'rgba(163,181,211,0.3)' }} />Finalizado
+          <span className="flex items-center gap-1.5 font-semibold">
+            <span className="w-2 h-2 rounded-full" style={{ background: 'rgba(163,181,211,0.45)' }} />Final
           </span>
         </div>
       </div>
 
       {/* ── Search + Quick Filters ────────────────────────────────── */}
-      <div className="space-y-2.5">
+      <div className="rounded-xl p-3 space-y-2.5" style={{ background: 'rgba(10,18,36,0.6)', border: '1px solid rgba(42,60,90,0.3)' }}>
 
         {/* Search input */}
         <div className="relative">
@@ -375,14 +404,14 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
           {/* Result count + clear */}
           {isSearching && (
             <div className="flex items-center gap-2 ml-auto">
-              <span className="text-xs" style={{ color: 'rgba(163,181,211,0.5)' }}>
+              <span className="text-xs font-semibold" style={{ color: 'rgba(185,205,230,0.75)' }}>
                 {filteredMatches.length} {filteredMatches.length === 1 ? 'partido' : 'partidos'}
               </span>
               {showFavorites && (
                 <button
                   onClick={handleResetFilters}
-                  className="text-[10px] underline underline-offset-2 transition-opacity"
-                  style={{ color: 'rgba(163,181,211,0.45)' }}
+                  className="text-[10px] underline underline-offset-2 transition-opacity hover:opacity-80"
+                  style={{ color: 'rgba(185,205,230,0.6)' }}
                 >
                   Limpiar
                 </button>
