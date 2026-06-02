@@ -24,4 +24,34 @@ export const TEAM_ISO2: Record<string, string> = {
   POR: 'pt', COD: 'cd', UZB: 'uz', COL: 'co',
   // Grupo L
   ENG: 'gb-eng', CRO: 'hr', GHA: 'gh', PAN: 'pa',
+  // Fogueos — selecciones no clasificadas al Mundial 2026
+  CRC: 'cr',      // Costa Rica
+  ISL: 'is',      // Islandia
+  KOS: 'xk',      // Kosovo (código no oficial, soportado por flag-icons)
+  SRB: 'rs',      // Serbia
+  POL: 'pl',      // Polonia
+  UKR: 'ua',      // Ucrania
+  FIN: 'fi',      // Finlandia
+  SVK: 'sk',      // Eslovaquia
+  MLT: 'mt',      // Malta
+  MKD: 'mk',      // Macedonia del Norte
+  MAD: 'mg',      // Madagascar
+  WAL: 'gb-wls',  // Gales
+  DEN: 'dk',      // Dinamarca
+  DOM: 'do',      // República Dominicana
+  GRE: 'gr',      // Grecia
+  GUA: 'gt',      // Guatemala
+  NCA: 'ni',      // Nicaragua
+  IRL: 'ie',      // Irlanda
+  PER: 'pe',      // Perú
+  HON: 'hn',      // Honduras
+  BOL: 'bo',      // Bolivia
+  VEN: 've',      // Venezuela
+  SVN: 'si',      // Eslovenia
+  NIR: 'gb-nir',  // Irlanda del Norte
+  CHI: 'cl',      // Chile
+  NGA: 'ng',      // Nigeria
+  ARU: 'aw',      // Aruba
+  SLV: 'sv',      // El Salvador
+  TTO: 'tt',      // Trinidad y Tobago
 }
