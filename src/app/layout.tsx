@@ -1,6 +1,21 @@
 import type { Metadata } from 'next'
+import { Bebas_Neue, Barlow } from 'next/font/google'
 import './globals.css'
 import 'flag-icons/css/flag-icons.min.css'
+
+const bebasNeue = Bebas_Neue({
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-display',
+  display: 'swap',
+})
+
+const barlow = Barlow({
+  weight: ['400', '600', '700', '900'],
+  subsets: ['latin'],
+  variable: '--font-body',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'Álbum Mundial 2026',
@@ -16,13 +31,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="es">
-      <head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600;700;900&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="es" className={`${bebasNeue.variable} ${barlow.variable}`}>
+      <head />
       <body className="bg-dark text-white">
         {/* ── Stadium background texture layers (fixed, behind all content) ── */}
         <div aria-hidden="true" className="stadium-dots-overlay fixed inset-0 pointer-events-none select-none" style={{ zIndex: 0 }} />

@@ -503,15 +503,18 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 py-5 space-y-4">
 
         {/* ── MAIN NAV (5 secciones) ──────────────────────────── */}
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <div role="tablist" aria-label="Secciones principales" className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
           {mainTabs.map((tab) => {
             const isQuiniela = tab.id === 'quiniela'
             return (
               <button
                 key={tab.id}
+                role="tab"
+                aria-selected={activeMain === tab.id}
+                aria-label={tab.label}
                 onClick={() => handleMainTabChange(tab.id)}
                 disabled={tab.disabled}
-                className="relative flex items-center gap-2 px-5 py-2 rounded-xl font-display text-sm tracking-widest uppercase transition-all whitespace-nowrap shrink-0 border"
+                className="relative flex items-center gap-2 px-5 py-2 rounded-xl font-display text-sm tracking-widest uppercase transition-all whitespace-nowrap shrink-0 border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
                 style={
                   isQuiniela
                     ? {
@@ -603,11 +606,14 @@ export default function Home() {
                 Sección
               </span>
               <div className="w-px h-4 shrink-0" style={{ background: 'rgba(42,60,90,0.5)' }} />
+              <div role="tablist" aria-label="Secciones del álbum" className="flex items-center gap-1.5">
               {albumTabs.map((tab) => (
                 <button
                   key={tab.id}
+                  role="tab"
+                  aria-selected={activeAlbum === tab.id}
                   onClick={() => handleAlbumTabChange(tab.id)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all whitespace-nowrap shrink-0 border"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all whitespace-nowrap shrink-0 border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-gold"
                   style={
                     activeAlbum === tab.id
                       ? {
@@ -639,6 +645,7 @@ export default function Home() {
                   {tab.label}
                 </button>
               ))}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -660,11 +667,11 @@ export default function Home() {
           {/* ── ÁLBUM ───────────────────────────────────────── */}
           {activeMain === 'album' && (
             <>
-              {activeAlbum === 'intro' && !loading && (
-                <StickerGallery stickers={introFWCStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} title="Intro FWC — Portada y presentación" />
+              {activeAlbum === 'intro' && (
+                <StickerGallery stickers={introFWCStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} title="Intro FWC — Portada y presentación" loading={loading} />
               )}
 
-              {activeAlbum === 'equipos' && !loading && (
+              {activeAlbum === 'equipos' && (
                 <div className="space-y-5">
                   {selectedTeam && selectedTeamData ? (
                     <div className="space-y-4">
@@ -685,7 +692,7 @@ export default function Home() {
                           </span>
                         </div>
                       </div>
-                      <StickerGallery stickers={selectedTeamStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} />
+                      <StickerGallery stickers={selectedTeamStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} loading={loading} />
                     </div>
                   ) : (
                     <TeamOverview userStickers={stickers} selectedTeam={selectedTeam} onSelectTeam={setSelectedTeam} />
@@ -693,11 +700,11 @@ export default function Home() {
                 </div>
               )}
 
-              {activeAlbum === 'final' && !loading && (
-                <StickerGallery stickers={finalFWCStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} title="Final FWC — Historia del torneo" />
+              {activeAlbum === 'final' && (
+                <StickerGallery stickers={finalFWCStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} title="Final FWC — Historia del torneo" loading={loading} />
               )}
 
-              {activeAlbum === 'cocacola' && !loading && (
+              {activeAlbum === 'cocacola' && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-4 p-4 rounded-xl border overflow-hidden relative"
                     style={{ background: 'linear-gradient(135deg, rgba(153,0,0,0.25) 0%, rgba(19,32,48,0.9) 100%)', borderColor: 'rgba(153,0,0,0.3)' }}
@@ -709,29 +716,18 @@ export default function Home() {
                       <p className="text-xs mt-0.5" style={{ color: 'rgba(163,181,211,0.5)' }}>14 stickers premium — CC1 al CC14</p>
                     </div>
                   </div>
-                  <StickerGallery stickers={cocaColaStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} />
+                  <StickerGallery stickers={cocaColaStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} loading={loading} />
                 </div>
               )}
 
-              {activeAlbum === 'repetidas' && !loading && (
-                <StickerGallery stickers={allStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} defaultFilter="repeated" title="Mis repetidas" />
+              {activeAlbum === 'repetidas' && (
+                <StickerGallery stickers={allStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} defaultFilter="repeated" title="Mis repetidas" loading={loading} />
               )}
 
               {activeAlbum === 'stats' && (
                 <StatsPanel progress={progress} stickers={stickers} />
               )}
 
-              {loading && activeAlbum !== 'stats' && (
-                <div className="flex flex-col items-center justify-center py-20 gap-4">
-                  <div className="relative w-10 h-10">
-                    <div className="absolute inset-0 rounded-full border-2 border-gold/10" />
-                    <div className="absolute inset-0 rounded-full border-t-2 border-gold animate-spin" />
-                  </div>
-                  <p className="text-xs font-display tracking-[0.3em] uppercase" style={{ color: 'rgba(163,181,211,0.4)' }}>
-                    Cargando figuritas
-                  </p>
-                </div>
-              )}
             </>
           )}
 

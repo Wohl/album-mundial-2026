@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --font-bebas: 'Bebas Neue', system-ui, 'sans-serif';
-  --font-barlow: 'Barlow', system-ui, 'sans-serif';
+  --font-bebas: var(--font-display, 'Bebas Neue', system-ui, sans-serif);
+  --font-barlow: var(--font-body, 'Barlow', system-ui, sans-serif);
 }
 
 * {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { StickerState } from '@/types'
 import { displayKey } from '@/lib/stickers'
@@ -34,20 +34,25 @@ export const StickerCard = ({
   const [imgStatus, setImgStatus] = useState<'loading' | 'loaded' | 'error'>('loading')
   const cardRef = useRef<HTMLDivElement>(null)
   const [tilt, setTilt] = useState({ x: 0, y: 0 })
+  const [isTouch, setIsTouch] = useState(false)
+
+  useEffect(() => {
+    setIsTouch(window.matchMedia('(hover: none)').matches)
+  }, [])
 
   const imgSrc = isPlayerSticker
     ? `/players/${id.split('_')[0]}/${displayKey(id)}.png`
     : null
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (isMissing || !cardRef.current) return
+    if (isMissing || isTouch || !cardRef.current) return
     const rect = cardRef.current.getBoundingClientRect()
     const x = (e.clientX - rect.left) / rect.width - 0.5
     const y = (e.clientY - rect.top)  / rect.height - 0.5
     setTilt({ x: y * -12, y: x * 12 })
   }
 
-  const handleMouseLeave = () => setTilt({ x: 0, y: 0 })
+  const handleMouseLeave = () => { if (!isTouch) setTilt({ x: 0, y: 0 }) }
 
   const handleDecrement = () => {
     if (status === 'owned') onMark('missing')

@@ -12,7 +12,18 @@ interface StickerGalleryProps {
   onUpdateSticker: (key: string, status: 'owned' | 'missing' | 'repeated', count?: number) => void
   defaultFilter?: StatusFilter
   title?: string
+  loading?: boolean
 }
+
+const SkeletonCard = () => (
+  <div className="rounded-xl border-2 border-surface3/80 bg-surface2 overflow-hidden animate-pulse">
+    <div className="h-24 bg-surface3/60" />
+    <div className="p-2 space-y-1.5">
+      <div className="h-2.5 w-3/4 rounded bg-surface3/80" />
+      <div className="h-2 w-1/2 rounded bg-surface3/60" />
+    </div>
+  </div>
+)
 
 export const StickerGallery = ({
   stickers,
@@ -20,6 +31,7 @@ export const StickerGallery = ({
   onUpdateSticker,
   defaultFilter = 'all',
   title,
+  loading = false,
 }: StickerGalleryProps) => {
   const [filter, setFilter] = useState<StatusFilter>(defaultFilter)
   const [search, setSearch] = useState('')
@@ -120,7 +132,11 @@ export const StickerGallery = ({
       </div>
 
       {/* Results */}
-      {displayed.length === 0 ? (
+      {loading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3" aria-busy="true" aria-label="Cargando figuritas">
+          {Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} />)}
+        </div>
+      ) : displayed.length === 0 ? (
         <div className="text-center py-20 text-gray-600">
           <div className="text-5xl mb-4 opacity-30">🔍</div>
           <p className="text-sm font-display tracking-wide uppercase">No hay figuritas que coincidan</p>
