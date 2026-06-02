@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { TeamFlag } from '@/components/TeamFlag'
 import { CountdownHero } from '@/components/CountdownHero'
+import { FriendliesView } from '@/components/FriendliesView'
 import {
   CalMatch,
   Phase,
@@ -235,6 +236,7 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
   const [showFavorites, setShowFavorites] = useState(false)
   // favoriteTeams: state preparado para Phase 3 (no UI de gestión aún)
   const [favoriteTeams] = useState<string[]>([])
+  const [calendarTab, setCalendarTab] = useState<'world_cup' | 'friendlies'>('world_cup')
   const searchRef = useRef<HTMLInputElement>(null)
   const matchesRef = useRef<HTMLDivElement>(null)
 
@@ -292,8 +294,40 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
   return (
     <div className="space-y-5">
 
-      {/* ── Countdown Hero ───────────────────────────────────────── */}
-      <CountdownHero onCTAClick={handleScrollToMatches} />
+      {/* ── Section tabs: Mundial 2026 / Fogueos ─────────────────── */}
+      <div className="flex gap-2">
+        {(['world_cup', 'friendlies'] as const).map(tab => {
+          const isActive = calendarTab === tab
+          const label = tab === 'world_cup' ? 'Mundial 2026' : 'Fogueos'
+          const icon  = tab === 'world_cup' ? '🏆' : '⚽'
+          return (
+            <button
+              key={tab}
+              onClick={() => setCalendarTab(tab)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl font-display text-sm uppercase tracking-wide border transition-all"
+              style={isActive ? {
+                background: 'linear-gradient(135deg, #F5C542, #FFD700)',
+                color: '#0B1624',
+                borderColor: 'rgba(245,197,66,0.5)',
+                boxShadow: '0 2px 16px rgba(245,197,66,0.28)',
+              } : {
+                background: 'rgba(14,24,44,0.7)',
+                color: 'rgba(163,181,211,0.7)',
+                borderColor: 'rgba(42,60,90,0.45)',
+              }}
+              onMouseEnter={e => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.borderColor = 'rgba(245,197,66,0.25)'; el.style.color = '#E5E7EB' } }}
+              onMouseLeave={e => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.borderColor = 'rgba(42,60,90,0.45)'; el.style.color = 'rgba(163,181,211,0.7)' } }}
+            >
+              <span>{icon}</span>
+              {label}
+            </button>
+          )
+        })}
+      </div>
+
+      {calendarTab === 'world_cup' && <>
+        {/* ── Countdown Hero ───────────────────────────────────────── */}
+        <CountdownHero onCTAClick={handleScrollToMatches} />
 
       {/* ── Section divider + header ─────────────────────────────── */}
       <div ref={matchesRef} className="flex items-center gap-3 pt-1">
@@ -630,6 +664,9 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
           </p>
         </div>
       </div>
+      </>}
+
+      {calendarTab === 'friendlies' && <FriendliesView />}
     </div>
   )
 }
