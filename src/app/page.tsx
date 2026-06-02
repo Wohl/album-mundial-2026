@@ -15,6 +15,7 @@ import { TeamOverview } from '@/components/TeamOverview'
 import { MarketplaceView } from '@/components/MarketplaceView'
 import { StatsPanel } from '@/components/StatsPanel'
 import { DashboardView } from '@/components/DashboardView'
+import { CalendarView } from '@/components/CalendarView'
 import { BulkEntryModal } from '@/components/BulkEntryModal'
 import { ExportModal } from '@/components/ExportModal'
 import { TeamFlag } from '@/components/TeamFlag'
@@ -32,22 +33,22 @@ import {
 import { INTRO_FWC_STICKERS, FINAL_FWC_STICKERS, COCA_COLA_STICKERS, TEAMS } from '@/stickers'
 import type { Sticker } from '@/types'
 
-type Tab = 'intro' | 'equipos' | 'final' | 'cocacola' | 'repetidas' | 'stats' | 'dashboard' | 'market'
+// ── Navigation types ───────────────────────────────────────────
+type MainTab = 'album' | 'calendario' | 'quiniela' | 'mercado' | 'dashboard'
+type AlbumTab = 'intro' | 'equipos' | 'final' | 'cocacola' | 'repetidas' | 'stats'
+
 type GlobalToast = { id: number; msg: string }
 
-// ── SVG Icons ──────────────────────────────────────────────────────
+// ── Icons ──────────────────────────────────────────────────────
 const SearchIcon = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
   </svg>
 )
-const BellIcon = ({ dot }: { dot?: boolean }) => (
-  <span className="relative inline-flex">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-    </svg>
-    {dot && <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-dark" />}
-  </span>
+const BellIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+  </svg>
 )
 const PlusIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -72,20 +73,53 @@ const ExportIcon = () => (
   </svg>
 )
 
-const TAB_ICONS: Record<string, JSX.Element> = {
-  intro:     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>,
-  equipos:   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>,
-  final:     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
-  cocacola:  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="2" x2="12" y2="6"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M8.5 8a3.5 3.5 0 0 0 7 0"/><rect x="5" y="6" width="14" height="4" rx="1"/><path d="M7 18h10"/><path d="M5 10l2 8"/><path d="M19 10l-2 8"/></svg>,
-  repetidas: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>,
-  stats:     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
-  dashboard: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
-  market:    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>,
+// Main nav icons
+const AlbumIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+    <path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+    <path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>
+  </svg>
+)
+const CalendarIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+  </svg>
+)
+const QuinielaIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m9 12 2 2 4-4"/><path d="M5 7c0-1.1.9-2 2-2h10a2 2 0 0 1 2 2v12H5V7z"/><path d="M22 19H2"/>
+  </svg>
+)
+const MercadoIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+    <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+  </svg>
+)
+const DashboardIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+    <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+  </svg>
+)
+
+// Album sub-tab icons
+const ALBUM_TAB_ICONS: Record<AlbumTab, JSX.Element> = {
+  intro:     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>,
+  equipos:   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>,
+  final:     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+  cocacola:  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="2" x2="12" y2="6"/><path d="M5 10a7 7 0 0 0 14 0"/><rect x="5" y="6" width="14" height="4" rx="1"/><path d="M7 18h10"/><path d="M5 10l2 8"/><path d="M19 10l-2 8"/></svg>,
+  repetidas: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>,
+  stats:     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
 }
 
 export default function Home() {
   const { userId, profile, loading: authLoading, isRecovery, signIn, signUp, signOut, sendPasswordReset, confirmPasswordReset, changePassword, updateDisplayName } = useAuth()
-  const [activeTab, setActiveTab] = useState<Tab>('equipos')
+
+  const [activeMain, setActiveMain] = useState<MainTab>('album')
+  const [activeAlbum, setActiveAlbum] = useState<AlbumTab>('equipos')
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null)
   const [showBulk, setShowBulk] = useState(false)
   const [showExport, setShowExport] = useState(false)
@@ -107,8 +141,6 @@ export default function Home() {
     createTrade, respondToTrade, bulkRespondToTrade, counterTrade, cancelTrade,
   } = useTrades(userId, stickers, refetchStickers, refetchPacks)
 
-  // Snapshot pack items when they arrive for the summary modal.
-  // stickersSnapshot is taken at arrival time for accurate new/extra categorization.
   const [showPackModal, setShowPackModal] = useState(false)
   const [packModalItems, setPackModalItems] = useState<PackItem[]>([])
   const [packModalSnapshot, setPackModalSnapshot] = useState<StickerState[]>([])
@@ -122,7 +154,7 @@ export default function Home() {
   }, [packItems, showPackModal, stickers])
 
   const handleClosePackModal = useCallback(() => {
-    openPack() // mark items as opened in DB
+    openPack()
     setShowPackModal(false)
     setPackModalItems([])
     setPackModalSnapshot([])
@@ -142,7 +174,8 @@ export default function Home() {
 
   const handleSearchNavigate = useCallback(
     (tab: 'intro' | 'equipos' | 'final' | 'cocacola', teamCode?: string) => {
-      setActiveTab(tab)
+      setActiveMain('album')
+      setActiveAlbum(tab)
       if (tab === 'equipos' && teamCode) setSelectedTeam(teamCode)
     },
     []
@@ -155,18 +188,18 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    if (pendingIncoming > prevPendingRef.current && activeTab !== 'market') {
+    if (pendingIncoming > prevPendingRef.current && activeMain !== 'mercado') {
       pushGlobalToast('Nueva solicitud de intercambio recibida')
     }
     prevPendingRef.current = pendingIncoming
-  }, [pendingIncoming, activeTab, pushGlobalToast])
+  }, [pendingIncoming, activeMain, pushGlobalToast])
 
   useEffect(() => {
-    if (matches.length > prevMatchesRef.current && prevMatchesRef.current > 0 && activeTab !== 'market') {
+    if (matches.length > prevMatchesRef.current && prevMatchesRef.current > 0 && activeMain !== 'mercado') {
       pushGlobalToast('Nuevo match encontrado — hay alguien compatible')
     }
     prevMatchesRef.current = matches.length
-  }, [matches.length, activeTab, pushGlobalToast])
+  }, [matches.length, activeMain, pushGlobalToast])
 
   const handleUpdateSticker = useCallback(
     (key: string, status: 'owned' | 'missing' | 'repeated', count = 0) => {
@@ -219,6 +252,17 @@ export default function Home() {
     }))
   }, [selectedTeam])
 
+  const handleMainTabChange = (tab: MainTab) => {
+    if (tab === 'quiniela') return // disabled
+    setActiveMain(tab)
+    if (tab !== 'album') setSelectedTeam(null)
+  }
+
+  const handleAlbumTabChange = (tab: AlbumTab) => {
+    setActiveAlbum(tab)
+    if (tab !== 'equipos') setSelectedTeam(null)
+  }
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -237,49 +281,63 @@ export default function Home() {
   if (isRecovery) return <ResetPasswordModal onConfirm={confirmPasswordReset} />
   if (!userId || !profile) return <AuthModal onSignIn={signIn} onSignUp={signUp} onSendPasswordReset={sendPasswordReset} />
 
-  const tabs: { id: Tab; label: string; badge?: number }[] = [
+  const selectedTeamData = selectedTeam ? TEAMS.find((t) => t.code === selectedTeam) : null
+
+  // ── Main nav definition ────────────────────────────────────
+  const mainTabs: {
+    id: MainTab
+    label: string
+    icon: JSX.Element
+    badge?: number
+    disabled?: boolean
+    soon?: boolean
+  }[] = [
+    { id: 'album',      label: 'Álbum',      icon: <AlbumIcon /> },
+    { id: 'calendario', label: 'Calendario',  icon: <CalendarIcon /> },
+    { id: 'quiniela',   label: 'Quiniela',    icon: <QuinielaIcon />, disabled: true, soon: true },
+    { id: 'mercado',    label: 'Mercado',     icon: <MercadoIcon />, badge: pendingIncoming },
+    { id: 'dashboard',  label: 'Dashboard',   icon: <DashboardIcon /> },
+  ]
+
+  // ── Album sub-nav definition ───────────────────────────────
+  const albumTabs: { id: AlbumTab; label: string }[] = [
     { id: 'intro',     label: 'Intro'     },
     { id: 'equipos',   label: 'Equipos'   },
     { id: 'final',     label: 'Final'     },
     { id: 'cocacola',  label: 'Coca-Cola' },
     { id: 'repetidas', label: 'Extras'    },
     { id: 'stats',     label: 'Stats'     },
-    { id: 'dashboard', label: 'Dashboard' },
-    { id: 'market',    label: 'Mercado',  badge: pendingIncoming },
   ]
-
-  const handleTabChange = (tab: Tab) => {
-    setActiveTab(tab)
-    if (tab !== 'equipos') setSelectedTeam(null)
-  }
-
-  const selectedTeamData = selectedTeam ? TEAMS.find((t) => t.code === selectedTeam) : null
 
   return (
     <div className="min-h-screen">
 
-      {/* ── HEADER — Transmisión oficial premium ─────────────────── */}
+      {/* ── HEADER ────────────────────────────────────────────── */}
       <motion.header
         className="sticky top-0 z-40 header-glow"
-        style={{ background: 'rgba(8,17,32,0.92)', backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)' }}
+        style={{
+          background: 'linear-gradient(180deg, rgba(13,24,46,0.98) 0%, rgba(8,17,32,0.93) 100%)',
+          backdropFilter: 'blur(28px) saturate(200%)',
+          WebkitBackdropFilter: 'blur(28px) saturate(200%)',
+          borderBottom: '1px solid rgba(56,73,105,0.22)',
+        }}
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       >
-        {/* Acento dorado superior */}
+        {/* Gold accent line */}
         <div className="header-accent" />
 
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between gap-3">
+        <div className="max-w-7xl mx-auto px-4 py-3.5">
+          <div className="flex items-center justify-between gap-4">
 
-            {/* ── Logo / Branding ──────────────────────────────── */}
+            {/* ── Logo / Branding ──────────────────────────── */}
             <div className="flex items-center gap-3 shrink-0">
-              {/* Ícono Copa */}
               <div className="relative w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(245,197,66,0.18) 0%, rgba(255,215,0,0.06) 100%)',
-                  border: '1px solid rgba(245,197,66,0.25)',
-                  boxShadow: '0 0 20px rgba(245,197,66,0.12)',
+                  background: 'linear-gradient(135deg, rgba(245,197,66,0.20) 0%, rgba(255,215,0,0.08) 100%)',
+                  border: '1px solid rgba(245,197,66,0.28)',
+                  boxShadow: '0 0 24px rgba(245,197,66,0.14), inset 0 1px 0 rgba(255,255,255,0.06)',
                 }}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F5C542" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -289,20 +347,19 @@ export default function Home() {
                   <path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>
                 </svg>
               </div>
-              {/* Texto */}
               <div className="hidden sm:block">
                 <h1 className="text-xl font-display text-gradient-gold uppercase leading-none tracking-wide">Álbum</h1>
-                <p className="text-[9px] text-surface4 uppercase tracking-[0.35em] mt-0.5">Mundial 2026</p>
+                <p className="text-[9px] tracking-[0.38em] mt-0.5 uppercase" style={{ color: 'rgba(163,181,211,0.5)' }}>Mundial 2026</p>
               </div>
             </div>
 
-            {/* ── Acciones ─────────────────────────────────────── */}
-            <div className="flex items-center gap-1.5">
+            {/* ── Actions ──────────────────────────────────── */}
+            <div className="flex items-center gap-1.5 ml-auto">
 
-              {/* Sobre pendiente */}
+              {/* Pending pack */}
               {hasPendingPack && (
                 <motion.button
-                  onClick={() => {/* el modal se abre solo */}}
+                  onClick={() => {}}
                   initial={{ scale: 0, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-dark transition-all animate-glow-pulse"
@@ -316,128 +373,85 @@ export default function Home() {
                 </motion.button>
               )}
 
-              {/* Búsqueda */}
+              {/* Search */}
               <motion.button
                 onClick={() => setShowSearch(true)}
                 title="Buscar figurita (Ctrl+K)"
-                className="relative flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold overflow-hidden"
+                className="relative flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
                 style={{
-                  background: 'rgba(15,23,42,0.72)',
-                  backdropFilter: 'blur(16px)',
-                  WebkitBackdropFilter: 'blur(16px)',
-                  border: '1px solid rgba(56,73,105,0.55)',
-                  color: 'rgba(163,181,211,0.85)',
-                  boxShadow: '0 2px 12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)',
+                  background: 'rgba(16,28,48,0.7)',
+                  border: '1px solid rgba(56,73,105,0.45)',
+                  color: 'rgba(163,181,211,0.8)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
                 }}
-                whileHover={{
-                  scale: 1.04,
-                  borderColor: 'rgba(245,197,66,0.45)',
-                  color: '#F3F4F6',
-                  boxShadow: '0 0 18px rgba(245,197,66,0.18), 0 2px 14px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-} as any}
+                whileHover={{ scale: 1.04, borderColor: 'rgba(245,197,66,0.4)', color: '#F3F4F6' } as any}
                 whileTap={{ scale: 0.96 }}
-                transition={{ duration: 0.18 }}
+                transition={{ duration: 0.15 }}
               >
                 <SearchIcon />
                 <span className="hidden sm:inline tracking-wide">Buscar</span>
-                <kbd className="hidden md:flex items-center gap-0.5 text-[9px] border rounded-md px-1.5 py-0.5 font-mono opacity-40 ml-0.5"
-                  style={{ borderColor: 'rgba(56,73,105,0.7)', background: 'rgba(8,17,32,0.5)' }}>
-                  ⌘K
-                </kbd>
+                <kbd className="hidden md:flex items-center gap-0.5 text-[9px] border rounded-md px-1.5 py-0.5 font-mono opacity-35 ml-0.5"
+                  style={{ borderColor: 'rgba(56,73,105,0.6)', background: 'rgba(8,17,32,0.5)' }}>⌘K</kbd>
               </motion.button>
 
-              {/* Entrada rápida */}
+              {/* Quick entry */}
               <motion.button
                 onClick={() => setShowBulk(true)}
                 title="Entrada rápida de figuritas"
-                className="relative flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold overflow-hidden"
+                className="relative flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all"
                 style={{
-                  background: 'rgba(14,90,54,0.18)',
-                  backdropFilter: 'blur(16px)',
-                  WebkitBackdropFilter: 'blur(16px)',
-                  border: '1px solid rgba(14,90,54,0.38)',
-                  color: 'rgba(163,211,181,0.85)',
-                  boxShadow: '0 2px 12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)',
+                  background: 'rgba(14,90,54,0.15)',
+                  border: '1px solid rgba(14,90,54,0.32)',
+                  color: 'rgba(163,211,181,0.8)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
                 }}
-                whileHover={{
-                  scale: 1.04,
-                  background: 'rgba(14,90,54,0.28)',
-                  borderColor: 'rgba(14,90,54,0.65)',
-                  color: '#E2F5EC',
-                  boxShadow: '0 0 18px rgba(14,90,54,0.28), 0 2px 14px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-} as any}
+                whileHover={{ scale: 1.04, background: 'rgba(14,90,54,0.25)', borderColor: 'rgba(14,90,54,0.55)', color: '#E2F5EC' } as any}
                 whileTap={{ scale: 0.96 }}
-                transition={{ duration: 0.18 }}
+                transition={{ duration: 0.15 }}
               >
                 <PlusIcon />
                 <span className="hidden sm:inline tracking-wide">Entrada rápida</span>
               </motion.button>
 
-              {/* Exportar */}
+              {/* Export */}
               <motion.button
                 onClick={() => setShowExport(true)}
                 title="Exportar álbum"
-                className="relative flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold overflow-hidden"
+                className="relative flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all"
                 style={{
-                  background: 'rgba(245,197,66,0.1)',
-                  backdropFilter: 'blur(16px)',
-                  WebkitBackdropFilter: 'blur(16px)',
-                  border: '1px solid rgba(245,197,66,0.28)',
-                  color: 'rgba(245,197,66,0.85)',
-                  boxShadow: '0 2px 12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)',
+                  background: 'rgba(245,197,66,0.08)',
+                  border: '1px solid rgba(245,197,66,0.22)',
+                  color: 'rgba(245,197,66,0.8)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
                 }}
-                whileHover={{
-                  scale: 1.04,
-                  background: 'rgba(245,197,66,0.18)',
-                  borderColor: 'rgba(245,197,66,0.55)',
-                  color: '#FFD700',
-                  boxShadow: '0 0 18px rgba(245,197,66,0.22), 0 2px 14px rgba(0,0,0,0.4)',
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                } as any}
+                whileHover={{ scale: 1.04, background: 'rgba(245,197,66,0.16)', borderColor: 'rgba(245,197,66,0.5)', color: '#FFD700' } as any}
                 whileTap={{ scale: 0.96 }}
-                transition={{ duration: 0.18 }}
+                transition={{ duration: 0.15 }}
               >
                 <ExportIcon />
                 <span className="hidden sm:inline tracking-wide">Exportar</span>
               </motion.button>
 
-              {/* Notificaciones */}
+              {/* Notifications */}
               <motion.button
                 onClick={() => setShowNotifications(true)}
                 title="Actividad"
-                className="relative flex items-center justify-center w-9 h-9 rounded-xl overflow-hidden"
+                className="relative flex items-center justify-center w-9 h-9 rounded-xl transition-all"
                 style={{
-                  background: pendingIncoming > 0
-                    ? 'rgba(245,197,66,0.12)'
-                    : 'rgba(15,23,42,0.72)',
-                  backdropFilter: 'blur(16px)',
-                  WebkitBackdropFilter: 'blur(16px)',
-                  border: pendingIncoming > 0
-                    ? '1px solid rgba(245,197,66,0.38)'
-                    : '1px solid rgba(56,73,105,0.55)',
-                  color: pendingIncoming > 0 ? '#F5C542' : 'rgba(163,181,211,0.85)',
-                  boxShadow: pendingIncoming > 0
-                    ? '0 0 14px rgba(245,197,66,0.2), 0 2px 12px rgba(0,0,0,0.35)'
-                    : '0 2px 12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)',
+                  background: pendingIncoming > 0 ? 'rgba(245,197,66,0.1)' : 'rgba(16,28,48,0.7)',
+                  border: pendingIncoming > 0 ? '1px solid rgba(245,197,66,0.32)' : '1px solid rgba(56,73,105,0.45)',
+                  color: pendingIncoming > 0 ? '#F5C542' : 'rgba(163,181,211,0.8)',
                 }}
-                whileHover={{
-                  scale: 1.08,
-                  borderColor: 'rgba(245,197,66,0.5)',
-                  color: '#F5C542',
-                  boxShadow: '0 0 22px rgba(245,197,66,0.28), 0 2px 14px rgba(0,0,0,0.4)',
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-} as any}
+                whileHover={{ scale: 1.08, borderColor: 'rgba(245,197,66,0.45)', color: '#F5C542' } as any}
                 whileTap={{ scale: 0.94 }}
-                transition={{ duration: 0.18 }}
+                transition={{ duration: 0.15 }}
                 animate={pendingIncoming > 0 ? { scale: [1, 1.06, 1] } : {}}
               >
-                <BellIcon dot={false} />
+                <BellIcon />
                 {pendingIncoming > 0 && (
                   <motion.span
                     className="absolute -top-1 -right-1 bg-gradient-to-br from-red-500 to-red-600 text-white text-[9px] font-bold rounded-full min-w-[1.1rem] h-[1.1rem] px-1 flex items-center justify-center"
-                    style={{ boxShadow: '0 0 8px rgba(220,38,38,0.6), 0 2px 4px rgba(0,0,0,0.4)' }}
+                    style={{ boxShadow: '0 0 8px rgba(220,38,38,0.5)' }}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 15 }}
@@ -447,14 +461,14 @@ export default function Home() {
                 )}
               </motion.button>
 
-              {/* Separador */}
-              <div className="w-px h-6 mx-0.5" style={{ background: 'rgba(33,50,85,0.8)' }} />
+              {/* Divider */}
+              <div className="w-px h-6 mx-0.5" style={{ background: 'rgba(42,60,90,0.7)' }} />
 
-              {/* Usuario */}
+              {/* User */}
               <button
                 onClick={() => setShowProfile(true)}
-                className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all group"
-                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(26,40,64,0.8)'}
+                className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all"
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(20,36,58,0.8)'}
                 onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
                 title="Mi perfil"
               >
@@ -464,7 +478,7 @@ export default function Home() {
                   {profile.display_name.charAt(0).toUpperCase()}
                 </div>
                 <div className="hidden sm:block text-right">
-                  <p className="text-[9px] text-surface4 uppercase tracking-wider leading-none mb-0.5">Hola,</p>
+                  <p className="text-[9px] uppercase tracking-wider leading-none mb-0.5" style={{ color: 'rgba(163,181,211,0.5)' }}>Hola,</p>
                   <p className="font-bold text-gold text-xs leading-tight">{profile.display_name}</p>
                 </div>
               </button>
@@ -472,10 +486,10 @@ export default function Home() {
               {/* Logout */}
               <button
                 onClick={signOut}
-                className="p-1.5 rounded-lg transition-all text-surface4 hover:text-red-400"
-                style={{ background: 'transparent' }}
-                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(220,38,38,0.1)'}
-                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+                className="p-1.5 rounded-lg transition-all"
+                style={{ color: 'rgba(163,181,211,0.4)' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#F87171'; (e.currentTarget as HTMLElement).style.background = 'rgba(220,38,38,0.1)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(163,181,211,0.4)'; (e.currentTarget as HTMLElement).style.background = 'transparent' }}
                 title="Cerrar sesión"
               >
                 <LogoutIcon />
@@ -485,120 +499,250 @@ export default function Home() {
         </div>
       </motion.header>
 
-      {/* ── MAIN ─────────────────────────────────────────────────── */}
-      <main className="max-w-7xl mx-auto px-4 py-5 space-y-5">
+      {/* ── MAIN ──────────────────────────────────────────────── */}
+      <main className="max-w-7xl mx-auto px-4 py-5 space-y-4">
 
-        {/* Progress bar */}
-        {activeTab !== 'market' && activeTab !== 'stats' && activeTab !== 'dashboard' && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-            <ProgressBar progress={progress} />
-          </motion.div>
-        )}
-
-        {/* ── Tab navigation ─────────────────────────────────────── */}
-        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-          {tabs.map((tab) => (
+        {/* ── MAIN NAV (5 secciones) ──────────────────────────── */}
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+          {mainTabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => handleTabChange(tab.id)}
-              className={`relative flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-display text-sm tracking-wide transition-all whitespace-nowrap shrink-0 border ${
-                activeTab === tab.id
-                  ? 'text-dark border-gold/40 tab-active-glow'
-                  : 'text-surface4 hover:text-humo border-surface3/60 hover:border-surface4'
-              }`}
+              onClick={() => handleMainTabChange(tab.id)}
+              disabled={tab.disabled}
+              className="relative flex items-center gap-2 px-5 py-2.5 rounded-xl font-display text-sm tracking-widest uppercase transition-all whitespace-nowrap shrink-0 border"
               style={
-                activeTab === tab.id
-                  ? { background: 'linear-gradient(135deg, #F5C542, #FFD700)' }
-                  : { background: 'rgba(19,32,48,0.8)' }
+                tab.disabled
+                  ? {
+                      background: 'rgba(14,24,44,0.5)',
+                      borderColor: 'rgba(42,60,90,0.3)',
+                      color: 'rgba(163,181,211,0.25)',
+                      cursor: 'not-allowed',
+                    }
+                  : activeMain === tab.id
+                  ? {
+                      background: 'linear-gradient(135deg, #F5C542, #FFD700)',
+                      borderColor: 'rgba(245,197,66,0.5)',
+                      color: '#0B1624',
+                      boxShadow: '0 4px 20px rgba(245,197,66,0.30), 0 1px 0 rgba(255,255,255,0.2) inset',
+                    }
+                  : {
+                      background: 'rgba(14,24,44,0.65)',
+                      borderColor: 'rgba(42,60,90,0.45)',
+                      color: 'rgba(163,181,211,0.75)',
+                    }
               }
+              onMouseEnter={e => {
+                if (!tab.disabled && activeMain !== tab.id) {
+                  (e.currentTarget as HTMLElement).style.borderColor = 'rgba(245,197,66,0.35)'
+                  ;(e.currentTarget as HTMLElement).style.color = '#E5E7EB'
+                  ;(e.currentTarget as HTMLElement).style.background = 'rgba(18,30,52,0.85)'
+                }
+              }}
+              onMouseLeave={e => {
+                if (!tab.disabled && activeMain !== tab.id) {
+                  (e.currentTarget as HTMLElement).style.borderColor = 'rgba(42,60,90,0.45)'
+                  ;(e.currentTarget as HTMLElement).style.color = 'rgba(163,181,211,0.75)'
+                  ;(e.currentTarget as HTMLElement).style.background = 'rgba(14,24,44,0.65)'
+                }
+              }}
             >
-              <span className={`flex items-center leading-none ${activeTab === tab.id ? 'opacity-70' : 'opacity-50'}`}>
-                {TAB_ICONS[tab.id]}
+              <span className={activeMain === tab.id ? 'opacity-70' : 'opacity-60'}>
+                {tab.icon}
               </span>
               {tab.label}
+
+              {/* Badge (Mercado trade count) */}
               {tab.badge != null && tab.badge > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[1rem] px-1 flex items-center justify-center leading-none h-4">
+                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[1rem] px-1 flex items-center justify-center leading-none h-4"
+                  style={{ boxShadow: '0 0 8px rgba(220,38,38,0.5)' }}>
                   {tab.badge}
+                </span>
+              )}
+
+              {/* "Próximamente" badge for Quiniela */}
+              {tab.soon && (
+                <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
+                  style={{ background: 'rgba(249,115,22,0.15)', color: 'rgba(251,146,60,0.5)', border: '1px solid rgba(249,115,22,0.2)' }}>
+                  Pronto
                 </span>
               )}
             </button>
           ))}
         </div>
 
-        {/* ── Tab content ──────────────────────────────────────────── */}
+        {/* ── ALBUM SUB-NAV (shown only when album is active) ─── */}
+        <AnimatePresence>
+          {activeMain === 'album' && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+              className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none"
+            >
+              <span className="text-[9px] uppercase tracking-[0.32em] shrink-0 pr-1 font-semibold"
+                style={{ color: 'rgba(163,181,211,0.35)' }}>
+                Sección
+              </span>
+              <div className="w-px h-4 shrink-0" style={{ background: 'rgba(42,60,90,0.5)' }} />
+              {albumTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => handleAlbumTabChange(tab.id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all whitespace-nowrap shrink-0 border"
+                  style={
+                    activeAlbum === tab.id
+                      ? {
+                          background: 'rgba(245,197,66,0.10)',
+                          borderColor: 'rgba(245,197,66,0.32)',
+                          color: '#F5C542',
+                          boxShadow: '0 1px 10px rgba(245,197,66,0.15)',
+                        }
+                      : {
+                          background: 'rgba(12,20,38,0.55)',
+                          borderColor: 'rgba(42,60,90,0.38)',
+                          color: 'rgba(163,181,211,0.6)',
+                        }
+                  }
+                  onMouseEnter={e => {
+                    if (activeAlbum !== tab.id) {
+                      (e.currentTarget as HTMLElement).style.borderColor = 'rgba(245,197,66,0.22)'
+                      ;(e.currentTarget as HTMLElement).style.color = 'rgba(229,231,235,0.9)'
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (activeAlbum !== tab.id) {
+                      (e.currentTarget as HTMLElement).style.borderColor = 'rgba(42,60,90,0.38)'
+                      ;(e.currentTarget as HTMLElement).style.color = 'rgba(163,181,211,0.6)'
+                    }
+                  }}
+                >
+                  <span className="opacity-70">{ALBUM_TAB_ICONS[tab.id]}</span>
+                  {tab.label}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Progress bar (only in album, not in stats) ─────── */}
+        {activeMain === 'album' && activeAlbum !== 'stats' && (
+          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+            <ProgressBar progress={progress} />
+          </motion.div>
+        )}
+
+        {/* ── Content ──────────────────────────────────────────── */}
         <motion.div
-          key={activeTab}
+          key={`${activeMain}-${activeMain === 'album' ? activeAlbum : ''}`}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.18 }}
         >
-          {activeTab === 'intro' && !loading && (
-            <StickerGallery stickers={introFWCStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} title="Intro FWC — Portada y presentación" />
-          )}
+          {/* ── ÁLBUM ───────────────────────────────────────── */}
+          {activeMain === 'album' && (
+            <>
+              {activeAlbum === 'intro' && !loading && (
+                <StickerGallery stickers={introFWCStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} title="Intro FWC — Portada y presentación" />
+              )}
 
-          {activeTab === 'equipos' && !loading && (
-            <div className="space-y-5">
-              {selectedTeam && selectedTeamData ? (
+              {activeAlbum === 'equipos' && !loading && (
+                <div className="space-y-5">
+                  {selectedTeam && selectedTeamData ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => setSelectedTeam(null)} className="flex items-center gap-1.5 text-sm transition-colors"
+                          style={{ color: 'rgba(163,181,211,0.6)' }}
+                          onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#F5C542'}
+                          onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(163,181,211,0.6)'}>
+                          ← Volver
+                        </button>
+                        <span style={{ color: 'rgba(163,181,211,0.3)' }}>·</span>
+                        <div className="flex items-center gap-2">
+                          <TeamFlag code={selectedTeam} className="text-lg" />
+                          <span className="text-sm font-bold text-humo">{selectedTeamData.name}</span>
+                          <span className="text-[9px] border px-2 py-0.5 rounded-full uppercase tracking-wider"
+                            style={{ color: 'rgba(163,181,211,0.5)', borderColor: 'rgba(42,60,90,0.5)' }}>
+                            Grupo {selectedTeamData.group}
+                          </span>
+                        </div>
+                      </div>
+                      <StickerGallery stickers={selectedTeamStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} />
+                    </div>
+                  ) : (
+                    <TeamOverview userStickers={stickers} selectedTeam={selectedTeam} onSelectTeam={setSelectedTeam} />
+                  )}
+                </div>
+              )}
+
+              {activeAlbum === 'final' && !loading && (
+                <StickerGallery stickers={finalFWCStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} title="Final FWC — Historia del torneo" />
+              )}
+
+              {activeAlbum === 'cocacola' && !loading && (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <button onClick={() => setSelectedTeam(null)} className="flex items-center gap-1.5 text-sm text-surface4 hover:text-gold transition-colors">
-                      ← Volver
-                    </button>
-                    <span className="text-surface3">·</span>
-                    <div className="flex items-center gap-2">
-                      <TeamFlag code={selectedTeam} className="text-lg" />
-                      <span className="text-sm font-bold text-humo">{selectedTeamData.name}</span>
-                      <span className="text-[9px] text-surface4 border border-surface3 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                        Grupo {selectedTeamData.group}
-                      </span>
+                  <div className="flex items-center gap-4 p-4 rounded-xl border overflow-hidden relative"
+                    style={{ background: 'linear-gradient(135deg, rgba(153,0,0,0.25) 0%, rgba(19,32,48,0.9) 100%)', borderColor: 'rgba(153,0,0,0.3)' }}
+                  >
+                    <div className="absolute inset-0 diamond-pattern opacity-30 pointer-events-none" />
+                    <span className="text-3xl relative z-10">🥤</span>
+                    <div className="relative z-10">
+                      <p className="text-white font-display text-xl tracking-wide uppercase">Coca-Cola Special Edition</p>
+                      <p className="text-xs mt-0.5" style={{ color: 'rgba(163,181,211,0.5)' }}>14 stickers premium — CC1 al CC14</p>
                     </div>
                   </div>
-                  <StickerGallery stickers={selectedTeamStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} />
+                  <StickerGallery stickers={cocaColaStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} />
                 </div>
-              ) : (
-                <TeamOverview userStickers={stickers} selectedTeam={selectedTeam} onSelectTeam={setSelectedTeam} />
               )}
-            </div>
-          )}
 
-          {activeTab === 'final' && !loading && (
-            <StickerGallery stickers={finalFWCStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} title="Final FWC — Historia del torneo" />
-          )}
+              {activeAlbum === 'repetidas' && !loading && (
+                <StickerGallery stickers={allStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} defaultFilter="repeated" title="Mis repetidas" />
+              )}
 
-          {activeTab === 'cocacola' && !loading && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-4 p-4 rounded-xl border overflow-hidden relative"
-                style={{ background: 'linear-gradient(135deg, rgba(153,0,0,0.25) 0%, rgba(19,32,48,0.9) 100%)', borderColor: 'rgba(153,0,0,0.3)' }}
-              >
-                <div className="absolute inset-0 diamond-pattern opacity-30 pointer-events-none" />
-                <span className="text-3xl relative z-10">🥤</span>
-                <div className="relative z-10">
-                  <p className="text-white font-display text-xl tracking-wide uppercase">Coca-Cola Special Edition</p>
-                  <p className="text-surface4 text-xs mt-0.5">14 stickers premium — CC1 al CC14</p>
+              {activeAlbum === 'stats' && (
+                <StatsPanel progress={progress} stickers={stickers} />
+              )}
+
+              {loading && activeAlbum !== 'stats' && (
+                <div className="flex flex-col items-center justify-center py-20 gap-4">
+                  <div className="relative w-10 h-10">
+                    <div className="absolute inset-0 rounded-full border-2 border-gold/10" />
+                    <div className="absolute inset-0 rounded-full border-t-2 border-gold animate-spin" />
+                  </div>
+                  <p className="text-xs font-display tracking-[0.3em] uppercase" style={{ color: 'rgba(163,181,211,0.4)' }}>
+                    Cargando figuritas
+                  </p>
                 </div>
+              )}
+            </>
+          )}
+
+          {/* ── CALENDARIO ──────────────────────────────────── */}
+          {activeMain === 'calendario' && (
+            <CalendarView />
+          )}
+
+          {/* ── QUINIELA (disabled) ─────────────────────────── */}
+          {activeMain === 'quiniela' && (
+            <div className="flex flex-col items-center justify-center py-24 gap-6 text-center">
+              <div className="w-20 h-20 rounded-2xl flex items-center justify-center"
+                style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.18)' }}>
+                <QuinielaIcon />
               </div>
-              <StickerGallery stickers={cocaColaStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} />
+              <div>
+                <h2 className="text-2xl font-display tracking-widest uppercase" style={{ color: 'rgba(249,115,22,0.7)' }}>
+                  Quiniela
+                </h2>
+                <p className="text-sm mt-2" style={{ color: 'rgba(163,181,211,0.5)' }}>Próximamente disponible</p>
+                <p className="text-xs mt-1" style={{ color: 'rgba(163,181,211,0.3)' }}>
+                  Predice los resultados del Mundial y compite con amigos
+                </p>
+              </div>
             </div>
           )}
 
-          {activeTab === 'repetidas' && !loading && (
-            <StickerGallery stickers={allStickers} userStickers={stickers} onUpdateSticker={handleUpdateSticker} defaultFilter="repeated" title="Mis repetidas" />
-          )}
-
-          {activeTab === 'stats' && (
-            <StatsPanel progress={progress} stickers={stickers} />
-          )}
-
-          {activeTab === 'dashboard' && (
-            <DashboardView
-              userId={userId}
-              myProgress={progress}
-              myStickers={stickers}
-              myTrades={trades}
-            />
-          )}
-
-          {activeTab === 'market' && (
+          {/* ── MERCADO ─────────────────────────────────────── */}
+          {activeMain === 'mercado' && (
             <MarketplaceView
               userId={userId} myStickers={stickers} trades={trades}
               othersRepeated={othersRepeated} othersOwned={othersOwned} matches={matches}
@@ -608,19 +752,19 @@ export default function Home() {
             />
           )}
 
-          {loading && activeTab !== 'market' && activeTab !== 'stats' && activeTab !== 'dashboard' && (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <div className="relative w-10 h-10">
-                <div className="absolute inset-0 rounded-full border-2 border-gold/10" />
-                <div className="absolute inset-0 rounded-full border-t-2 border-gold animate-spin" />
-              </div>
-              <p className="text-surface4 text-sm font-display tracking-[0.3em] uppercase">Cargando figuritas</p>
-            </div>
+          {/* ── DASHBOARD ───────────────────────────────────── */}
+          {activeMain === 'dashboard' && (
+            <DashboardView
+              userId={userId}
+              myProgress={progress}
+              myStickers={stickers}
+              myTrades={trades}
+            />
           )}
         </motion.div>
       </main>
 
-      {/* ── Modales ──────────────────────────────────────────────── */}
+      {/* ── Modales ───────────────────────────────────────────── */}
       <AnimatePresence>
         {showSearch && (
           <StickerSearch userStickers={stickers} onNavigate={handleSearchNavigate} onClose={() => setShowSearch(false)} />
@@ -628,7 +772,6 @@ export default function Home() {
       </AnimatePresence>
 
       {showBulk && <BulkEntryModal onConfirm={handleBulkMark} onClose={() => setShowBulk(false)} />}
-
       {showExport && <ExportModal stickers={stickers} onClose={() => setShowExport(false)} />}
 
       {showProfile && (
@@ -637,7 +780,6 @@ export default function Home() {
 
       <NotificationsPanel show={showNotifications} trades={trades} userId={userId} onClose={() => setShowNotifications(false)} />
 
-      {/* Trade received summary — replaces cinematic pack opening (PackOpeningModal preserved but inactive) */}
       <AnimatePresence>
         {showPackModal && packModalItems.length > 0 && (
           <TradeReceivedSummary
@@ -648,7 +790,7 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* ── Toasts globales ──────────────────────────────────────── */}
+      {/* ── Global Toasts ─────────────────────────────────────── */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[110] flex flex-col gap-2 items-center pointer-events-none">
         <AnimatePresence mode="popLayout">
           {globalToasts.map((t) => (
@@ -657,11 +799,13 @@ export default function Home() {
               initial={{ opacity: 0, y: 20, scale: 0.93 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              onClick={() => { setActiveTab('market') }}
-              className="px-5 py-3 rounded-xl font-bold text-sm shadow-2xl whitespace-nowrap pointer-events-auto transition-all flex items-center gap-2 border"
+              onClick={() => setActiveMain('mercado')}
+              className="px-5 py-3 rounded-xl font-bold text-sm shadow-2xl whitespace-nowrap pointer-events-auto flex items-center gap-2 border"
               style={{ background: 'linear-gradient(135deg, #92400e, #b45309)', borderColor: 'rgba(245,158,11,0.3)', color: '#fff' }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
               {t.msg}
               <span className="text-amber-300 font-normal text-xs">→ Ver</span>
             </motion.button>
