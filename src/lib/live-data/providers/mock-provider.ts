@@ -169,9 +169,9 @@ const MOCK_MATCHES: LiveMatch[] = [
   },
   {
     id: 'frnd-20260602-wal-gha',
-    date: '2026-06-02', time: 'TBD', timezone: 'TBD', status: 'upcoming',
-    home: { id: 'wal', code: 'WAL', name: 'Gales', shortName: 'WAL' },
-    away: { id: 'gha', code: 'GHA', name: 'Ghana', shortName: 'GHA' },
+    date: '2026-06-02', time: 'TBD', timezone: 'TBD', status: 'completed',
+    home: { id: 'wal', code: 'WAL', name: 'Gales', shortName: 'WAL', score: 0 },
+    away: { id: 'gha', code: 'GHA', name: 'Ghana', shortName: 'GHA', score: 1 },
     venue: tbd('Gales'), competition: FRIENDLY,
   },
   {
