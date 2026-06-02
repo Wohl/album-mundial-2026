@@ -58,7 +58,8 @@ function StatusBadge({ status, minute }: { status: LiveMatchStatus; minute?: num
 function TeamBlock({ code, name, score, status }: {
   code: string; name: string; score?: number; status: LiveMatchStatus
 }) {
-  const isLiveOrDone = status !== 'upcoming'
+  // Show individual score only during live/halftime (center handles completed score)
+  const isLive = status === 'live' || status === 'halftime'
   return (
     <div className="flex flex-col items-center gap-1.5 flex-1">
       <div className="w-10 h-10 flex items-center justify-center">
@@ -68,7 +69,7 @@ function TeamBlock({ code, name, score, status }: {
         style={{ color: '#E5E7EB', maxWidth: '100px' }}>
         {name}
       </span>
-      {isLiveOrDone && score !== undefined && (
+      {isLive && score !== undefined && (
         <span className="text-2xl font-display" style={{ color: '#F5C542' }}>{score}</span>
       )}
     </div>
@@ -128,6 +129,9 @@ function FriendlyMatchCard({ match }: { match: LiveMatch }) {
               <span className="text-2xl font-display leading-none" style={{ color: '#E5E7EB' }}>
                 {match.home.score} – {match.away.score}
               </span>
+            )}
+            {(match.status === 'postponed' || match.status === 'cancelled') && (
+              <span className="font-display leading-none text-base" style={{ color: 'rgba(163,181,211,0.2)' }}>VS</span>
             )}
           </div>
 
@@ -314,7 +318,7 @@ export function FriendliesView() {
               onMouseLeave={e => { if (!isActive) { const el = e.currentTarget as HTMLElement; el.style.background = 'rgba(14,24,44,0.7)'; el.style.borderColor = 'rgba(42,60,90,0.45)'; el.style.color = 'rgba(163,181,211,0.7)' } }}
             >
               {label}
-              {count !== undefined && !loading && (
+              {count !== undefined && !loading && !searchQuery && (
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md"
                   style={{
                     background: isActive ? 'rgba(0,0,0,0.15)' : 'rgba(42,60,90,0.5)',
@@ -427,7 +431,7 @@ export function FriendliesView() {
                 <div className="flex-1 h-px" style={{ background: 'rgba(42,60,90,0.3)' }} />
               </div>
 
-              <div className="grid grid-cols-1 xl2:grid-cols-2 3xl:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl2:grid-cols-2 3xl:grid-cols-3 gap-3">
                 {dayMatches.map(match => <FriendlyMatchCard key={match.id} match={match} />)}
               </div>
             </div>

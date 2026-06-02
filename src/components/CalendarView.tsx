@@ -295,7 +295,7 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
     <div className="space-y-5">
 
       {/* ── Section tabs: Mundial 2026 / Fogueos ─────────────────── */}
-      <div className="flex gap-2">
+      <div className="flex gap-2" role="tablist" aria-label="Secciones del Calendario">
         {(['world_cup', 'friendlies'] as const).map(tab => {
           const isActive = calendarTab === tab
           const label = tab === 'world_cup' ? 'Mundial 2026' : 'Fogueos'
@@ -303,6 +303,9 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
           return (
             <button
               key={tab}
+              role="tab"
+              aria-selected={isActive}
+              aria-label={label}
               onClick={() => setCalendarTab(tab)}
               className="flex items-center gap-2 px-4 py-2 rounded-xl font-display text-sm uppercase tracking-wide border transition-all"
               style={isActive ? {
