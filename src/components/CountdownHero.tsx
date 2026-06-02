@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 
-// Opening match: Mexico vs South Africa, 2026-06-11 20:00 local (UTC-5)
-// Using midnight UTC on June 11 as the safe cross-timezone target
-const WC_START = new Date('2026-06-11T00:00:00')
+// Opening match: Mexico vs South Africa, 2026-06-11 13:00 CR/MX time (UTC-6) = 19:00 UTC
+const WC_START = new Date('2026-06-11T13:00:00-06:00')
 
 interface TimeLeft {
   days: number
