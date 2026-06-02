@@ -293,8 +293,12 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
             style={{ background: 'linear-gradient(135deg, #F5C542, #FFD700)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
             Calendario
           </h2>
-          <p className="text-xs mt-0.5 tracking-wide" style={{ color: 'rgba(163,181,211,0.5)' }}>
-            FIFA World Cup 2026 · {allMatches.length} partidos
+          <p className="text-sm mt-0.5 tracking-wide" style={{ color: 'rgba(185,205,230,0.72)' }}>
+            FIFA World Cup 2026 ·{' '}
+            <span className="font-bold" style={{ color: 'rgba(245,197,66,0.85)' }}>
+              {allMatches.length}
+            </span>
+            {' '}partidos
           </p>
         </div>
         <div className="flex items-center gap-3 text-xs" style={{ color: 'rgba(163,181,211,0.6)' }}>
@@ -576,7 +580,7 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
                 <div className="flex-1 h-px" style={{ background: 'rgba(42,60,90,0.3)' }} />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 xl2:grid-cols-2 3xl:grid-cols-3 gap-3">
                 {dayMatches.map(match => <MatchCard key={match.id} match={match} />)}
               </div>
             </div>

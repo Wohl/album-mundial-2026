@@ -5,6 +5,10 @@ module.exports = {
   ],
   theme: {
     extend: {
+      screens: {
+        'xl2': '1200px',  // 2-col calendar grid
+        '3xl': '1600px',  // 3-col calendar grid
+      },
       fontFamily: {
         display: ['var(--font-bebas)', 'sans-serif'],
         body:    ['var(--font-barlow)', 'sans-serif'],

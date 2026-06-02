@@ -504,70 +504,88 @@ export default function Home() {
 
         {/* ── MAIN NAV (5 secciones) ──────────────────────────── */}
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {mainTabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => handleMainTabChange(tab.id)}
-              disabled={tab.disabled}
-              className="relative flex items-center gap-2 px-5 py-2.5 rounded-xl font-display text-sm tracking-widest uppercase transition-all whitespace-nowrap shrink-0 border"
-              style={
-                tab.disabled
-                  ? {
-                      background: 'rgba(14,24,44,0.5)',
-                      borderColor: 'rgba(42,60,90,0.3)',
-                      color: 'rgba(163,181,211,0.25)',
-                      cursor: 'not-allowed',
-                    }
-                  : activeMain === tab.id
-                  ? {
-                      background: 'linear-gradient(135deg, #F5C542, #FFD700)',
-                      borderColor: 'rgba(245,197,66,0.5)',
-                      color: '#0B1624',
-                      boxShadow: '0 4px 20px rgba(245,197,66,0.30), 0 1px 0 rgba(255,255,255,0.2) inset',
-                    }
-                  : {
-                      background: 'rgba(14,24,44,0.65)',
-                      borderColor: 'rgba(42,60,90,0.45)',
-                      color: 'rgba(163,181,211,0.75)',
-                    }
-              }
-              onMouseEnter={e => {
-                if (!tab.disabled && activeMain !== tab.id) {
-                  (e.currentTarget as HTMLElement).style.borderColor = 'rgba(245,197,66,0.35)'
-                  ;(e.currentTarget as HTMLElement).style.color = '#E5E7EB'
-                  ;(e.currentTarget as HTMLElement).style.background = 'rgba(18,30,52,0.85)'
+          {mainTabs.map((tab) => {
+            const isQuiniela = tab.id === 'quiniela'
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleMainTabChange(tab.id)}
+                disabled={tab.disabled}
+                className="relative flex items-center gap-2 px-5 py-2 rounded-xl font-display text-sm tracking-widest uppercase transition-all whitespace-nowrap shrink-0 border"
+                style={
+                  isQuiniela
+                    ? {
+                        background: 'rgba(249,115,22,0.04)',
+                        borderColor: 'rgba(249,115,22,0.18)',
+                        color: 'rgba(251,146,60,0.4)',
+                        cursor: 'not-allowed',
+                        borderStyle: 'dashed',
+                      }
+                    : tab.disabled
+                    ? {
+                        background: 'rgba(14,24,44,0.5)',
+                        borderColor: 'rgba(42,60,90,0.3)',
+                        color: 'rgba(163,181,211,0.25)',
+                        cursor: 'not-allowed',
+                      }
+                    : activeMain === tab.id
+                    ? {
+                        background: 'linear-gradient(135deg, #F5C542, #FFD700)',
+                        borderColor: 'rgba(245,197,66,0.5)',
+                        color: '#0B1624',
+                        boxShadow: '0 3px 16px rgba(245,197,66,0.28), 0 1px 0 rgba(255,255,255,0.2) inset',
+                      }
+                    : {
+                        background: 'rgba(14,24,44,0.65)',
+                        borderColor: 'rgba(42,60,90,0.45)',
+                        color: 'rgba(163,181,211,0.75)',
+                      }
                 }
-              }}
-              onMouseLeave={e => {
-                if (!tab.disabled && activeMain !== tab.id) {
-                  (e.currentTarget as HTMLElement).style.borderColor = 'rgba(42,60,90,0.45)'
-                  ;(e.currentTarget as HTMLElement).style.color = 'rgba(163,181,211,0.75)'
-                  ;(e.currentTarget as HTMLElement).style.background = 'rgba(14,24,44,0.65)'
-                }
-              }}
-            >
-              <span className={activeMain === tab.id ? 'opacity-70' : 'opacity-60'}>
-                {tab.icon}
-              </span>
-              {tab.label}
-
-              {/* Badge (Mercado trade count) */}
-              {tab.badge != null && tab.badge > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[1rem] px-1 flex items-center justify-center leading-none h-4"
-                  style={{ boxShadow: '0 0 8px rgba(220,38,38,0.5)' }}>
-                  {tab.badge}
+                onMouseEnter={e => {
+                  if (!tab.disabled && activeMain !== tab.id) {
+                    (e.currentTarget as HTMLElement).style.borderColor = 'rgba(245,197,66,0.35)'
+                    ;(e.currentTarget as HTMLElement).style.color = '#E5E7EB'
+                    ;(e.currentTarget as HTMLElement).style.background = 'rgba(18,30,52,0.85)'
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!tab.disabled && activeMain !== tab.id) {
+                    (e.currentTarget as HTMLElement).style.borderColor = 'rgba(42,60,90,0.45)'
+                    ;(e.currentTarget as HTMLElement).style.color = 'rgba(163,181,211,0.75)'
+                    ;(e.currentTarget as HTMLElement).style.background = 'rgba(14,24,44,0.65)'
+                  }
+                }}
+              >
+                <span className={activeMain === tab.id ? 'opacity-70' : isQuiniela ? 'opacity-40' : 'opacity-60'}>
+                  {tab.icon}
                 </span>
-              )}
+                {tab.label}
 
-              {/* "Próximamente" badge for Quiniela */}
-              {tab.soon && (
-                <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
-                  style={{ background: 'rgba(249,115,22,0.15)', color: 'rgba(251,146,60,0.5)', border: '1px solid rgba(249,115,22,0.2)' }}>
-                  Pronto
-                </span>
-              )}
-            </button>
-          ))}
+                {/* Badge (Mercado trade count) */}
+                {tab.badge != null && tab.badge > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[1rem] px-1 flex items-center justify-center leading-none h-4"
+                    style={{ boxShadow: '0 0 8px rgba(220,38,38,0.5)' }}>
+                    {tab.badge}
+                  </span>
+                )}
+
+                {/* Quiniela — "Próximamente" badge mejorado */}
+                {isQuiniela && (
+                  <span className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                    style={{
+                      background: 'rgba(249,115,22,0.12)',
+                      color: 'rgba(251,146,60,0.75)',
+                      border: '1px solid rgba(249,115,22,0.28)',
+                    }}>
+                    <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    Pronto
+                  </span>
+                )}
+              </button>
+            )
+          })}
         </div>
 
         {/* ── ALBUM SUB-NAV (shown only when album is active) ─── */}
