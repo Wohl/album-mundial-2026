@@ -275,7 +275,7 @@ export function FriendliesView() {
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
             }}>
-            Fogueos Internacionales
+            Amistosos Internacionales
           </h2>
           <p className="text-sm mt-1 tracking-wide" style={{ color: 'rgba(185,205,230,0.8)' }}>
             Preparación para el{' '}

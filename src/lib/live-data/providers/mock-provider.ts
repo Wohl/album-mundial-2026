@@ -14,7 +14,7 @@ function tbd(country: string): LiveVenue {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SOURCE: Lista oficial de fogueos pre-Mundial 2026 (May 30 – Jun 10, 2026)
+// SOURCE: Lista oficial de amistosos pre-Mundial 2026 (May 30 – Jun 10, 2026)
 // Completed = partidos con marcador conocido
 // Upcoming  = partidos sin marcador (incluye Jun 1 sin resultados reportados)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -111,60 +111,60 @@ const MOCK_MATCHES: LiveMatch[] = [
   // ══ LUNES 1 JUNIO — UPCOMING ══════════════════════════════════════════════
   {
     id: 'frnd-20260601-svk-mlt',
-    date: '2026-06-01', time: 'TBD', timezone: 'TBD', status: 'upcoming',
-    home: { id: 'svk', code: 'SVK', name: 'Eslovaquia', shortName: 'SVK' },
-    away: { id: 'mlt', code: 'MLT', name: 'Malta',      shortName: 'MLT' },
+    date: '2026-06-01', time: 'TBD', timezone: 'TBD', status: 'completed',
+    home: { id: 'svk', code: 'SVK', name: 'Eslovaquia', shortName: 'SVK', score: 2 },
+    away: { id: 'mlt', code: 'MLT', name: 'Malta',      shortName: 'MLT', score: 1 },
     venue: tbd('Eslovaquia'), competition: FRIENDLY,
   },
   {
     id: 'frnd-20260601-nor-swe',
-    date: '2026-06-01', time: 'TBD', timezone: 'TBD', status: 'upcoming',
-    home: { id: 'nor', code: 'NOR', name: 'Noruega', shortName: 'NOR' },
-    away: { id: 'swe', code: 'SWE', name: 'Suecia',  shortName: 'SWE' },
+    date: '2026-06-01', time: 'TBD', timezone: 'TBD', status: 'completed',
+    home: { id: 'nor', code: 'NOR', name: 'Noruega', shortName: 'NOR', score: 3 },
+    away: { id: 'swe', code: 'SWE', name: 'Suecia',  shortName: 'SWE', score: 1 },
     venue: tbd('Noruega'), competition: FRIENDLY,
   },
   {
     id: 'frnd-20260601-tur-mkd',
-    date: '2026-06-01', time: 'TBD', timezone: 'TBD', status: 'upcoming',
-    home: { id: 'tur', code: 'TUR', name: 'Türkiye',             shortName: 'TUR' },
-    away: { id: 'mkd', code: 'MKD', name: 'Macedonia del Norte', shortName: 'MKD' },
+    date: '2026-06-01', time: 'TBD', timezone: 'TBD', status: 'completed',
+    home: { id: 'tur', code: 'TUR', name: 'Türkiye',             shortName: 'TUR', score: 4 },
+    away: { id: 'mkd', code: 'MKD', name: 'Macedonia del Norte', shortName: 'MKD', score: 0 },
     venue: tbd('Türkiye'), competition: FRIENDLY,
   },
   {
     id: 'frnd-20260601-aut-tun',
-    date: '2026-06-01', time: 'TBD', timezone: 'TBD', status: 'upcoming',
-    home: { id: 'aut', code: 'AUT', name: 'Austria', shortName: 'AUT' },
-    away: { id: 'tun', code: 'TUN', name: 'Túnez',   shortName: 'TUN' },
+    date: '2026-06-01', time: 'TBD', timezone: 'TBD', status: 'completed',
+    home: { id: 'aut', code: 'AUT', name: 'Austria', shortName: 'AUT', score: 1 },
+    away: { id: 'tun', code: 'TUN', name: 'Túnez',   shortName: 'TUN', score: 0 },
     venue: tbd('Austria'), competition: FRIENDLY,
   },
   {
     id: 'frnd-20260601-col-crc',
-    date: '2026-06-01', time: 'TBD', timezone: 'TBD', status: 'upcoming',
-    home: { id: 'col', code: 'COL', name: 'Colombia',   shortName: 'COL' },
-    away: { id: 'crc', code: 'CRC', name: 'Costa Rica', shortName: 'CRC' },
+    date: '2026-06-01', time: 'TBD', timezone: 'TBD', status: 'completed',
+    home: { id: 'col', code: 'COL', name: 'Colombia',   shortName: 'COL', score: 3 },
+    away: { id: 'crc', code: 'CRC', name: 'Costa Rica', shortName: 'CRC', score: 1 },
     venue: tbd('Colombia'), competition: FRIENDLY,
   },
   {
     id: 'frnd-20260601-can-uzb',
-    date: '2026-06-01', time: 'TBD', timezone: 'TBD', status: 'upcoming',
-    home: { id: 'can', code: 'CAN', name: 'Canadá',    shortName: 'CAN' },
-    away: { id: 'uzb', code: 'UZB', name: 'Uzbekistán', shortName: 'UZB' },
+    date: '2026-06-01', time: 'TBD', timezone: 'TBD', status: 'completed',
+    home: { id: 'can', code: 'CAN', name: 'Canadá',    shortName: 'CAN', score: 2 },
+    away: { id: 'uzb', code: 'UZB', name: 'Uzbekistán', shortName: 'UZB', score: 0 },
     venue: tbd('Canadá'), competition: FRIENDLY,
   },
 
   // ══ MARTES 2 JUNIO — UPCOMING ════════════════════════════════════════════
   {
     id: 'frnd-20260602-cro-bel',
-    date: '2026-06-02', time: 'TBD', timezone: 'TBD', status: 'upcoming',
-    home: { id: 'cro', code: 'CRO', name: 'Croacia',  shortName: 'CRO' },
-    away: { id: 'bel', code: 'BEL', name: 'Bélgica',  shortName: 'BEL' },
+    date: '2026-06-02', time: 'TBD', timezone: 'TBD', status: 'completed',
+    home: { id: 'cro', code: 'CRO', name: 'Croacia',  shortName: 'CRO', score: 0 },
+    away: { id: 'bel', code: 'BEL', name: 'Bélgica',  shortName: 'BEL', score: 2 },
     venue: tbd('Croacia'), competition: FRIENDLY,
   },
   {
     id: 'frnd-20260602-mar-mad',
-    date: '2026-06-02', time: 'TBD', timezone: 'TBD', status: 'upcoming',
-    home: { id: 'mar', code: 'MAR', name: 'Marruecos', shortName: 'MAR' },
-    away: { id: 'mad', code: 'MAD', name: 'Madagascar', shortName: 'MAD' },
+    date: '2026-06-02', time: 'TBD', timezone: 'TBD', status: 'completed',
+    home: { id: 'mar', code: 'MAR', name: 'Marruecos', shortName: 'MAR', score: 4 },
+    away: { id: 'mad', code: 'MAD', name: 'Madagascar', shortName: 'MAD', score: 0 },
     venue: tbd('Marruecos'), competition: FRIENDLY,
   },
   {

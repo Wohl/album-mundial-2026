@@ -24,7 +24,7 @@ export const TEAM_ISO2: Record<string, string> = {
   POR: 'pt', COD: 'cd', UZB: 'uz', COL: 'co',
   // Grupo L
   ENG: 'gb-eng', CRO: 'hr', GHA: 'gh', PAN: 'pa',
-  // Fogueos — selecciones no clasificadas al Mundial 2026
+  // Amistosos — selecciones no clasificadas al Mundial 2026
   CRC: 'cr',      // Costa Rica
   ISL: 'is',      // Islandia
   KOS: 'xk',      // Kosovo (código no oficial, soportado por flag-icons)

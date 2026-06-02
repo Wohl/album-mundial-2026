@@ -294,11 +294,11 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
   return (
     <div className="space-y-5">
 
-      {/* ── Section tabs: Mundial 2026 / Fogueos ─────────────────── */}
+      {/* ── Section tabs: Mundial 2026 / Amistosos ────────────────── */}
       <div className="flex gap-2" role="tablist" aria-label="Secciones del Calendario">
         {(['world_cup', 'friendlies'] as const).map(tab => {
           const isActive = calendarTab === tab
-          const label = tab === 'world_cup' ? 'Mundial 2026' : 'Fogueos'
+          const label = tab === 'world_cup' ? 'Mundial 2026' : 'Amistosos'
           const icon  = tab === 'world_cup' ? '🏆' : '⚽'
           return (
             <button
