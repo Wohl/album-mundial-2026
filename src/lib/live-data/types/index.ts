@@ -17,6 +17,28 @@ export type CompetitionType =
   | 'world_cup'
   | 'nations_league'
 
+// ── Match events (Sprint 5) ────────────────────────────────────────
+export type LiveEventType =
+  | 'goal'
+  | 'own_goal'
+  | 'penalty'
+  | 'missed_penalty'
+  | 'yellow_card'
+  | 'red_card'
+  | 'yellow_red_card'
+  | 'substitution'
+
+export interface LiveEvent {
+  id: string
+  type: LiveEventType
+  minute: number
+  extraTime?: number
+  teamCode: string
+  playerName: string
+  assistName?: string      // for goals
+  playerOutName?: string   // for substitutions
+}
+
 export interface LiveTeam {
   id: string
   code: string       // FIFA 3-letter code ('ARG', 'BRA', 'MEX', etc.)
@@ -53,6 +75,7 @@ export interface LiveMatch {
   competition: LiveCompetition
   round?: string
   attendance?: number
+  events?: LiveEvent[]      // populated only when explicitly fetched (match detail)
 }
 
 // Options accepted by all provider implementations

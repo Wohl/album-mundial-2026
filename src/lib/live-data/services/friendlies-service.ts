@@ -1,9 +1,9 @@
-import type { LiveMatch } from '../types'
-import { MockProvider } from '../providers/mock-provider'
+// Friendlies service — client-safe.
+// Fetches via the /api/live/friendlies Route Handler (server-side key, real API).
+// Falls back to MockProvider if the Route Handler is unreachable.
 
-// Swap this instance for a real provider (ApiFootballProvider, SportmonksProvider)
-// when Phase 3b integrates live data. The service and UI layers need no changes.
-const provider = new MockProvider()
+import type { LiveMatch } from '../types'
+import { MockProvider }   from '../providers/mock-provider'
 
 function dateOffset(days: number): string {
   const d = new Date()
@@ -11,35 +11,55 @@ function dateOffset(days: number): string {
   return d.toISOString().split('T')[0]
 }
 
+// Fallback for when the Route Handler fails (network error, dev without key, etc.)
+const _mock = new MockProvider()
+async function mockFallback(from: string, to: string, teamCode?: string): Promise<LiveMatch[]> {
+  return _mock.fetchMatches({ from, to, competitionType: 'friendly', teamCode })
+}
+
+/** Calls the Route Handler; falls back to mock on any error. */
+async function fetchFromRoute(params: URLSearchParams): Promise<LiveMatch[]> {
+  try {
+    const res = await fetch(`/api/live/friendlies?${params.toString()}`)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const data = await res.json() as { matches: LiveMatch[] }
+    return data.matches ?? []
+  } catch (err) {
+    console.warn('[friendlies-service] Route Handler unavailable, using mock:', err)
+    return null as unknown as LiveMatch[]  // signal to caller to use mock
+  }
+}
+
+// ── Public API ────────────────────────────────────────────────────
+
 export async function getRecentFriendlies(): Promise<LiveMatch[]> {
-  return provider.fetchMatches({
-    from: dateOffset(-60),
-    to: dateOffset(-1),
-    competitionType: 'friendly',
-  })
+  const from = dateOffset(-60)
+  const to   = dateOffset(-1)
+  const p    = new URLSearchParams({ from, to })
+  const result = await fetchFromRoute(p)
+  return result ?? mockFallback(from, to)
 }
 
 export async function getUpcomingFriendlies(): Promise<LiveMatch[]> {
-  return provider.fetchMatches({
-    from: dateOffset(0),
-    to: dateOffset(30),
-    competitionType: 'friendly',
-  })
+  const from = dateOffset(0)
+  const to   = dateOffset(30)
+  const p    = new URLSearchParams({ from, to })
+  const result = await fetchFromRoute(p)
+  return result ?? mockFallback(from, to)
 }
 
 export async function getAllFriendlies(): Promise<LiveMatch[]> {
-  return provider.fetchMatches({
-    from: dateOffset(-60),
-    to: dateOffset(30),
-    competitionType: 'friendly',
-  })
+  const from = dateOffset(-60)
+  const to   = dateOffset(30)
+  const p    = new URLSearchParams({ from, to })
+  const result = await fetchFromRoute(p)
+  return result ?? mockFallback(from, to)
 }
 
 export async function getFriendliesByTeam(teamCode: string): Promise<LiveMatch[]> {
-  return provider.fetchMatches({
-    from: dateOffset(-60),
-    to: dateOffset(30),
-    competitionType: 'friendly',
-    teamCode,
-  })
+  const from = dateOffset(-60)
+  const to   = dateOffset(30)
+  const p    = new URLSearchParams({ from, to, teamCode })
+  const result = await fetchFromRoute(p)
+  return result ?? mockFallback(from, to, teamCode)
 }
