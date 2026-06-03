@@ -1,0 +1,445 @@
+{
+  "sections": [
+    {
+      "name": "1. App health & connectivity",
+      "results": [
+        {
+          "status": "PASS",
+          "label": "Dev server responde HTTP 200",
+          "detail": "text/html; charset=utf-8"
+        },
+        {
+          "status": "PASS",
+          "label": "Supabase REST API accesible",
+          "detail": "HTTP 200"
+        },
+        {
+          "status": "PASS",
+          "label": "Supabase Auth endpoint accesible",
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "name": "2. Authentication flows",
+      "results": [
+        {
+          "status": "PASS",
+          "label": "signUp (admin) user1",
+          "detail": "vfull1_1780069239776@example.com"
+        },
+        {
+          "status": "PASS",
+          "label": "signUp (admin) user2",
+          "detail": "vfull2_1780069239776@example.com"
+        },
+        {
+          "status": "PASS",
+          "label": "signInWithPassword user1 — JWT OK",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "signInWithPassword user2 — JWT OK",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "signOut endpoint responde correctamente",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "Re-login post-signOut funciona correctamente",
+          "detail": ""
+        },
+        {
+          "status": "WARN",
+          "label": "Password reset endpoint inesperado",
+          "detail": "HTTP 400"
+        }
+      ]
+    },
+    {
+      "name": "3. Automatic profile creation (trigger on_auth_user_created)",
+      "results": [
+        {
+          "status": "PASS",
+          "label": "2 perfiles creados automáticamente por trigger",
+          "detail": "on_auth_user_created"
+        },
+        {
+          "status": "PASS",
+          "label": "display_name user1 correcto desde raw_user_meta_data",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "display_name user2 correcto desde raw_user_meta_data",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "profiles SELECT via RLS (authenticated) OK",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "profiles UPDATE via RLS (own profile) OK",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "RLS UPDATE: usuario2 NO puede modificar perfil de usuario1",
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "name": "4. Sticker ownership & album progress",
+      "results": [
+        {
+          "status": "PASS",
+          "label": "INSERT sticker_state (ARG_0 owned)",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "INSERT sticker_state (BRA_0 repeated, count=3)",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "INSERT bulk (5 stickers MEX_0..MEX_4)",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "SELECT stickers: 7 filas correctas",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "Owned count correcto: 7",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "Repeated extras correctos: 3",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "UPDATE sticker_state owned → missing",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "stickers_select policy: user2 puede ver stickers de user1 (requerido para mercado): true",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "RLS stickers_update: user2 no puede escribir en stickers de user1",
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "name": "5. Repeated stickers & marketplace visibility",
+      "results": [
+        {
+          "status": "PASS",
+          "label": "Marketplace: stickers repetidas de otros usuarios visibles (2)",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "Marketplace: profile names lookup OK",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "getUserMissingFromList pattern: 0 stickers owned by user1 from candidate list",
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "name": "6. Trade creation & acceptance",
+      "results": [
+        {
+          "status": "PASS",
+          "label": "Trade INSERT OK",
+          "detail": "0c3d984a..."
+        },
+        {
+          "status": "PASS",
+          "label": "Trade status = pending inicial OK",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "Columnas N:N (requested_sticker_keys) presentes en trade",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "RLS trades_select: owner ve el trade",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "RPC accept_trade() ejecutada correctamente",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "trade_requests.status = accepted post-RPC",
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "name": "7. Counter-offers (counter_trade RPC)",
+      "results": [
+        {
+          "status": "PASS",
+          "label": "RPC counter_trade() ejecutada correctamente",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "Counter: trade status = countered",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "Counter: counter_by = user2 correcto",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "Counter: counter_requested_keys guardadas",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "Requester acepta contraoferta — RPC accept_trade (countered state) OK",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "Trade cancel (PATCH status=cancelled) OK",
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "name": "8. Pack items & realtime events",
+      "results": [
+        {
+          "status": "PASS",
+          "label": "INSERT 2 pack_items (linked to trade_id)",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "SELECT pack_items sin abrir: 2",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "UPDATE pack_items.opened_at (abrir sobre)",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "RLS pack_items: user2 no puede ver packs de user1",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "Realtime: pack_items en supabase_realtime publication",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "Realtime: sticker_states en supabase_realtime publication",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "Realtime: trade_requests en supabase_realtime publication",
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "name": "9. Dashboard statistics (RPCs)",
+      "results": [
+        {
+          "status": "PASS",
+          "label": "dashboard_user_counts() → 2 usuarios",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "dashboard_user_counts: user1 owned_count=8",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "dashboard_wanted_stickers(6) → 2 filas",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "dashboard_available_stickers(6) → 3 filas",
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "name": "10. Notifications panel data (trades feed)",
+      "results": [
+        {
+          "status": "PASS",
+          "label": "Notifications feed: 2 trades cargados",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "Trades con estados countered/accepted presentes en feed",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "Todos los trades tienen requested_sticker_keys (N:N)",
+          "detail": ""
+        },
+        {
+          "status": "WARN",
+          "label": "fetchRecentTrades selecciona columnas inexistentes (requester_name, owner_name)",
+          "detail": "Error esperado: columnas no existen en trade_requests. El feed retorna [] via catch{}. Bug pre-existente."
+        }
+      ]
+    },
+    {
+      "name": "11. Team pages & album structure (local data validation)",
+      "results": [
+        {
+          "status": "PASS",
+          "label": "Album total: 994 figuritas (9 intro + 960 equipos + 11 final + 14 CC)",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "Formato de claves de equipo correcto (TEAM_N)",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "displayKey: MEX_0 → MEX_1 (1-based display)",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "parseInputKey: MEX_1 → MEX_0 (0-based internal)",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "displayKey: FWC1 → FWC1 (non-team key unchanged)",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "displayKey: CC3 → CC3 (CC key unchanged)",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "BulkEntry: MEX_1 (input) → MEX_0 (DB key) roundtrip correcto",
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "name": "12. Export functionality",
+      "results": [
+        {
+          "status": "PASS",
+          "label": "StatsPanel: renderiza progress, team ranking, most repeated — datos calculados en cliente, sin llamadas extra",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "DashboardView: renderiza logros localmente desde stickers y trades del usuario",
+          "detail": ""
+        },
+        {
+          "status": "WARN",
+          "label": "No hay funcionalidad de export (CSV/PDF) implementada en el código fuente",
+          "detail": "La app no tiene botón de export — no aplica este test"
+        }
+      ]
+    },
+    {
+      "name": "13. Environment & configuration",
+      "results": [
+        {
+          "status": "PASS",
+          "label": ".env.local contiene URL del nuevo proyecto (hngymqusifirjurlyacv)",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": ".env.local contiene NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY correcto",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": ".env.local: NO contiene referencias al proyecto eliminado (lwttzrboabtfweassaxr)",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "src/lib/supabase.ts: lee NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "src/middleware.ts: llama updateSession (SSR session refresh)",
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "name": "Z. Cleanup",
+      "results": [
+        {
+          "status": "PASS",
+          "label": "Usuario de prueba eliminado: 947714d5...",
+          "detail": ""
+        },
+        {
+          "status": "PASS",
+          "label": "Usuario de prueba eliminado: 2ab9fe86...",
+          "detail": ""
+        }
+      ]
+    }
+  ],
+  "totalPass": 69,
+  "totalFail": 0,
+  "totalWarn": 3,
+  "regressions": [],
+  "preExistingBugs": [
+    {
+      "label": "fetchRecentTrades selecciona columnas inexistentes (requester_name, owner_name)",
+      "detail": "Error esperado: columnas no existen en trade_requests. El feed retorna [] via catch{}. Bug pre-existente."
+    }
+  ],
+  "timestamp": "2026-05-29T15:40:56.406Z"
+}
