@@ -16,6 +16,7 @@ import { MarketplaceView } from '@/components/MarketplaceView'
 import { StatsPanel } from '@/components/StatsPanel'
 import { DashboardView } from '@/components/DashboardView'
 import { CalendarView } from '@/components/CalendarView'
+import { PredictionsView } from '@/components/PredictionsView'
 import { BulkEntryModal } from '@/components/BulkEntryModal'
 import { ExportModal } from '@/components/ExportModal'
 import { TeamFlag } from '@/components/TeamFlag'
@@ -253,7 +254,6 @@ export default function Home() {
   }, [selectedTeam])
 
   const handleMainTabChange = (tab: MainTab) => {
-    if (tab === 'quiniela') return // disabled
     setActiveMain(tab)
     if (tab !== 'album') setSelectedTeam(null)
   }
@@ -294,7 +294,7 @@ export default function Home() {
   }[] = [
     { id: 'album',      label: 'Álbum',      icon: <AlbumIcon /> },
     { id: 'calendario', label: 'Calendario',  icon: <CalendarIcon /> },
-    { id: 'quiniela',   label: 'Quiniela',    icon: <QuinielaIcon />, disabled: true, soon: true },
+    { id: 'quiniela',   label: 'Predicciones', icon: <QuinielaIcon /> },
     { id: 'mercado',    label: 'Mercado',     icon: <MercadoIcon />, badge: pendingIncoming },
     { id: 'dashboard',  label: 'Dashboard',   icon: <DashboardIcon /> },
   ]
@@ -505,7 +505,6 @@ export default function Home() {
         {/* ── MAIN NAV (5 secciones) ──────────────────────────── */}
         <div role="tablist" aria-label="Secciones principales" className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
           {mainTabs.map((tab) => {
-            const isQuiniela = tab.id === 'quiniela'
             return (
               <button
                 key={tab.id}
@@ -516,15 +515,7 @@ export default function Home() {
                 disabled={tab.disabled}
                 className="relative flex items-center gap-2 px-5 py-2 rounded-xl font-display text-sm tracking-widest uppercase transition-all whitespace-nowrap shrink-0 border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
                 style={
-                  isQuiniela
-                    ? {
-                        background: 'rgba(249,115,22,0.04)',
-                        borderColor: 'rgba(249,115,22,0.18)',
-                        color: 'rgba(251,146,60,0.4)',
-                        cursor: 'not-allowed',
-                        borderStyle: 'dashed',
-                      }
-                    : tab.disabled
+                  tab.disabled
                     ? {
                         background: 'rgba(14,24,44,0.5)',
                         borderColor: 'rgba(42,60,90,0.3)',
@@ -559,7 +550,7 @@ export default function Home() {
                   }
                 }}
               >
-                <span className={activeMain === tab.id ? 'opacity-70' : isQuiniela ? 'opacity-40' : 'opacity-60'}>
+                <span className={activeMain === tab.id ? 'opacity-70' : 'opacity-60'}>
                   {tab.icon}
                 </span>
                 {tab.label}
@@ -569,21 +560,6 @@ export default function Home() {
                   <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[1rem] px-1 flex items-center justify-center leading-none h-4"
                     style={{ boxShadow: '0 0 8px rgba(220,38,38,0.5)' }}>
                     {tab.badge}
-                  </span>
-                )}
-
-                {/* Quiniela — "Próximamente" badge mejorado */}
-                {isQuiniela && (
-                  <span className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                    style={{
-                      background: 'rgba(249,115,22,0.12)',
-                      color: 'rgba(251,146,60,0.75)',
-                      border: '1px solid rgba(249,115,22,0.28)',
-                    }}>
-                    <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                    Pronto
                   </span>
                 )}
               </button>
@@ -736,23 +712,9 @@ export default function Home() {
             <CalendarView />
           )}
 
-          {/* ── QUINIELA (disabled) ─────────────────────────── */}
+          {/* ── PREDICCIONES ─────────────────────────────────── */}
           {activeMain === 'quiniela' && (
-            <div className="flex flex-col items-center justify-center py-24 gap-6 text-center">
-              <div className="w-20 h-20 rounded-2xl flex items-center justify-center"
-                style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.18)' }}>
-                <QuinielaIcon />
-              </div>
-              <div>
-                <h2 className="text-2xl font-display tracking-widest uppercase" style={{ color: 'rgba(249,115,22,0.7)' }}>
-                  Quiniela
-                </h2>
-                <p className="text-sm mt-2" style={{ color: 'rgba(163,181,211,0.5)' }}>Próximamente disponible</p>
-                <p className="text-xs mt-1" style={{ color: 'rgba(163,181,211,0.3)' }}>
-                  Predice los resultados del Mundial y compite con amigos
-                </p>
-              </div>
-            </div>
+            <PredictionsView />
           )}
 
           {/* ── MERCADO ─────────────────────────────────────── */}
