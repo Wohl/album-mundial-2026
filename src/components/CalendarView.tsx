@@ -8,7 +8,8 @@ import { FriendliesView } from '@/components/FriendliesView'
 import { MyTeamsView } from '@/components/MyTeamsView'
 import { useFavorites } from '@/hooks/useFavorites'
 import { useLiveWc } from '@/hooks/useLiveWc'
-import type { LiveMatchStatus, LiveEvent, LiveEventType } from '@/lib/live-data/types'
+import { LiveEventsBlock } from '@/components/LiveEventsBlock'
+import type { LiveMatchStatus, LiveEvent } from '@/lib/live-data/types'
 import {
   CalMatch,
   MatchStatus,
@@ -27,6 +28,8 @@ import {
 
 // Live overlay data merged onto static CalMatch without mutating calendar-data
 interface LiveOverlay {
+  /** apifootball.com fixture ID — enables on-demand event fetch */
+  apiId: string
   status: LiveMatchStatus
   minute?: number
   homeScore?: number
@@ -98,39 +101,11 @@ function TeamBlock({ team }: { team: CalMatch['home'] }) {
   )
 }
 
-function LiveEventsBlock({ events }: { events: LiveEvent[] }) {
-  function icon(type: LiveEventType): string {
-    if (type === 'goal' || type === 'penalty') return '⚽'
-    if (type === 'own_goal') return '⚽'
-    if (type === 'yellow_card') return '🟨'
-    if (type === 'red_card' || type === 'yellow_red_card') return '🟥'
-    if (type === 'substitution') return '🔄'
-    if (type === 'missed_penalty') return '❌'
-    return '•'
-  }
-
-  const recent = [...events]
-    .sort((a, b) => b.minute - a.minute || (b.extraTime ?? 0) - (a.extraTime ?? 0))
-    .slice(0, 3)
-
-  return (
-    <div className="mt-2.5 pt-2.5 space-y-1" style={{ borderTop: '1px solid rgba(74,222,128,0.1)' }}>
-      {recent.map(ev => (
-        <div key={ev.id} className="flex items-center gap-1.5 text-[10px]">
-          <span className="shrink-0 text-[11px]">{icon(ev.type)}</span>
-          <span className="tabular-nums shrink-0" style={{ color: 'rgba(163,181,211,0.45)', minWidth: '28px' }}>
-            {ev.minute}{ev.extraTime ? `+${ev.extraTime}` : ''}&apos;
-          </span>
-          <span className="truncate font-semibold" style={{ color: 'rgba(163,181,211,0.75)' }}>
-            {ev.playerName}
-          </span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 function MatchCard({ match, liveOverlay }: { match: CalMatch; liveOverlay?: LiveOverlay }) {
+  const [expanded, setExpanded] = useState(false)
+  const [cachedEvents, setCachedEvents] = useState<LiveEvent[] | null>(null)
+  const [loadingEvents, setLoadingEvents] = useState(false)
+
   const days = daysUntil(match.date)
   const isGroupPhase = match.phase === 'group'
   const isTBD = match.home.code === 'TBD'
@@ -144,6 +119,29 @@ function MatchCard({ match, liveOverlay }: { match: CalMatch; liveOverlay?: Live
   const awayScore = liveOverlay !== undefined ? liveOverlay.awayScore : match.away.score
   const isLive = displayStatus === 'live' || displayStatus === 'halftime'
   const isCompleted = displayStatus === 'completed'
+
+  // Events: in-memory first, then fetched on demand
+  const events: LiveEvent[] = cachedEvents ?? liveOverlay?.events ?? []
+  // Show toggle when we have an API ID and the match is not upcoming
+  const canToggleTimeline = !!liveOverlay && displayStatus !== 'upcoming'
+
+  const handleToggle = async () => {
+    if (!expanded && cachedEvents === null && !liveOverlay?.events) {
+      // Fetch events lazily — expand immediately, populate while loading
+      setExpanded(true)
+      setLoadingEvents(true)
+      try {
+        const res = await fetch(`/api/live/match/${liveOverlay!.apiId}`)
+        const json = res.ok ? (await res.json() as { match?: { events?: LiveEvent[] } }) : null
+        setCachedEvents(json?.match?.events ?? [])
+      } catch {
+        setCachedEvents([])
+      }
+      setLoadingEvents(false)
+    } else {
+      setExpanded(prev => !prev)
+    }
+  }
 
   const cardBorderColor = isFinal
     ? 'rgba(245,197,66,0.45)'
@@ -263,9 +261,72 @@ function MatchCard({ match, liveOverlay }: { match: CalMatch; liveOverlay?: Live
           )}
         </div>
 
-        {/* Live events — last 3, only when live data has events */}
-        {isLive && liveOverlay?.events && liveOverlay.events.length > 0 && (
-          <LiveEventsBlock events={liveOverlay.events} />
+        {/* ── Events timeline (expandable) ───────────────────────── */}
+        {canToggleTimeline && (
+          <div className="mt-2.5 pt-2.5" style={{ borderTop: '1px solid rgba(42,60,90,0.28)' }}>
+
+            {/* Compact preview — last 3 events when not expanded */}
+            {!expanded && events.length > 0 && (
+              <div className="mb-2">
+                <LiveEventsBlock events={events} maxItems={3} />
+              </div>
+            )}
+
+            {/* Full timeline when expanded */}
+            {expanded && (
+              <div className="mb-2">
+                {loadingEvents ? (
+                  <div className="flex items-center gap-2 py-2"
+                    style={{ color: 'rgba(163,181,211,0.45)', fontSize: '11px' }}>
+                    <span className="w-3 h-3 rounded-full border border-current border-t-transparent animate-spin shrink-0" />
+                    Cargando eventos...
+                  </div>
+                ) : events.length > 0 ? (
+                  <LiveEventsBlock events={events} />
+                ) : (
+                  <p className="py-1.5" style={{ color: 'rgba(163,181,211,0.38)', fontSize: '11px' }}>
+                    Sin eventos registrados
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Toggle button */}
+            <button
+              type="button"
+              onClick={handleToggle}
+              aria-expanded={expanded}
+              aria-label={
+                expanded
+                  ? 'Ocultar timeline de eventos'
+                  : events.length > 0
+                  ? `Ver todos los eventos (${events.length})`
+                  : 'Ver eventos'
+              }
+              className="w-full py-1.5 rounded-lg border text-[10px] font-semibold uppercase tracking-wider transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/40 focus-visible:ring-offset-1"
+              style={{
+                color: expanded ? 'rgba(163,181,211,0.55)' : 'rgba(125,211,252,0.8)',
+                borderColor: expanded ? 'rgba(42,60,90,0.35)' : 'rgba(56,189,248,0.2)',
+                background: expanded ? 'rgba(12,22,42,0.55)' : 'rgba(56,189,248,0.05)',
+              }}
+              onMouseEnter={e => {
+                const el = e.currentTarget as HTMLButtonElement
+                el.style.background = expanded ? 'rgba(18,30,52,0.7)' : 'rgba(56,189,248,0.1)'
+              }}
+              onMouseLeave={e => {
+                const el = e.currentTarget as HTMLButtonElement
+                el.style.background = expanded ? 'rgba(12,22,42,0.55)' : 'rgba(56,189,248,0.05)'
+              }}
+            >
+              {loadingEvents
+                ? 'Cargando...'
+                : expanded
+                ? 'Ocultar'
+                : events.length > 0
+                ? `Ver todos los eventos (${events.length})`
+                : 'Ver eventos'}
+            </button>
+          </div>
         )}
       </div>
     </motion.div>
@@ -724,6 +785,7 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
                 {dayMatches.map(match => {
                   const live = liveByKey.get(`${match.home.code}-${match.away.code}`)
                   const overlay: LiveOverlay | undefined = live ? {
+                    apiId: live.id,
                     status: live.status,
                     minute: live.minute,
                     homeScore: live.home.score,
