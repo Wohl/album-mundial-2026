@@ -37,7 +37,7 @@ const NAME_TO_CODE: Record<string, string> = {
   'Germany':        'GER',
   'Curacao':        'CUW',
   'Curaçao':        'CUW',
-  "Ivory Coast":    'CIV',
+  'Ivory Coast':    'CIV',
   "Côte d'Ivoire":  'CIV',
   "Cote d'Ivoire":  'CIV',
   'Ecuador':        'ECU',
@@ -167,6 +167,10 @@ const NAME_TO_CODE: Record<string, string> = {
   'Kyrgyzstan':          'KGZ',
   'Turkmenistan':        'TKM',
   'Kazakhstan':          'KAZ',
+
+  // ── apifootball.com variant names (validated Sprint 3) ────────
+  'D.R. Congo':             'COD',  // apifootball uses "D.R. Congo" not "DR Congo"
+  // "Ivory Coast" already mapped at line 40 — apifootball.com confirmed variant
 
   // ── Additional teams found in mock/friendlies data ────────────
   'Aruba':                  'ARU',

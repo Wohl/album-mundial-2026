@@ -3,18 +3,29 @@
 // All values come from environment variables with safe defaults.
 
 export const LIVE_DATA_CONFIG = {
-  // ── API-Football credentials ───────────────────────────────────
-  // Set API_FOOTBALL_KEY in .env.local (never NEXT_PUBLIC_)
-  // Obtain at: https://dashboard.api-football.com
-  apiFootballKey:    process.env.API_FOOTBALL_KEY ?? null,
-  apiFootballBase:   'https://v3.football.api-sports.io',
+  // ── Provider selection ────────────────────────────────────────
+  // Supported: 'apifootball' (apiv3.apifootball.com) | 'api-football' (v3.football.api-sports.io)
+  // Detected automatically from key length: 64-char hex → apifootball.com
+  provider: (process.env.LIVE_DATA_PROVIDER as 'apifootball' | 'api-football' | undefined)
+    ?? ((process.env.API_FOOTBALL_KEY?.length ?? 0) === 64 ? 'apifootball' : 'api-football'),
 
-  // ── League IDs on API-Football ────────────────────────────────
-  // WC:       league_id=1  (FIFA World Cup — verify at dashboard before first use)
-  // Friendly: league_id=9  (International Friendlies — verify at dashboard)
-  // Override via env if API-Football changes their IDs between seasons.
+  // ── Credentials ───────────────────────────────────────────────
+  // Set API_FOOTBALL_KEY in .env.local (never NEXT_PUBLIC_)
+  apiFootballKey:    process.env.API_FOOTBALL_KEY ?? null,
+
+  // ── Base URLs ─────────────────────────────────────────────────
+  apiFootballBase:   'https://v3.football.api-sports.io',
+  apifootballBase:   'https://apiv3.apifootball.com/',
+
+  // ── League IDs (api-football.com) ────────────────────────────
   wcLeagueId:        Number(process.env.API_FOOTBALL_WC_LEAGUE_ID       ?? '1'),
   friendlyLeagueId:  Number(process.env.API_FOOTBALL_FRIENDLY_LEAGUE_ID ?? '9'),
+
+  // ── League IDs (apifootball.com) — validated Sprint 3 ────────
+  // WC2026:               league_id=28  ('World Cup - World Championship')
+  // International friendlies: league_id=356  ('Friendlies')
+  apifbWcLeagueId:       process.env.APIFB_WC_LEAGUE_ID       ?? '28',
+  apifbFriendlyLeagueId: process.env.APIFB_FRIENDLY_LEAGUE_ID ?? '356',
 
   // ── Cache TTLs (seconds) ──────────────────────────────────────
   cacheTtlLive:    Number(process.env.LIVE_DATA_CACHE_TTL_LIVE    ?? '60'),    // 60 s

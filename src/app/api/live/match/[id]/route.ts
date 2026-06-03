@@ -4,7 +4,15 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { isApiEnabled, LIVE_DATA_CONFIG, cacheHeader } from '@/lib/live-data/config'
-import { ApiFootballProvider } from '@/lib/live-data/providers/api-football-provider'
+import { ApiFootballProvider }  from '@/lib/live-data/providers/api-football-provider'
+import { ApifootballProvider }  from '@/lib/live-data/providers/apifootball-provider'
+
+function makeProvider() {
+  const key = LIVE_DATA_CONFIG.apiFootballKey!
+  return LIVE_DATA_CONFIG.provider === 'apifootball'
+    ? new ApifootballProvider(key)
+    : new ApiFootballProvider(key)
+}
 
 export async function GET(
   _req: NextRequest,
@@ -27,7 +35,7 @@ export async function GET(
   }
 
   try {
-    const provider = new ApiFootballProvider(LIVE_DATA_CONFIG.apiFootballKey!)
+    const provider = makeProvider()
     const match    = await provider.fetchMatchById(id)
     const hasLive  = match?.status === 'live' || match?.status === 'halftime'
 

@@ -4,9 +4,17 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { isApiEnabled, LIVE_DATA_CONFIG, cacheHeader } from '@/lib/live-data/config'
-import { ApiFootballProvider } from '@/lib/live-data/providers/api-football-provider'
-import { MockProvider }        from '@/lib/live-data/providers/mock-provider'
-import type { LiveMatch }      from '@/lib/live-data/types'
+import { ApiFootballProvider }  from '@/lib/live-data/providers/api-football-provider'
+import { ApifootballProvider }  from '@/lib/live-data/providers/apifootball-provider'
+import { MockProvider }         from '@/lib/live-data/providers/mock-provider'
+import type { LiveMatch }       from '@/lib/live-data/types'
+
+function makeProvider() {
+  const key = LIVE_DATA_CONFIG.apiFootballKey!
+  return LIVE_DATA_CONFIG.provider === 'apifootball'
+    ? new ApifootballProvider(key)
+    : new ApiFootballProvider(key)
+}
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -31,11 +39,19 @@ export async function GET(req: NextRequest) {
 
   if (isApiEnabled()) {
     try {
-      const provider = new ApiFootballProvider(LIVE_DATA_CONFIG.apiFootballKey!)
+      const provider = makeProvider()
+      const wcId = LIVE_DATA_CONFIG.provider === 'apifootball'
+        ? LIVE_DATA_CONFIG.apifbWcLeagueId
+        : String(LIVE_DATA_CONFIG.wcLeagueId)
 
       if (liveOnly) {
-        // Fetch only currently in-play WC matches
-        matches = await provider.fetchLiveMatches(LIVE_DATA_CONFIG.wcLeagueId)
+        if (provider instanceof ApifootballProvider) {
+          matches = await provider.fetchLiveMatches(wcId)
+        } else if (provider instanceof ApiFootballProvider) {
+          matches = await provider.fetchLiveMatches(Number(wcId))
+        } else {
+          matches = []
+        }
       } else {
         matches = await provider.fetchMatches({
           from:            date,
