@@ -121,7 +121,7 @@ const NAME_TO_CODE: Record<string, string> = {
   'Albania':             'ALB',
   'Montenegro':          'MNE',
   'North Macedonia':     'MKD',
-  'Kosovo':              'KVX',
+  'Kosovo':              'KOS',  // API-Football uses KOS; UEFA uses KVX
   'Luxembourg':          'LUX',
   'Liechtenstein':       'LIE',
   'Andorra':             'AND',
@@ -167,6 +167,16 @@ const NAME_TO_CODE: Record<string, string> = {
   'Kyrgyzstan':          'KGZ',
   'Turkmenistan':        'TKM',
   'Kazakhstan':          'KAZ',
+
+  // ── Additional teams found in mock/friendlies data ────────────
+  'Aruba':                  'ARU',
+  'Dominican Republic':     'DOM',
+  'Republic of Ireland':    'IRL',
+  'Ireland':                'IRL',
+  // Kosovo already mapped above
+  'Madagascar':             'MAD',
+  'Nicaragua':              'NCA',
+  'Northern Ireland':       'NIR',
 }
 
 /** Returns the FIFA 3-letter code for the given English team name, or a
