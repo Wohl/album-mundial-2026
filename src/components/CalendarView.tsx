@@ -7,8 +7,11 @@ import { CountdownHero } from '@/components/CountdownHero'
 import { FriendliesView } from '@/components/FriendliesView'
 import { MyTeamsView } from '@/components/MyTeamsView'
 import { useFavorites } from '@/hooks/useFavorites'
+import { useLiveWc } from '@/hooks/useLiveWc'
+import type { LiveMatchStatus, LiveEvent, LiveEventType } from '@/lib/live-data/types'
 import {
   CalMatch,
+  MatchStatus,
   Phase,
   GroupLetter,
   PHASE_LABELS,
@@ -22,6 +25,18 @@ import {
   groupByDate,
 } from '@/lib/calendar-data'
 
+// Live overlay data merged onto static CalMatch without mutating calendar-data
+interface LiveOverlay {
+  status: LiveMatchStatus
+  minute?: number
+  homeScore?: number
+  awayScore?: number
+  events?: LiveEvent[]
+}
+
+// Extended status type that includes halftime/cancelled from live API
+type DisplayStatus = MatchStatus | 'halftime' | 'cancelled'
+
 // ── Helpers ────────────────────────────────────────────────────────
 function daysUntil(iso: string): number {
   const [year, month, day] = iso.split('-').map(Number)
@@ -32,12 +47,12 @@ function daysUntil(iso: string): number {
 }
 
 // ── Sub-components ─────────────────────────────────────────────────
-function StatusBadge({ status, minute }: { status: CalMatch['status']; minute?: number }) {
-  if (status === 'live') return (
+function StatusBadge({ status, minute }: { status: DisplayStatus; minute?: number }) {
+  if (status === 'live' || status === 'halftime') return (
     <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider border rounded-full px-2.5 py-0.5"
       style={{ color: '#4ade80', borderColor: 'rgba(74,222,128,0.35)', background: 'rgba(34,197,94,0.12)' }}>
       <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-      {minute ? `${minute}'` : 'En vivo'}
+      {status === 'halftime' ? 'Descanso' : minute ? `${minute}'` : 'En vivo'}
     </span>
   )
   if (status === 'completed') return (
@@ -46,10 +61,10 @@ function StatusBadge({ status, minute }: { status: CalMatch['status']; minute?: 
       Finalizado
     </span>
   )
-  if (status === 'postponed') return (
+  if (status === 'postponed' || status === 'cancelled') return (
     <span className="text-[10px] font-semibold uppercase tracking-wider rounded-full px-2.5 py-0.5"
       style={{ color: 'rgba(251,191,36,0.8)', border: '1px solid rgba(245,158,11,0.28)', background: 'rgba(245,158,11,0.07)' }}>
-      Aplazado
+      {status === 'cancelled' ? 'Cancelado' : 'Aplazado'}
     </span>
   )
   return (
@@ -83,15 +98,57 @@ function TeamBlock({ team }: { team: CalMatch['home'] }) {
   )
 }
 
-function MatchCard({ match }: { match: CalMatch }) {
+function LiveEventsBlock({ events }: { events: LiveEvent[] }) {
+  function icon(type: LiveEventType): string {
+    if (type === 'goal' || type === 'penalty') return '⚽'
+    if (type === 'own_goal') return '⚽'
+    if (type === 'yellow_card') return '🟨'
+    if (type === 'red_card' || type === 'yellow_red_card') return '🟥'
+    if (type === 'substitution') return '🔄'
+    if (type === 'missed_penalty') return '❌'
+    return '•'
+  }
+
+  const recent = [...events]
+    .sort((a, b) => b.minute - a.minute || (b.extraTime ?? 0) - (a.extraTime ?? 0))
+    .slice(0, 3)
+
+  return (
+    <div className="mt-2.5 pt-2.5 space-y-1" style={{ borderTop: '1px solid rgba(74,222,128,0.1)' }}>
+      {recent.map(ev => (
+        <div key={ev.id} className="flex items-center gap-1.5 text-[10px]">
+          <span className="shrink-0 text-[11px]">{icon(ev.type)}</span>
+          <span className="tabular-nums shrink-0" style={{ color: 'rgba(163,181,211,0.45)', minWidth: '28px' }}>
+            {ev.minute}{ev.extraTime ? `+${ev.extraTime}` : ''}&apos;
+          </span>
+          <span className="truncate font-semibold" style={{ color: 'rgba(163,181,211,0.75)' }}>
+            {ev.playerName}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function MatchCard({ match, liveOverlay }: { match: CalMatch; liveOverlay?: LiveOverlay }) {
   const days = daysUntil(match.date)
   const isGroupPhase = match.phase === 'group'
   const isTBD = match.home.code === 'TBD'
   const isFinal = match.phase === 'final'
   const isSpecial = isFinal || match.phase === '3rd' || match.phase === 'sf'
 
+  // Overlay values take priority over static data
+  const displayStatus: DisplayStatus = liveOverlay?.status ?? match.status
+  const displayMinute = liveOverlay?.minute ?? match.minute
+  const homeScore = liveOverlay !== undefined ? liveOverlay.homeScore : match.home.score
+  const awayScore = liveOverlay !== undefined ? liveOverlay.awayScore : match.away.score
+  const isLive = displayStatus === 'live' || displayStatus === 'halftime'
+  const isCompleted = displayStatus === 'completed'
+
   const cardBorderColor = isFinal
     ? 'rgba(245,197,66,0.45)'
+    : isLive
+    ? 'rgba(74,222,128,0.3)'
     : match.phase === '3rd'
     ? 'rgba(180,150,60,0.32)'
     : isTBD
@@ -150,7 +207,7 @@ function MatchCard({ match }: { match: CalMatch }) {
               </span>
             )}
           </div>
-          <StatusBadge status={match.status} minute={match.minute} />
+          <StatusBadge status={displayStatus} minute={displayMinute} />
         </div>
 
         {/* Teams + VS / score */}
@@ -158,7 +215,7 @@ function MatchCard({ match }: { match: CalMatch }) {
           <TeamBlock team={match.home} />
 
           <div className="flex flex-col items-center gap-0.5 shrink-0 px-3 min-w-[52px]">
-            {match.status === 'upcoming' && (
+            {!isLive && !isCompleted && (
               <>
                 <span className="font-display leading-none text-base"
                   style={{ color: 'rgba(163,181,211,0.35)' }}>VS</span>
@@ -168,19 +225,19 @@ function MatchCard({ match }: { match: CalMatch }) {
                   style={{ color: 'rgba(163,181,211,0.45)' }}>{match.timezone}</span>
               </>
             )}
-            {match.status === 'live' && (
+            {isLive && (
               <>
                 <span className="text-xl font-display leading-none" style={{ color: '#4ade80' }}>
-                  {match.home.score ?? 0} – {match.away.score ?? 0}
+                  {homeScore ?? 0} – {awayScore ?? 0}
                 </span>
                 <span className="text-[10px] mt-0.5" style={{ color: 'rgba(74,222,128,0.65)' }}>
-                  {match.minute ? `${match.minute}'` : 'En vivo'}
+                  {displayStatus === 'halftime' ? 'Descanso' : displayMinute ? `${displayMinute}'` : 'En vivo'}
                 </span>
               </>
             )}
-            {match.status === 'completed' && (
+            {isCompleted && (
               <span className="text-2xl font-display leading-none text-humo">
-                {match.home.score} – {match.away.score}
+                {homeScore} – {awayScore}
               </span>
             )}
           </div>
@@ -198,13 +255,18 @@ function MatchCard({ match }: { match: CalMatch }) {
           <span className="text-[11px]" style={{ color: 'rgba(163,181,211,0.58)' }}>{match.stadium}</span>
           <span className="text-[10px]" style={{ color: 'rgba(163,181,211,0.28)' }}>·</span>
           <span className="text-[11px]" style={{ color: 'rgba(163,181,211,0.58)' }}>{match.city}</span>
-          {days > 0 && days <= 21 && match.status === 'upcoming' && (
+          {days > 0 && days <= 21 && displayStatus === 'upcoming' && (
             <span className="ml-auto text-[9px] font-semibold uppercase tracking-wider"
               style={{ color: 'rgba(125,211,252,0.75)' }}>
               en {days}d
             </span>
           )}
         </div>
+
+        {/* Live events — last 3, only when live data has events */}
+        {isLive && liveOverlay?.events && liveOverlay.events.length > 0 && (
+          <LiveEventsBlock events={liveOverlay.events} />
+        )}
       </div>
     </motion.div>
   )
@@ -240,6 +302,9 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
   const [calendarTab, setCalendarTab] = useState<'world_cup' | 'friendlies' | 'my_teams'>('world_cup')
   const searchRef = useRef<HTMLInputElement>(null)
   const matchesRef = useRef<HTMLDivElement>(null)
+
+  // Live WC data — polls today's matches, enriches with events for live ones
+  const { liveByKey, hasLive } = useLiveWc()
 
   const handleScrollToMatches = useCallback(() => {
     matchesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -366,6 +431,12 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
             </span>
             {' '}partidos · 16 sedes · 3 países anfitriones
           </p>
+          {hasLive && (
+            <p className="flex items-center gap-1.5 text-[11px] mt-1 font-semibold" style={{ color: '#4ade80' }}>
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+              Datos en tiempo real activos
+            </p>
+          )}
         </div>
         <div
           className="flex items-center gap-3 flex-wrap"
@@ -650,7 +721,17 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
               </div>
 
               <div className="grid grid-cols-1 xl2:grid-cols-2 3xl:grid-cols-3 gap-3">
-                {dayMatches.map(match => <MatchCard key={match.id} match={match} />)}
+                {dayMatches.map(match => {
+                  const live = liveByKey.get(`${match.home.code}-${match.away.code}`)
+                  const overlay: LiveOverlay | undefined = live ? {
+                    status: live.status,
+                    minute: live.minute,
+                    homeScore: live.home.score,
+                    awayScore: live.away.score,
+                    events: live.events,
+                  } : undefined
+                  return <MatchCard key={match.id} match={match} liveOverlay={overlay} />
+                })}
               </div>
             </div>
           ))}
@@ -666,7 +747,7 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
         <div>
           <p className="text-xs font-semibold" style={{ color: 'rgba(125,211,252,0.8)' }}>Próximas funcionalidades</p>
           <p className="text-[11px] mt-0.5" style={{ color: 'rgba(163,181,211,0.5)' }}>
-            Resultados en tiempo real · Alineaciones · Eventos minuto a minuto · Gestión de selecciones favoritas
+            Alineaciones · Estadísticas avanzadas · Notificaciones push
           </p>
         </div>
       </div>

@@ -4,10 +4,12 @@ import { useMemo, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { StickerState, TradeRequest, UserProgress } from '@/types'
 import { getStickerName, displayKey } from '@/lib/stickers'
-import { StickerFlag } from '@/components/TeamFlag'
+import { StickerFlag, TeamFlag } from '@/components/TeamFlag'
 import { TEAMS } from '@/stickers'
 import { useDashboard, RankEntry } from '@/hooks/useDashboard'
 import { FavoriteMatchesBlock } from '@/components/FavoriteMatchesBlock'
+import { useLiveAll } from '@/hooks/useLiveAll'
+import type { LiveMatch } from '@/lib/live-data/types'
 
 // ─── Achievement System ───────────────────────────────────────────────────────
 
@@ -182,6 +184,60 @@ function AchBadge({ def, unlocked, data }: { def: AchDef; unlocked: boolean; dat
   )
 }
 
+// ─── Live Matches Block ───────────────────────────────────────────────────────
+
+function LiveMatchRow({ match: m }: { match: LiveMatch }) {
+  return (
+    <div className="px-4 py-3 flex items-center gap-3">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <TeamFlag code={m.home.code} className="text-2xl shrink-0" />
+        <span className="text-sm font-bold truncate" style={{ color: '#E5E7EB' }}>{m.home.name}</span>
+      </div>
+      <div className="flex flex-col items-center shrink-0 min-w-[52px]">
+        <span className="text-base font-display tabular-nums leading-none" style={{ color: '#4ade80' }}>
+          {m.home.score ?? 0} – {m.away.score ?? 0}
+        </span>
+        <span className="text-[9px] font-semibold mt-0.5" style={{ color: 'rgba(74,222,128,0.6)' }}>
+          {m.status === 'halftime' ? 'Descanso' : m.minute ? `${m.minute}'` : 'En vivo'}
+        </span>
+      </div>
+      <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
+        <span className="text-sm font-bold truncate" style={{ color: '#E5E7EB' }}>{m.away.name}</span>
+        <TeamFlag code={m.away.code} className="text-2xl shrink-0" />
+      </div>
+    </div>
+  )
+}
+
+function LiveMatchesBlock() {
+  const { liveMatches } = useLiveAll()
+  if (liveMatches.length === 0) return null
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-2xl overflow-hidden border"
+      style={{ background: 'rgba(8,18,38,0.95)', borderColor: 'rgba(74,222,128,0.25)' }}
+    >
+      <div className="px-4 py-3 flex items-center gap-2.5"
+        style={{ borderBottom: '1px solid rgba(74,222,128,0.12)', background: 'rgba(34,197,94,0.05)' }}>
+        <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse shrink-0" />
+        <span className="text-sm font-display uppercase tracking-widest" style={{ color: '#4ade80' }}>
+          Partidos en Vivo
+        </span>
+        <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full"
+          style={{ background: 'rgba(74,222,128,0.15)', color: '#4ade80' }}>
+          {liveMatches.length}
+        </span>
+      </div>
+      <div className="divide-y" style={{ borderColor: 'rgba(42,60,90,0.25)' }}>
+        {liveMatches.map(m => <LiveMatchRow key={m.id} match={m} />)}
+      </div>
+    </motion.div>
+  )
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface DashboardViewProps {
@@ -254,6 +310,9 @@ export function DashboardView({ userId, myProgress, myStickers, myTrades }: Dash
 
   return (
     <div className="space-y-5 pb-12">
+
+      {/* ── Live matches block (hidden when no live matches) ───────── */}
+      <LiveMatchesBlock />
 
       {/* ── Favorite matches block (hidden if no favorites) ────────── */}
       <FavoriteMatchesBlock />

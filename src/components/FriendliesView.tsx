@@ -3,9 +3,11 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { TeamFlag } from '@/components/TeamFlag'
-import type { LiveMatch, LiveMatchStatus } from '@/lib/live-data/types'
-import { getAllFriendlies } from '@/lib/live-data/services/friendlies-service'
+import type { LiveMatch, LiveMatchStatus, LiveEvent, LiveEventType } from '@/lib/live-data/types'
 import { useFavorites } from '@/hooks/useFavorites'
+
+const POLL_LIVE_MS = 60_000
+const POLL_IDLE_MS = 300_000
 
 type FilterTab = 'upcoming' | 'recent' | 'all' | 'favorites'
 
@@ -16,6 +18,12 @@ function daysUntil(iso: string): number {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+}
+
+function dateOffset(days: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() + days)
+  return d.toISOString().split('T')[0]
 }
 
 function groupByDate(matches: LiveMatch[]): Map<string, LiveMatch[]> {
@@ -77,10 +85,43 @@ function TeamBlock({ code, name, score, status }: {
   )
 }
 
+function LiveEventsBlock({ events }: { events: LiveEvent[] }) {
+  function icon(type: LiveEventType): string {
+    if (type === 'goal' || type === 'penalty') return '⚽'
+    if (type === 'own_goal') return '⚽'
+    if (type === 'yellow_card') return '🟨'
+    if (type === 'red_card' || type === 'yellow_red_card') return '🟥'
+    if (type === 'substitution') return '🔄'
+    if (type === 'missed_penalty') return '❌'
+    return '•'
+  }
+
+  const recent = [...events]
+    .sort((a, b) => b.minute - a.minute || (b.extraTime ?? 0) - (a.extraTime ?? 0))
+    .slice(0, 3)
+
+  return (
+    <div className="mt-2.5 pt-2.5 space-y-1" style={{ borderTop: '1px solid rgba(74,222,128,0.1)' }}>
+      {recent.map(ev => (
+        <div key={ev.id} className="flex items-center gap-1.5 text-[10px]">
+          <span className="shrink-0 text-[11px]">{icon(ev.type)}</span>
+          <span className="tabular-nums shrink-0" style={{ color: 'rgba(163,181,211,0.45)', minWidth: '28px' }}>
+            {ev.minute}{ev.extraTime ? `+${ev.extraTime}` : ''}&apos;
+          </span>
+          <span className="truncate font-semibold" style={{ color: 'rgba(163,181,211,0.75)' }}>
+            {ev.playerName}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function FriendlyMatchCard({ match }: { match: LiveMatch }) {
   const days = daysUntil(match.date)
   const isLive = match.status === 'live' || match.status === 'halftime'
   const isCompleted = match.status === 'completed'
+  const showVenue = match.venue.name && match.venue.name !== 'Por confirmar'
 
   return (
     <motion.div
@@ -139,23 +180,42 @@ function FriendlyMatchCard({ match }: { match: LiveMatch }) {
           <TeamBlock code={match.away.code} name={match.away.name} score={match.away.score} status={match.status} />
         </div>
 
-        {/* Venue */}
-        <div className="mt-3 pt-3 flex items-center gap-1.5 flex-wrap"
-          style={{ borderTop: '1px solid rgba(42,60,90,0.32)' }}>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" strokeWidth="2"
-            stroke="rgba(163,181,211,0.4)" className="shrink-0" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-          </svg>
-          <span className="text-[11px]" style={{ color: 'rgba(163,181,211,0.58)' }}>{match.venue.name}</span>
-          <span className="text-[10px]" style={{ color: 'rgba(163,181,211,0.28)' }}>·</span>
-          <span className="text-[11px]" style={{ color: 'rgba(163,181,211,0.58)' }}>{match.venue.city}</span>
-          {days > 0 && days <= 14 && match.status === 'upcoming' && (
-            <span className="ml-auto text-[9px] font-semibold uppercase tracking-wider"
+        {/* Venue — hidden when not confirmed */}
+        {showVenue && (
+          <div className="mt-3 pt-3 flex items-center gap-1.5 flex-wrap"
+            style={{ borderTop: '1px solid rgba(42,60,90,0.32)' }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" strokeWidth="2"
+              stroke="rgba(163,181,211,0.4)" className="shrink-0" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            <span className="text-[11px]" style={{ color: 'rgba(163,181,211,0.58)' }}>{match.venue.name}</span>
+            {match.venue.city && (
+              <>
+                <span className="text-[10px]" style={{ color: 'rgba(163,181,211,0.28)' }}>·</span>
+                <span className="text-[11px]" style={{ color: 'rgba(163,181,211,0.58)' }}>{match.venue.city}</span>
+              </>
+            )}
+            {days > 0 && days <= 14 && match.status === 'upcoming' && (
+              <span className="ml-auto text-[9px] font-semibold uppercase tracking-wider"
+                style={{ color: 'rgba(125,211,252,0.75)' }}>
+                en {days}d
+              </span>
+            )}
+          </div>
+        )}
+        {!showVenue && days > 0 && days <= 14 && match.status === 'upcoming' && (
+          <div className="mt-2 flex justify-end">
+            <span className="text-[9px] font-semibold uppercase tracking-wider"
               style={{ color: 'rgba(125,211,252,0.75)' }}>
               en {days}d
             </span>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* Live events — last 3, only during live/halftime */}
+        {isLive && match.events && match.events.length > 0 && (
+          <LiveEventsBlock events={match.events} />
+        )}
       </div>
     </motion.div>
   )
@@ -205,18 +265,45 @@ const CloseIcon = () => (
 export function FriendliesView() {
   const [matches, setMatches] = useState<LiveMatch[]>([])
   const [loading, setLoading] = useState(true)
+  const [source, setSource] = useState<'api-football' | 'mock'>('mock')
   const [filterTab, setFilterTab] = useState<FilterTab>('upcoming')
   const [searchQuery, setSearchQuery] = useState('')
   const searchRef = useRef<HTMLInputElement>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const mountedRef = useRef(true)
   const { favorites, loaded: favLoaded } = useFavorites()
 
-  useEffect(() => {
-    let cancelled = false
-    getAllFriendlies().then(data => {
-      if (!cancelled) { setMatches(data); setLoading(false) }
-    })
-    return () => { cancelled = true }
+  const poll = useCallback(async () => {
+    try {
+      const from = dateOffset(-60)
+      const to = dateOffset(30)
+      const res = await fetch(`/api/live/friendlies?from=${from}&to=${to}`)
+      if (!res.ok || !mountedRef.current) return
+      const json = await res.json() as {
+        matches: LiveMatch[]
+        meta: { source: string; hasLive: boolean }
+      }
+      setMatches(json.matches ?? [])
+      setSource((json.meta?.source === 'api-football' ? 'api-football' : 'mock'))
+      setLoading(false)
+      const hasLive = json.meta?.hasLive ?? false
+      timerRef.current = setTimeout(poll, hasLive ? POLL_LIVE_MS : POLL_IDLE_MS)
+    } catch {
+      if (mountedRef.current) {
+        setLoading(false)
+        timerRef.current = setTimeout(poll, POLL_IDLE_MS)
+      }
+    }
   }, [])
+
+  useEffect(() => {
+    mountedRef.current = true
+    poll()
+    return () => {
+      mountedRef.current = false
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [poll])
 
   const filteredMatches = useMemo(() => {
     let base = matches
@@ -458,18 +545,31 @@ export function FriendliesView() {
       )}
 
       {/* ── Data source notice ────────────────────────────────────── */}
-      <div className="rounded-xl border p-4 flex items-start gap-3"
-        style={{ background: 'rgba(245,197,66,0.02)', borderColor: 'rgba(245,197,66,0.1)' }}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(245,197,66,0.45)" strokeWidth="2" className="shrink-0 mt-0.5">
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
-        <div>
-          <p className="text-xs font-semibold" style={{ color: 'rgba(245,197,66,0.7)' }}>Datos de demostración</p>
-          <p className="text-[11px] mt-0.5" style={{ color: 'rgba(163,181,211,0.5)' }}>
-            Los resultados y horarios son ilustrativos. Fase 3b integrará datos en tiempo real vía API oficial.
-          </p>
+      {source === 'api-football' ? (
+        <div className="rounded-xl border p-4 flex items-start gap-3"
+          style={{ background: 'rgba(34,197,94,0.03)', borderColor: 'rgba(74,222,128,0.15)' }}>
+          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse shrink-0 mt-1" />
+          <div>
+            <p className="text-xs font-semibold" style={{ color: 'rgba(74,222,128,0.8)' }}>Datos en tiempo real</p>
+            <p className="text-[11px] mt-0.5" style={{ color: 'rgba(163,181,211,0.5)' }}>
+              Resultados y horarios vía API oficial · Actualización cada 60s durante partidos en vivo
+            </p>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="rounded-xl border p-4 flex items-start gap-3"
+          style={{ background: 'rgba(245,197,66,0.02)', borderColor: 'rgba(245,197,66,0.1)' }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(245,197,66,0.45)" strokeWidth="2" className="shrink-0 mt-0.5">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <div>
+            <p className="text-xs font-semibold" style={{ color: 'rgba(245,197,66,0.7)' }}>Datos de demostración</p>
+            <p className="text-[11px] mt-0.5" style={{ color: 'rgba(163,181,211,0.5)' }}>
+              Los resultados y horarios son ilustrativos. Configura API_FOOTBALL_KEY para datos en tiempo real.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
