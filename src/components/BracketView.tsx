@@ -14,11 +14,13 @@ import {
 // CARD_H is the design target; SLOT_U = CARD_H + 8px gap between R32 cards.
 // TOTAL_H = 16 R32 slots; all other round columns use the same total height
 // (multiples of SLOT_U), so match centers align with SVG connector midpoints.
-const CARD_W  = 148
-const CARD_H  = 70    // px — matches the actual rendered card height
-const SLOT_U  = 78    // px — R32 slot unit (CARD_H + 8px gap)
-const CON_W   = 22    // px — bracket connector SVG width
-const TOTAL_H = 16 * SLOT_U   // 1248px — shared content height for all round columns
+const CARD_W   = 148
+const CARD_H   = 70              // px — match card height (design target)
+const SLOT_U   = CARD_H + 8     // px — R32 slot unit (card + 8px gap between cards)
+const CON_W    = 22              // px — bracket connector SVG width
+const TOTAL_H  = 16 * SLOT_U    // 1248px — shared content height for all round columns
+const HEADER_H = 36              // px — round header pill height (fixed so connectors align)
+const HEADER_GAP = 10            // px — gap below header before content row
 
 // Each R32 slot spans 1 unit. Successive rounds double the slot size.
 const MULT: Partial<Record<Phase, number>> = {
@@ -340,10 +342,6 @@ export function BracketView() {
   }, [])
 
   const p3 = byPhase.get('3rd') ?? []
-
-  // Header pill area height — kept fixed so connector SVG aligns with match slots
-  const HEADER_H   = 36  // px — round header pill height
-  const HEADER_GAP = 10  // px — gap below header before content
 
   return (
     <div className="space-y-4">
