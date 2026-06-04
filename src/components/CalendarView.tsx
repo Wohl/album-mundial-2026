@@ -6,6 +6,7 @@ import { TeamFlag } from '@/components/TeamFlag'
 import { CountdownHero } from '@/components/CountdownHero'
 import { FriendliesView } from '@/components/FriendliesView'
 import { MyTeamsView } from '@/components/MyTeamsView'
+import { BracketView } from '@/components/BracketView'
 import { useFavorites } from '@/hooks/useFavorites'
 import { useLiveWc } from '@/hooks/useLiveWc'
 import { LiveEventsBlock } from '@/components/LiveEventsBlock'
@@ -360,7 +361,7 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
   const [searchQuery, setSearchQuery] = useState('')
   const [showFavorites, setShowFavorites] = useState(false)
   const { favorites: favoriteTeams } = useFavorites()
-  const [calendarTab, setCalendarTab] = useState<'world_cup' | 'friendlies' | 'my_teams'>('world_cup')
+  const [calendarTab, setCalendarTab] = useState<'world_cup' | 'friendlies' | 'my_teams' | 'bracket'>('world_cup')
   const searchRef = useRef<HTMLInputElement>(null)
   const matchesRef = useRef<HTMLDivElement>(null)
 
@@ -421,12 +422,13 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
   return (
     <div className="space-y-5">
 
-      {/* ── Section tabs: Mundial 2026 / Amistosos / Mis Selecciones ─ */}
+      {/* ── Section tabs: Mundial 2026 / Amistosos / Mis Selecciones / Bracket ─ */}
       <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-none" role="tablist" aria-label="Secciones del Calendario">
         {([
-          { id: 'world_cup', label: 'Mundial 2026', icon: '🏆' },
-          { id: 'friendlies', label: 'Amistosos', icon: '⚽' },
-          { id: 'my_teams', label: 'Mis Selecciones', icon: '⭐' },
+          { id: 'world_cup',  label: 'Mundial 2026',    icon: '🏆' },
+          { id: 'friendlies', label: 'Amistosos',        icon: '⚽' },
+          { id: 'my_teams',   label: 'Mis Selecciones',  icon: '⭐' },
+          { id: 'bracket',    label: 'Bracket',          icon: '🏆' },
         ] as const).map(tab => {
           const isActive = calendarTab === tab.id
           return (
@@ -818,6 +820,8 @@ export function CalendarView({ matches: externalMatches }: { matches?: CalMatch[
       {calendarTab === 'friendlies' && <FriendliesView />}
 
       {calendarTab === 'my_teams' && <MyTeamsView />}
+
+      {calendarTab === 'bracket' && <BracketView />}
     </div>
   )
 }
