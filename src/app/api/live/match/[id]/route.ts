@@ -39,9 +39,15 @@ export async function GET(
     const match    = await provider.fetchMatchById(id)
     const hasLive  = match?.status === 'live' || match?.status === 'halftime'
 
+    // Partidos en vivo: TTL muy corto para que los eventos aparezcan rápido
+    // Partidos finalizados/próximos: cache estándar de fixtures (1h)
+    const cacheCtrl = hasLive
+      ? 'public, s-maxage=10, stale-while-revalidate=10'
+      : cacheHeader(false)
+
     return NextResponse.json(
       { match, meta: { source: 'api-football', cachedAt: new Date().toISOString() } },
-      { headers: { 'Cache-Control': cacheHeader(hasLive) } }
+      { headers: { 'Cache-Control': cacheCtrl } }
     )
   } catch (err) {
     console.error(`[/api/live/match/${id}] Error:`, err)

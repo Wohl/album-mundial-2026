@@ -96,8 +96,11 @@ function FriendlyMatchCard({ match }: { match: LiveMatch }) {
   const isCompleted = match.status === 'completed'
   const showVenue = match.venue.name && match.venue.name !== 'Por confirmar'
 
-  // Events: in-memory first (from list), then cached after lazy fetch
-  const events: LiveEvent[] = cachedEvents ?? match.events ?? []
+  // During live play, prefer poll-updated match.events over stale cachedEvents.
+  // For completed matches, cachedEvents from the lazy fetch is still valid.
+  const events: LiveEvent[] =
+    (isLive && match.events !== undefined) ? match.events
+    : cachedEvents ?? match.events ?? []
   // Offer timeline for non-upcoming matches only
   const canToggleTimeline = match.status !== 'upcoming' && match.status !== 'postponed' && match.status !== 'cancelled'
 

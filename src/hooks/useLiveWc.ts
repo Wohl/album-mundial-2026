@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { LiveMatch } from '@/lib/live-data/types'
 
-const POLL_LIVE_MS = 60_000
-const POLL_IDLE_MS = 300_000
+const POLL_LIVE_MS = 30_000   // live o halftime — actualización cada 30 s
+const POLL_IDLE_MS = 300_000  // partidos próximos — detección de kick-off
 
 function todayIso(): string {
   return new Date().toISOString().split('T')[0]
@@ -54,8 +54,13 @@ export function useLiveWc() {
       if (!mountedRef.current) return
       setMatches(enriched)
 
-      const hasLive = enriched.some(m => m.status === 'live' || m.status === 'halftime')
-      timerRef.current = setTimeout(poll, hasLive ? POLL_LIVE_MS : POLL_IDLE_MS)
+      const hasLive     = enriched.some(m => m.status === 'live' || m.status === 'halftime')
+      const hasUpcoming = enriched.some(m => m.status === 'upcoming')
+
+      // Stop polling when all today's matches are finished — no new events expected
+      if (hasLive || hasUpcoming) {
+        timerRef.current = setTimeout(poll, hasLive ? POLL_LIVE_MS : POLL_IDLE_MS)
+      }
     } catch {
       if (mountedRef.current) {
         timerRef.current = setTimeout(poll, POLL_IDLE_MS)

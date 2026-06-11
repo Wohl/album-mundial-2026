@@ -35,10 +35,32 @@ export function useLiveAll() {
 
       if (!mountedRef.current) return
 
-      const wcLive: LiveMatch[] = wcJson.matches ?? []
+      let wcLive: LiveMatch[] = wcJson.matches ?? []
       const frLive: LiveMatch[] = ((frJson.matches ?? []) as LiveMatch[]).filter(
         (m: LiveMatch) => m.status === 'live' || m.status === 'halftime'
       )
+
+      // Enrich WC live matches with events (same pattern as useLiveWc)
+      const liveWcIds = wcLive.map(m => m.id) // already filtered to live by ?live=true
+      if (liveWcIds.length > 0) {
+        const detailResults = await Promise.allSettled(
+          liveWcIds.map(id =>
+            fetch(`/api/live/match/${id}`)
+              .then(r => (r.ok ? r.json() : null))
+              .catch(() => null)
+          )
+        )
+        if (mountedRef.current) {
+          const detailMap = new Map<string, LiveMatch>()
+          for (const r of detailResults) {
+            if (r.status === 'fulfilled' && r.value?.match) {
+              const m: LiveMatch = r.value.match
+              detailMap.set(m.id, m)
+            }
+          }
+          wcLive = wcLive.map(m => detailMap.get(m.id) ?? m)
+        }
+      }
 
       const all = [...wcLive, ...frLive].slice(0, 5)
       setLiveMatches(all)

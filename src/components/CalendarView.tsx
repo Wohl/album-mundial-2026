@@ -121,8 +121,12 @@ function MatchCard({ match, liveOverlay }: { match: CalMatch; liveOverlay?: Live
   const isLive = displayStatus === 'live' || displayStatus === 'halftime'
   const isCompleted = displayStatus === 'completed'
 
-  // Events: in-memory first, then fetched on demand
-  const events: LiveEvent[] = cachedEvents ?? liveOverlay?.events ?? []
+  // During live play, always use the poll-updated overlay events so goals/cards
+  // that arrive in the 30 s cycle appear immediately, ignoring any stale cachedEvents.
+  // For completed matches the user may still hold a manually fetched cachedEvents.
+  const events: LiveEvent[] =
+    (isLive && liveOverlay?.events !== undefined) ? liveOverlay.events
+    : cachedEvents ?? liveOverlay?.events ?? []
   // Show toggle when we have an API ID and the match is not upcoming
   const canToggleTimeline = !!liveOverlay && displayStatus !== 'upcoming'
 

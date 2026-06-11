@@ -22,6 +22,14 @@ function today(): string {
   return new Date().toISOString().split('T')[0]
 }
 
+async function mockFetchWc(mock: MockProvider, liveOnly: boolean, date: string): Promise<LiveMatch[]> {
+  if (liveOnly) {
+    const all = await mock.fetchMatches({ from: today(), to: today(), competitionType: 'world_cup' })
+    return all.filter(m => m.status === 'live' || m.status === 'halftime')
+  }
+  return mock.fetchMatches({ from: date, to: date, competitionType: 'world_cup' })
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
   const date    = searchParams.get('date') ?? today()
@@ -62,13 +70,14 @@ export async function GET(req: NextRequest) {
       source = 'api-football'
     } catch (err) {
       console.error('[/api/live/wc] API-Football error, falling back to mock:', err)
-      // Mock has no WC data — return empty array with mock label
-      matches = []
+      const mock = new MockProvider()
+      matches = await mockFetchWc(mock, liveOnly, date)
       source = 'mock'
     }
   } else {
-    // No key — return empty; WC calendar uses static calendar-data.ts in the UI
-    matches = []
+    // No API key — use WC mock data so dev/staging can test the full live flow
+    const mock = new MockProvider()
+    matches = await mockFetchWc(mock, liveOnly, date)
     source = 'mock'
   }
 

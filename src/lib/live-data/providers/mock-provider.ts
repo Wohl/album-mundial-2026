@@ -8,6 +8,45 @@ const FRIENDLY: LiveCompetition = {
   type: 'friendly',
 }
 
+const WC2026: LiveCompetition = {
+  id: 'wc-2026',
+  name: 'FIFA World Cup 2026',
+  shortName: 'Mundial',
+  type: 'world_cup',
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WC 2026 mock fixtures — used in dev/staging when API_FOOTBALL_KEY is absent.
+// MEX-RSA is set as 'live' with events so the full timeline flow can be tested
+// without a real API key. KOR-CZE remains 'upcoming' for state contrast.
+// Team codes must match WC2026_MATCHES in calendar-data.ts (opening day: Jun 11).
+// ─────────────────────────────────────────────────────────────────────────────
+const MOCK_WC_MATCHES: LiveMatch[] = [
+  {
+    id: 'mock-wc-2026-001',
+    date: '2026-06-11', time: '13:00', timezone: 'CT',
+    status: 'live', minute: 52,
+    home: { id: 'mex', code: 'MEX', name: 'México',    shortName: 'MEX', score: 1 },
+    away: { id: 'rsa', code: 'RSA', name: 'Sudáfrica', shortName: 'RSA', score: 1 },
+    venue: { id: 'azteca', name: 'Estadio Azteca', city: 'Ciudad de México', country: 'México' },
+    competition: WC2026,
+    events: [
+      { id: 'ev-wc-001', type: 'goal',        minute: 23, teamCode: 'MEX', playerName: 'H. Lozano' },
+      { id: 'ev-wc-002', type: 'yellow_card', minute: 36, teamCode: 'RSA', playerName: 'S. Mofokeng' },
+      { id: 'ev-wc-003', type: 'goal',        minute: 48, teamCode: 'RSA', playerName: 'P. Tau' },
+    ],
+  },
+  {
+    id: 'mock-wc-2026-002',
+    date: '2026-06-11', time: '20:00', timezone: 'CT',
+    status: 'upcoming',
+    home: { id: 'kor', code: 'KOR', name: 'Corea', shortName: 'KOR' },
+    away: { id: 'cze', code: 'CZE', name: 'Czechia', shortName: 'CZE' },
+    venue: { id: 'akron', name: 'Estadio Akron', city: 'Guadalajara', country: 'México' },
+    competition: WC2026,
+  },
+]
+
 // Venue placeholder for matches where exact stadium/city is unconfirmed
 function tbd(country: string): LiveVenue {
   return { id: 'tbd', name: 'Por confirmar', city: 'Por confirmar', country }
@@ -465,14 +504,16 @@ const MOCK_MATCHES: LiveMatch[] = [
   },
 ]
 
+const ALL_MOCK_MATCHES: LiveMatch[] = [...MOCK_MATCHES, ...MOCK_WC_MATCHES]
+
 export class MockProvider implements LiveDataProvider {
   readonly id = 'mock'
   readonly name = 'Mock Provider'
-  readonly description = 'Official pre-WC 2026 international friendly schedule (May 30 – Jun 10)'
+  readonly description = 'Official pre-WC 2026 international friendly schedule (May 30 – Jun 10) + WC 2026 opening day'
 
   async fetchMatches(options: FetchMatchesOptions): Promise<LiveMatch[]> {
     const { from, to, competitionType, teamCode } = options
-    let result = MOCK_MATCHES.filter(m => m.date >= from && m.date <= to)
+    let result = ALL_MOCK_MATCHES.filter(m => m.date >= from && m.date <= to)
     if (competitionType) result = result.filter(m => m.competition.type === competitionType)
     if (teamCode) {
       const code = teamCode.toUpperCase()
@@ -482,6 +523,6 @@ export class MockProvider implements LiveDataProvider {
   }
 
   async fetchMatchById(id: string): Promise<LiveMatch | null> {
-    return MOCK_MATCHES.find(m => m.id === id) ?? null
+    return ALL_MOCK_MATCHES.find(m => m.id === id) ?? null
   }
 }
